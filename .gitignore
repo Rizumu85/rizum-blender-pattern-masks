@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+*.blend1
+
+# built zips (made by build.py)
+dist/
+
+# local only: test scenes (some are copies of real models), test renders,
+# old versions kept by hand
+test/
+backup/

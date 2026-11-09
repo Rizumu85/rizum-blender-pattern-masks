@@ -1,0 +1,18 @@
+schema_version = "1.0.0"
+
+id = "pattern_masks"
+version = "0.3.0"
+name = "Pattern Masks"
+tagline = "Patterns that follow the mesh, baked to UV masks"
+maintainer = "Rizum"
+type = "add-on"
+
+blender_version_min = "4.2.0"
+
+license = ["SPDX:GPL-3.0-or-later"]
+
+[permissions]
+files = "Writes baked pattern mask PNGs to the chosen folder"
+
+[build]
+paths_exclude_pattern = ["__pycache__/", "*.pyc"]
