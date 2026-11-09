@@ -9,7 +9,7 @@ import sys
 import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from pattern_masks import core  # noqa: E402
+from rizum_pattern_masks import core  # noqa: E402
 
 co = np.array([[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0], [-1, 0, 0], [0, -1, 0]], float)
 # a square loop 0-1-2-3-0 with two tails at vertex 0: 0-4 and 0-5

@@ -28,8 +28,8 @@ args = sys.argv[sys.argv.index("--") + 1:]
 obj_name, out_dir = args[0], args[1]
 pkg_dir = args[2] if len(args) > 2 else os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, pkg_dir)
-import pattern_masks as sg  # noqa: E402
-from pattern_masks import core, bake  # noqa: E402
+import rizum_pattern_masks as sg  # noqa: E402
+from rizum_pattern_masks import core, bake  # noqa: E402
 
 os.makedirs(out_dir, exist_ok=True)
 sg.register()

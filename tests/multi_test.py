@@ -10,7 +10,7 @@ import bmesh
 import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-import pattern_masks as sg  # noqa: E402
+import rizum_pattern_masks as sg  # noqa: E402
 
 out_dir = sys.argv[sys.argv.index("--") + 1]
 os.makedirs(out_dir, exist_ok=True)

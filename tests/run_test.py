@@ -11,7 +11,7 @@ import bmesh
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))
-import pattern_masks as sg  # noqa: E402
+import rizum_pattern_masks as sg  # noqa: E402
 
 args = sys.argv[sys.argv.index("--") + 1:]
 out_dir = args[0]

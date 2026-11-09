@@ -18,11 +18,11 @@ here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 def lines_from(pkg_dir):
-    for m in [k for k in sys.modules if k.startswith("pattern_masks")]:
+    for m in [k for k in sys.modules if k.startswith("rizum_pattern_masks")]:
         del sys.modules[m]
     sys.path.insert(0, pkg_dir)
-    sg = importlib.import_module("pattern_masks")
-    core = importlib.import_module("pattern_masks.core")
+    sg = importlib.import_module("rizum_pattern_masks")
+    core = importlib.import_module("rizum_pattern_masks.core")
     sys.path.pop(0)
     try:
         sg.register()
@@ -60,11 +60,11 @@ me = ob.data
 uv = np.empty(len(me.loops) * 2, np.float32)
 me.uv_layers[0].data.foreach_get("uv", uv)
 uv = uv.reshape(-1, 2)
-from pattern_masks import core as c2  # noqa: E402 (current package, re-imported below)
+from rizum_pattern_masks import core as c2  # noqa: E402 (current package, re-imported below)
 sys.path.insert(0, here)
-for m in [k for k in sys.modules if k.startswith("pattern_masks")]:
+for m in [k for k in sys.modules if k.startswith("rizum_pattern_masks")]:
     del sys.modules[m]
-import pattern_masks.core as cur  # noqa: E402
+import rizum_pattern_masks.core as cur  # noqa: E402
 keys = {tuple(sorted(e)) for e in cur.read_path_edges(me).tolist()}
 path, wire = [], []
 for poly in me.polygons:

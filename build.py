@@ -1,8 +1,8 @@
 """Build the extension zip into dist/, and optionally install it.
 
-    python build.py            # dist/Rizum_pattern_masks-<version>.zip
+    python build.py            # dist/rizum_pattern_masks-<version>.zip
     python build.py --install  # also copy the files into Blender 5.0's
-                               # extensions/user_default/pattern_masks
+                               # extensions/user_default/rizum_pattern_masks
 
 Installing only copies files; it never starts Blender, so Blender's
 preferences are left alone. Restart Blender to load the new files.
@@ -14,7 +14,7 @@ import sys
 import zipfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-PKG = os.path.join(HERE, "pattern_masks")
+PKG = os.path.join(HERE, "rizum_pattern_masks")
 BLENDER = "5.0"
 
 
@@ -28,7 +28,7 @@ def main():
     ext_id, version = manifest_value("id"), manifest_value("version")
     files = sorted(f for f in os.listdir(PKG) if f.endswith((".py", ".toml")))
     os.makedirs(os.path.join(HERE, "dist"), exist_ok=True)
-    out = os.path.join(HERE, "dist", f"Rizum_{ext_id}-{version}.zip")
+    out = os.path.join(HERE, "dist", f"{ext_id}-{version}.zip")
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
         for f in files:
             z.write(os.path.join(PKG, f), f)

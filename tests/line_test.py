@@ -12,8 +12,8 @@ import numpy as np
 args = sys.argv[sys.argv.index("--") + 1:]
 obj_name, out_dir = args[0], args[1]
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-import pattern_masks as sg  # noqa: E402
-from pattern_masks import core  # noqa: E402
+import rizum_pattern_masks as sg  # noqa: E402
+from rizum_pattern_masks import core  # noqa: E402
 
 sg.register()
 os.makedirs(out_dir, exist_ok=True)

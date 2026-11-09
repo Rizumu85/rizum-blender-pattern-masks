@@ -9,6 +9,7 @@ import bpy
 
 ZH = {
     # panel and layer list
+    "Rizum Pattern Masks": "Rizum 图案遮罩",
     "Pattern Masks": "图案遮罩",
     "Sharp Corners": "尖角",
     "Show Edges": "显示标记的边",

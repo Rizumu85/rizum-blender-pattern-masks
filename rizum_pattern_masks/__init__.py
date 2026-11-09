@@ -1,4 +1,4 @@
-"""Pattern Masks: stitches, line art and grids that follow the mesh from
+"""Rizum Pattern Masks: stitches, line art and grids that follow the mesh from
 marked edges, baked to UV masks."""
 
 import hashlib
@@ -1711,7 +1711,7 @@ class STITCHGEN_OT_stitch_preset_add(_PresetPoll, AddPresetBase, bpy.types.Opera
     bl_idname = "stitch_gen.stitch_preset_add"
     bl_label = "Add Stitch Preset"
     preset_menu = "STITCHGEN_MT_stitch_presets"
-    preset_subdir = "pattern_masks/stitches"
+    preset_subdir = "rizum_pattern_masks/stitches"
     preset_defines = _PRESET_DEFINES[:2]
     preset_values = _STITCH_VALUES
 
@@ -1721,7 +1721,7 @@ class STITCHGEN_OT_line_preset_add(_PresetPoll, AddPresetBase, bpy.types.Operato
     bl_idname = "stitch_gen.line_preset_add"
     bl_label = "Add Line Art Preset"
     preset_menu = "STITCHGEN_MT_line_presets"
-    preset_subdir = "pattern_masks/line_art"
+    preset_subdir = "rizum_pattern_masks/line_art"
     preset_defines = _PRESET_DEFINES
     preset_values = _LINE_VALUES
 
@@ -1735,35 +1735,35 @@ class STITCHGEN_OT_grid_preset_add(_PresetPoll, AddPresetBase, bpy.types.Operato
     bl_idname = "stitch_gen.grid_preset_add"
     bl_label = "Add Grid Preset"
     preset_menu = "STITCHGEN_MT_grid_presets"
-    preset_subdir = "pattern_masks/grid"
+    preset_subdir = "rizum_pattern_masks/grid"
     preset_defines = _PRESET_DEFINES
     preset_values = _GRID_VALUES
 
 
 class STITCHGEN_MT_grid_presets(bpy.types.Menu):
     bl_label = "Grid Presets"
-    preset_subdir = "pattern_masks/grid"
+    preset_subdir = "rizum_pattern_masks/grid"
     preset_operator = "script.execute_preset"
     draw = bpy.types.Menu.draw_preset
 
 
 class STITCHGEN_MT_stitch_presets(bpy.types.Menu):
     bl_label = "Stitch Presets"
-    preset_subdir = "pattern_masks/stitches"
+    preset_subdir = "rizum_pattern_masks/stitches"
     preset_operator = "script.execute_preset"
     draw = bpy.types.Menu.draw_preset
 
 
 class STITCHGEN_MT_line_presets(bpy.types.Menu):
     bl_label = "Line Art Presets"
-    preset_subdir = "pattern_masks/line_art"
+    preset_subdir = "rizum_pattern_masks/line_art"
     preset_operator = "script.execute_preset"
     draw = bpy.types.Menu.draw_preset
 
 
 class STITCHGEN_PT_stitch_presets(_DefaultsFirst, PresetPanel, bpy.types.Panel):
     bl_label = "Stitch Presets"
-    preset_subdir = "pattern_masks/stitches"
+    preset_subdir = "rizum_pattern_masks/stitches"
     preset_operator = "script.execute_preset"
     preset_add_operator = "stitch_gen.stitch_preset_add"
 
@@ -1771,7 +1771,7 @@ class STITCHGEN_PT_stitch_presets(_DefaultsFirst, PresetPanel, bpy.types.Panel):
 class STITCHGEN_PT_grid_presets(_DefaultsFirst, PresetPanel, bpy.types.Panel):
     bl_label = "Grid Presets"
     reset_kind = 'GRID'
-    preset_subdir = "pattern_masks/grid"
+    preset_subdir = "rizum_pattern_masks/grid"
     preset_operator = "script.execute_preset"
     preset_add_operator = "stitch_gen.grid_preset_add"
 
@@ -1779,7 +1779,7 @@ class STITCHGEN_PT_grid_presets(_DefaultsFirst, PresetPanel, bpy.types.Panel):
 class STITCHGEN_PT_line_presets(_DefaultsFirst, PresetPanel, bpy.types.Panel):
     bl_label = "Line Art Presets"
     reset_kind = 'LINE'
-    preset_subdir = "pattern_masks/line_art"
+    preset_subdir = "rizum_pattern_masks/line_art"
     preset_operator = "script.execute_preset"
     preset_add_operator = "stitch_gen.line_preset_add"
 
@@ -2101,7 +2101,7 @@ def _tool_row(layout, label):
 
 
 class VIEW3D_PT_stitch_gen(bpy.types.Panel):
-    bl_label = "Pattern Masks"
+    bl_label = "Rizum Pattern Masks"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
     bl_category = "Pattern Masks"

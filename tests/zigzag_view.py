@@ -9,7 +9,7 @@ import bpy
 from mathutils import Vector
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-import pattern_masks as sg  # noqa: E402
+import rizum_pattern_masks as sg  # noqa: E402
 
 argv = sys.argv[sys.argv.index("--") + 1:]
 out = argv[0]

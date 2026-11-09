@@ -8,7 +8,7 @@ import sys
 import bpy
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-import pattern_masks as sg  # noqa: E402
+import rizum_pattern_masks as sg  # noqa: E402
 
 prefix = sys.argv[sys.argv.index("--") + 1]
 sg.register()

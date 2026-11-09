@@ -16,7 +16,7 @@ argv = sys.argv[sys.argv.index("--") + 1:]
 obj_name, out_root = argv[0], argv[1]
 res = argv[2] if len(argv) > 2 else '4096'
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-import pattern_masks as sg  # noqa: E402
+import rizum_pattern_masks as sg  # noqa: E402
 
 sg.register()
 ob = bpy.data.objects[obj_name]

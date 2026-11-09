@@ -13,7 +13,7 @@ from mathutils import Vector
 argv = sys.argv[sys.argv.index("--") + 1:]
 name, out_dir = argv[0], argv[1]
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-import pattern_masks as sg  # noqa: E402
+import rizum_pattern_masks as sg  # noqa: E402
 
 sg.register()
 os.makedirs(out_dir, exist_ok=True)

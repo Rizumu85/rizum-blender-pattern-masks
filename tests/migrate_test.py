@@ -9,7 +9,7 @@ import sys
 import bpy
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-import pattern_masks as sg  # noqa: E402
+import rizum_pattern_masks as sg  # noqa: E402
 
 sg.register()
 sg._on_load(None)          # the file was opened before the add-on was registered

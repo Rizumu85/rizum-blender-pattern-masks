@@ -6,8 +6,8 @@ import bmesh
 import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-import pattern_masks as sg  # noqa: E402
-from pattern_masks import overlay  # noqa: E402
+import rizum_pattern_masks as sg  # noqa: E402
+from rizum_pattern_masks import overlay  # noqa: E402
 
 sg.register()
 ob = bpy.data.objects["Skirt"]

@@ -10,7 +10,7 @@ import sys
 import bpy
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-import pattern_masks as sg  # noqa: E402
+import rizum_pattern_masks as sg  # noqa: E402
 
 sg.register()
 ob = bpy.data.objects["Skirt"]
@@ -26,7 +26,7 @@ print("RESULT new layer width", round(layer.width, 2), "rows", [l.name for l in 
 layer.width, layer.offset, layer.smooth = 0.3, 1.5, 4.0
 print("RESULT save line preset", bpy.ops.stitch_gen.line_preset_add(name="Thin Trim"))
 layer.width, layer.offset, layer.smooth = 2.0, 0.0, 0.0
-path = os.path.join(bpy.utils.user_resource('SCRIPTS', path="presets/pattern_masks/line_art"),
+path = os.path.join(bpy.utils.user_resource('SCRIPTS', path="presets/rizum_pattern_masks/line_art"),
                     "Thin Trim.py")
 print("RESULT preset file", os.path.exists(path))
 bpy.ops.script.execute_preset(filepath=path, menu_idname="STITCHGEN_MT_line_presets")
@@ -37,7 +37,7 @@ s.line_index = 0
 s.length, s.gap = 6.0, 3.0
 print("RESULT save stitch preset", bpy.ops.stitch_gen.stitch_preset_add(name="Long"))
 s.length, s.gap = 4.0, 2.0
-path = os.path.join(bpy.utils.user_resource('SCRIPTS', path="presets/pattern_masks/stitches"),
+path = os.path.join(bpy.utils.user_resource('SCRIPTS', path="presets/rizum_pattern_masks/stitches"),
                     "Long.py")
 bpy.ops.script.execute_preset(filepath=path, menu_idname="STITCHGEN_MT_stitch_presets")
 print("RESULT stitch after preset", round(s.length, 2), round(s.gap, 2))

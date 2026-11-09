@@ -16,8 +16,8 @@ import numpy as np
 argv = sys.argv[sys.argv.index("--") + 1:]
 name, out = argv[0], argv[1]
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-import pattern_masks as sg  # noqa: E402
-from pattern_masks import core  # noqa: E402
+import rizum_pattern_masks as sg  # noqa: E402
+from rizum_pattern_masks import core  # noqa: E402
 
 sg.register()
 sg._on_load(None)

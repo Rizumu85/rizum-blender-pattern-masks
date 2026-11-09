@@ -15,8 +15,8 @@ import numpy as np
 
 out_dir = sys.argv[sys.argv.index("--") + 1]
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-import pattern_masks as sg  # noqa: E402
-from pattern_masks import core  # noqa: E402
+import rizum_pattern_masks as sg  # noqa: E402
+from rizum_pattern_masks import core  # noqa: E402
 
 sg.register()
 os.makedirs(out_dir, exist_ok=True)
@@ -67,7 +67,7 @@ mi = np.zeros(len(lme.polygons), np.int32)
 lme.polygons.foreach_get("material_index", mi)
 print("RESULT line slots", [tuple(round(c, 2) for c in m.diffuse_color[:3]) for m in lme.materials],
       "quads per slot", np.bincount(mi).tolist())
-from pattern_masks import overlay  # noqa: E402
+from rizum_pattern_masks import overlay  # noqa: E402
 print("RESULT overlay shown", [a for a, _ in overlay._shown(ob)])
 s.lines[1].show_marks = False
 print("RESULT overlay shown, line marks hidden", [a for a, _ in overlay._shown(ob)])

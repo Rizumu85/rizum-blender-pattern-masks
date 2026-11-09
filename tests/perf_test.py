@@ -2,7 +2,7 @@
 import os, sys, time
 import bpy, bmesh
 sys.path.insert(0, os.environ.get("STITCH_PKG") or os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-import pattern_masks as sg
+import rizum_pattern_masks as sg
 sg.register()
 ob = bpy.data.objects["Skirt"]
 bpy.context.view_layer.objects.active = ob

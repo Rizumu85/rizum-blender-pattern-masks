@@ -1,4 +1,4 @@
-# Pattern Masks (Blender add-on)
+# Rizum Pattern Masks (Blender add-on)
 
 Places sewing stitches (dashed or zigzag), line art (solid lines of a fixed
 real width) and checkerboards along edges you pick on a mesh. Everything is measured along
@@ -10,7 +10,7 @@ Requires Blender 4.2 or newer (tested on 5.0.1).
 ## Install
 
 Edit > Preferences > Get Extensions > ⌄ (top right) > **Install from Disk…** >
-`Rizum_pattern_masks-0.3.0.zip`.
+`rizum_pattern_masks-0.3.0.zip`.
 
 The panel is in the 3D View sidebar (N) under **Pattern Masks**.
 
@@ -204,7 +204,7 @@ which file names can't hold, become `_`). Stitch presets hold all stitch setting
 six grid settings; line art presets
 hold From Edge, Corner Inset, Smooth, Width and Include Stitch Edges, and apply
 to the selected layer. Presets are Blender preset files in your user scripts
-folder (`presets/pattern_masks/`), so they are available in every .blend.
+folder (`presets/rizum_pattern_masks/`), so they are available in every .blend.
 
 All lengths are in millimetres, shown with "mm" in the field (0.1 mm per arrow
 click). They are converted with
@@ -310,10 +310,10 @@ so Painter picks up the change.
 
 ## Development
 
-- `pattern_masks/` is the add-on itself.
+- `rizum_pattern_masks/` is the add-on itself.
 - `tests/` holds scripts run inside Blender, for example
   `blender -b --factory-startup test/skirt_test.blend -P tests/grid_test.py -- <out_dir>`.
   `tests/make_test_mesh.py` makes `test/skirt_test.blend`. The `test/` folder
   holds local scenes and renders and is not in git.
 - `python build.py` writes the zip to `dist/`. `python build.py --install`
-  also copies the files into Blender 5.0's `extensions/user_default/pattern_masks`.
+  also copies the files into Blender 5.0's `extensions/user_default/rizum_pattern_masks`.

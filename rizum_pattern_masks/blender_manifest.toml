@@ -1,10 +1,11 @@
 schema_version = "1.0.0"
 
-id = "pattern_masks"
+id = "rizum_pattern_masks"
 version = "0.3.0"
-name = "Pattern Masks"
+name = "Rizum Pattern Masks"
 tagline = "Patterns that follow the mesh, baked to UV masks"
 maintainer = "Rizum"
+website = "https://github.com/Rizumu85/rizum-blender-pattern-masks"
 type = "add-on"
 
 blender_version_min = "4.2.0"
