@@ -1408,19 +1408,21 @@ def generate(key_obj, me, mw, p):
         entry["line_pairs"] = {n: entry["topo"].path_pairs(me, (n,)) for n in line_attr_names(me)}
         entry["line_chains"] = {}
         entry["grid_coords"] = {}
+        if any(a != PATH_ATTR for a in entry.get("stitch_attrs", ())):
+            entry["cl_key"] = None          # the stitches follow line art edges too
         entry["line_key"] = None
         entry["line_sig"] = line_sig
     if entry is None or entry["sig"] != sig:
         topo = Topology(me, mw, p["uv_name"])
         pairs = topo.path_pairs(me)
-        chains = build_chains(pairs, topo.co) if len(pairs) else []
         line_pairs = {n: topo.path_pairs(me, (n,)) for n in line_attr_names(me)}
-        entry = {"sig": sig, "topo": topo, "chains": chains, "cl_key": None, "cls": None,
+        entry = {"sig": sig, "topo": topo, "cl_key": None, "cls": None,
                  "corners": topo.corner_ids(me), "pairs": pairs, "line_pairs": line_pairs,
                  "line_chains": {}, "grid_coords": {}, "line_sig": line_sig}
         _cache[key_obj] = entry
     topo = entry["topo"]
-    chains = entry["chains"]
+    entry["stitch_attrs"] = stitch_attrs = tuple(p.get("stitch_attrs", (PATH_ATTR,)))
+    chains = edge_chains(entry, stitch_attrs)
     rib = RibbonData()
     if chains and p.get("stitches", True):
         rib = _stitch_ribbons(entry, topo, chains, p)
@@ -1431,7 +1433,7 @@ def generate(key_obj, me, mw, p):
         from . import lineart
         cos, quads, owner, base = [], [], [], 0
         for li, l in enumerate(layers):
-            ch = line_chains(entry, l[5], bool(l[3]))
+            ch = line_chains(entry, l[3])
             if not ch:
                 continue
             co, q = lineart.strips(topo, ch, entry["corners"], p["flip"],
@@ -1450,39 +1452,44 @@ def generate(key_obj, me, mw, p):
     return rib, topo
 
 
-def line_chains(entry, attr, include_stitch_edges):
-    """Chains a line art layer follows: its own edges (attribute ``attr``),
-    plus the stitch edges if asked."""
-    key = (attr, include_stitch_edges)
-    hit = entry["line_chains"].get(key)
+def edge_chains(entry, attrs):
+    """Chains along the union of the edge sets ``attrs`` (the stitch edges
+    and/or line art edge attributes): a layer's own edges plus those of the
+    layers it refers to."""
+    key = tuple(sorted(set(attrs)))
+    cache = entry["line_chains"]
+    hit = cache.get(key)
     if hit is None:
-        own = entry["line_pairs"].get(attr, np.zeros((0, 2), np.int64))
-        parts = [own] + ([entry["pairs"]] if include_stitch_edges else [])
-        pairs = np.vstack(parts)
+        parts = [entry["pairs"] if a == PATH_ATTR else
+                 entry["line_pairs"].get(a, np.zeros((0, 2), np.int64)) for a in key]
+        pairs = np.vstack(parts) if parts else np.zeros((0, 2), np.int64)
         if len(pairs):
             pairs = np.unique(np.sort(pairs, axis=1), axis=0)
         topo = entry["topo"]
         hit = [c for c in build_chains(pairs, topo.co) if len(c[0]) >= 2] if len(pairs) else []
-        entry["line_chains"][key] = hit
+        cache[key] = hit
     return hit
 
 
-def grid_coords(entry, attr):
-    """Fabric coordinates for a grid layer following the edges ``attr``."""
+line_chains = edge_chains            # a line art layer's chains
+
+
+def grid_coords(entry, attrs):
+    """Fabric coordinates for a grid layer following the edge sets ``attrs``."""
+    if isinstance(attrs, str):
+        attrs = (attrs,)
+    key = tuple(sorted(set(attrs)))
     cache = entry.setdefault("grid_coords", {})
-    hit = cache.get(attr)
+    hit = cache.get(key)
     if hit is None:
         from . import grid
-        own = entry["line_pairs"].get(attr, np.zeros((0, 2), np.int64))
-        topo = entry["topo"]
-        chains = [c for c in build_chains(own, topo.co) if len(c[0]) >= 2] if len(own) else []
-        hit = cache[attr] = grid.fabric_coords(topo, chains)
+        hit = cache[key] = grid.fabric_coords(entry["topo"], edge_chains(entry, key))
     return hit
 
 
 def _stitch_ribbons(entry, topo, chains, p):
     cl_key = (p["inset"], p["smooth"], p["flip"], p.get("corner", 0.0),
-              p.get("corner_inset", 0.0))
+              p.get("corner_inset", 0.0), entry.get("stitch_attrs"))
     if entry["cl_key"] != cl_key:
         ds = centerline_spacing(topo, chains, p["smooth"])
         cls = build_lines(topo, [c for c in chains if len(c[0]) >= 2], p["inset"], p["smooth"],

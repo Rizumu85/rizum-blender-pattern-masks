@@ -461,7 +461,7 @@ class LineBake:
     PNG per line layer and texture set (material and UDIM tile)."""
 
     def __init__(self, obj, entry, settings, layers):
-        """layers: [(name, offset, width, corner_depth, include_stitch_edges, smooth,
+        """layers: [(name, offset, width, corner_depth, edge sets followed, smooth,
         edge attribute)] in scene units."""
         self.folder = output_folder(settings)
         self.obj, self.settings = obj, settings
@@ -473,12 +473,12 @@ class LineBake:
         if topo.uv is None:
             raise RuntimeError(rpt("{} has no UV map").format(obj.name))
         self.names = _unique_names([l[0] for l in layers])
-        # one distance field per edge set (with or without the stitch edges)
+        # one distance field per set of edges followed
         self.parts = []                      # (layer indices, field, faces)
         faces = []
-        for attr, include in sorted({(l[6], bool(l[4])) for l in layers}):
-            idx = [i for i, l in enumerate(layers) if l[6] == attr and bool(l[4]) == include]
-            chains = core.line_chains(entry, attr, include)
+        for attrs in sorted({tuple(l[4]) for l in layers}):
+            idx = [i for i, l in enumerate(layers) if tuple(l[4]) == attrs]
+            chains = core.line_chains(entry, attrs)
             if not idx or not chains:
                 continue
             sub = [(layers[i][1], layers[i][2], layers[i][3], layers[i][5]) for i in idx]
@@ -542,7 +542,7 @@ class GridBake:
 
     def __init__(self, obj, entry, settings, layers):
         """layers: [(name, edge attribute, cell, angle, from edge, along edge,
-        wobble, layout)] in scene units (angle in radians)."""
+        wobble, layout, edge sets followed)] in scene units (angle in radians)."""
         self.folder = output_folder(settings)
         self.obj, self.settings = obj, settings
         self.res = int(settings.resolution)
@@ -551,7 +551,7 @@ class GridBake:
         if topo.uv is None:
             raise RuntimeError(rpt("{} has no UV map").format(obj.name))
         self.names = _unique_names([l[0] for l in layers])
-        self.layers = [(l, core.grid_coords(entry, l[1]).layout(l[2], l[3], l[7]))
+        self.layers = [(l, core.grid_coords(entry, l[8]).layout(l[2], l[3], l[7]))
                        for l in layers]
         faces = [c.faces for _, c in self.layers if len(c.faces)]
         self.faces = np.unique(np.concatenate(faces)) if faces else np.zeros(0, np.int64)
@@ -574,7 +574,7 @@ class GridBake:
         tile = np.array([tu, tv])
         of_group = (self.tri_mat == mat) & (self.tri_tile == tile).all(1)
         out = []
-        for name, ((_, attr, cell, _angle, off_y, off_x, wobble, _mode), lay) in zip(
+        for name, ((_, attr, cell, _angle, off_y, off_x, wobble, _mode, _attrs), lay) in zip(
                 self.names, self.layers):
             f = lay.faces[of_group[lay.faces]]
             if not len(f):

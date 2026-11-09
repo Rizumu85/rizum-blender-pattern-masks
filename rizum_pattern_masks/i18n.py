@@ -158,10 +158,13 @@ ZH = {
     "Marked {} corners": "已标记 {} 个尖角",
     "Mark Corner": "标记尖角",
     "Clear Corner": "取消尖角",
-    "Include Stitch Edges": "包含缝线边",
     "Smooths the inner side of the line between corners, like the stitch line; the outer side keeps the exact edge":
         "像缝线一样平滑线的内侧（尖角处保持尖），外侧仍然贴着边",
-    "Also follow the stitch edges, not only the line art edges": "除了线稿边，也沿缝线边画线",
+    "Reference": "引用",
+    "Also follow this layer's edges": "也沿这个图层的边走",
+    "Pick Layer": "吸取图层",
+    "Click a layer in the list to also follow its edges (Esc or right-click: cancel)":
+        "在列表里点一个图层，也沿它的边走（Esc 或右键取消）",
     "Rebuild the stitches": "重新生成缝线",
     "Bake the stitches into a 16-bit mask PNG per texture set":
         "把缝线烘焙成遮罩，每个纹理集一张 16 位 PNG",
@@ -210,6 +213,7 @@ ZH_CTX = {
     "Unrolled": "展开",
     "Stitches: Samples & Device": "缝线：采样与设备",
     "Default": "默认值",
+    "Reference": "引用",
     "Style": "样式",
     "Dashed": "虚线",
     "Zigzag": "锯齿",
@@ -231,7 +235,8 @@ ZH_CTX = {
 OPERATOR_NAMES = ("Add Selected", "Remove Selected", "Select Edges", "Clear Edges",
                   "Update", "Bake Mask", "Mark Corner", "Clear Corner", "Detect Corners",
                   "Select Corners", "Add Line", "Remove Line", "Bake Masks", "Add Stitches",
-                  "Remove Layer", "Apply Preset", "Use as Default")
+                  "Remove Layer", "Apply Preset", "Use as Default",
+                  "Reference", "Pick Layer")
 
 translations = {
     "zh_HANS": {

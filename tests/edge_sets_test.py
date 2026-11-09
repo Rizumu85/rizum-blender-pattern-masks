@@ -1,8 +1,8 @@
 """Separate stitch edges and line art edges.
 
 Marks the hem as stitch edges and the waist (top border) as line art edges, then
-checks: the stitches stay on the hem only; a line layer that includes the stitch
-edges covers both borders, one that does not covers only the waist.
+checks: the stitches stay on the hem only; a line layer that refers to the stitches
+covers both borders, one that does not covers only the waist.
 
 blender -b --factory-startup skirt_test.blend -P edge_sets_test.py -- <out_dir>
 """
@@ -49,6 +49,7 @@ print("RESULT rows after first marking", [(l.name, l.edge_attr) for l in s.lines
 sg.regenerate(ob)
 n0 = s.dash_count
 bpy.ops.stitch_gen.line_add()
+s.lines[1].ref_attr = core.PATH_ATTR            # also follows the stitch edges
 mark(1, lambda zs: all(z > -0.01 for z in zs))
 print("RESULT layers after marking line edges", [l.name for l in s.lines])
 sg.regenerate(ob)
@@ -58,7 +59,7 @@ print("RESULT stitch z range %.3f..%.3f" % (stitch_z.min(), stitch_z.max()))
 bpy.ops.stitch_gen.line_add()
 print("RESULT new layer edges", s.lines[2].edge_attr, "own edges before marking",
       len(core.read_path_edges(ob.data, s.lines[2].edge_attr)))
-s.lines[2].include_stitch = False
+s.lines[2].ref_attr = ""                         # follows only its own edges
 mark(2, lambda zs: all(z > -0.01 for z in zs))     # line2's own edges: the waist
 s.lines[2].color = (1.0, 0.0, 0.0, 1.0)
 sg.regenerate(ob)

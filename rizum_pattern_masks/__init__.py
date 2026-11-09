@@ -251,10 +251,10 @@ def _grid_geometry(obj, scene):
     topo = entry["topo"]
     lift = max(topo.mean_edge / 60.0, topo.span * 2e-5)
     cos, tris, vss, owner, base = [], [], [], [], 0
-    for li, (attr, cell, angle, off_y, off_x, wobble, mode) in enumerate(grids):
-        if mode == "unrolled" and not _unrolled_ready(obj, scene, entry, attr):
+    for li, (attr, cell, angle, off_y, off_x, wobble, mode, attrs) in enumerate(grids):
+        if mode == "unrolled" and not _unrolled_ready(obj, scene, entry, attrs):
             continue                       # being worked out; shown when done
-        lay = core.grid_coords(entry, attr).layout(cell, angle, mode)
+        lay = core.grid_coords(entry, attrs).layout(cell, angle, mode)
         co, t, vs = grid.preview(topo, lay, lift, off_x, off_y,
                                  grid.Wobble(attr, cell, wobble))
         if not len(t):
@@ -279,11 +279,11 @@ def _redraw_views():
                 area.tag_redraw()
 
 
-def _unrolled_ready(obj, scene, entry, attr):
+def _unrolled_ready(obj, scene, entry, attrs):
     """Is the Unrolled flattening of this layer's piece at hand? If not, it
     is worked out in the background (a few seconds on a big piece) with a
     progress bar in the panel, and the preview is rebuilt when it is done."""
-    fld = core.grid_coords(entry, attr)
+    fld = core.grid_coords(entry, attrs)
     if getattr(fld, "_flat_log", None) is not None:
         return True
     if bpy.app.background:
@@ -559,6 +559,7 @@ def _on_size(self, context):
 def _params(s, scene):
     # UI values are millimetres; geometry works in scene units.
     k = 0.001 / (scene.unit_settings.scale_length or 1.0)
+    st = _stitch_item(s)
     return {
         "inset": s.inset * k, "smooth": s.smooth * k, "flip": s.flip,
         "length": s.length * k, "gap": s.gap * k, "width": s.width * k, "round": s.roundness,
@@ -569,10 +570,11 @@ def _params(s, scene):
         "corner_inset": s.corner_inset * k,
         "uv_name": s.uv_map,
         "stitches": _stitches_on(s),
-        "lines": tuple((l.offset * k, l.width * k, l.corner_inset * k, l.include_stitch,
+        "stitch_attrs": _edge_set(s, st) if st is not None else (core.PATH_ATTR,),
+        "lines": tuple((l.offset * k, l.width * k, l.corner_inset * k, _edge_set(s, l),
                         l.smooth * k, _layer_attr(l)) for l in _line_items(s) if l.enabled),
         "grids": tuple((_layer_attr(l), l.grid_cell * k, l.grid_angle, l.grid_from * k,
-                        l.grid_along * k, l.grid_wobble, l.grid_layout.lower())
+                        l.grid_along * k, l.grid_wobble, l.grid_layout.lower(), _edge_set(s, l))
                        for l in _grid_items(s) if l.enabled),
     }
 
@@ -634,9 +636,12 @@ def _ensure_layers(ob):
     used stitches get the stitch row, line layers their own color. Objects
     that never used the add-on are left alone (the list starts empty)."""
     s = ob.stitch_gen
-    if s.ui_version >= 1:
+    if s.ui_version >= UI_VERSION:
         return
     if not _uses_addon(ob):
+        return
+    if s.ui_version >= 1:
+        _migrate_references(ob)
         return
     _migrate_line_layers(ob)      # also when the file was open before the add-on
     global _MUTE
@@ -654,6 +659,49 @@ def _ensure_layers(ob):
         s.ui_version = 1
     finally:
         _MUTE = False
+    _migrate_references(ob)
+
+
+UI_VERSION = 2           # 1: the layer list (0.3.0); 2: references between layers
+
+
+def _migrate_references(ob):
+    """Before references, a line art layer followed the stitch edges when its
+    Include Stitch Edges was on (the default): it now refers to the stitches."""
+    s = ob.stitch_gen
+    if s.ui_version >= UI_VERSION:
+        return
+    global _MUTE
+    _MUTE = True
+    try:
+        if _stitch_item(s) is not None:
+            for l in _line_items(s):
+                if l.include_stitch and not l.ref_attr:
+                    l.ref_attr = core.PATH_ATTR
+        s.ui_version = UI_VERSION
+    finally:
+        _MUTE = False
+
+
+def _layer_by_attr(s, attr):
+    for l in s.lines:
+        if _layer_attr(l) == attr:
+            return l
+    return None
+
+
+def _edge_set(s, layer):
+    """Edge attributes a layer follows: its own, then the layer it refers
+    to, that one's reference and so on (a loop of references stops where it
+    comes round again)."""
+    out, l = [], layer
+    while l is not None:
+        a = _layer_attr(l)
+        if a in out:
+            break
+        out.append(a)
+        l = _layer_by_attr(s, l.ref_attr) if l.ref_attr else None
+    return tuple(sorted(out))
 
 
 def _defer_ensure(ob):
@@ -717,10 +765,10 @@ def _new_line_layer(ob, kind='LINE'):
 
 
 def _line_layers(s, scene):
-    """[(name, offset, width, corner depth, include stitch edges, smooth)] of the enabled
-    line layers."""
+    """[(name, offset, width, corner depth, edge sets followed, smooth, own edges)]
+    of the enabled line layers."""
     k = 0.001 / (scene.unit_settings.scale_length or 1.0)
-    return [(l.name, l.offset * k, l.width * k, l.corner_inset * k, l.include_stitch,
+    return [(l.name, l.offset * k, l.width * k, l.corner_inset * k, _edge_set(s, l),
              l.smooth * k, _layer_attr(l)) for l in _line_items(s)
             if l.enabled and l.width > 0]
 
@@ -988,8 +1036,22 @@ def _mm(name, default, description, minv=0.0, soft_max=10.0, upd=_on_change, **k
 
 
 def _on_marks(self, context):
-    """The overlay shows the shown layers' edges, the selected one brightest."""
+    """The overlay shows the shown layers' edges, the selected one brightest.
+    While the eyedropper is on, a click on a layer in the list sets it as the
+    reference of the layer being edited, which stays selected."""
     ob = self.id_data
+    if _PICK.get("ob") == getattr(ob, "name_full", None) and not _PICK.get("done"):
+        s = ob.stitch_gen
+        me = _layer_by_attr(s, _PICK["attr"])
+        if 0 <= s.line_index < len(s.lines) and me is not None:
+            picked = s.lines[s.line_index]
+            if picked != me:
+                me.ref_attr = _layer_attr(picked)
+            _PICK["done"] = True
+            back = next(i for i, l in enumerate(s.lines) if l == me)
+            if s.line_index != back:
+                s.line_index = back           # runs this again, now not picking
+            return
     if isinstance(ob, bpy.types.Object):
         overlay.invalidate(ob)
         for area in context.screen.areas if context.screen else ():
@@ -1045,9 +1107,10 @@ class StitchGenLine(bpy.types.PropertyGroup):
                 "the stitch line; the outer side keeps the exact edge", soft_max=50.0)
     edge_attr: StringProperty(default="", options={'HIDDEN'},
                               description="Mesh attribute with this layer's edges")
-    include_stitch: BoolProperty(name="Include Stitch Edges", default=True, update=_on_change,
-                                 description="Also follow the stitch edges, not only the "
-                                             "line art edges")
+    ref_attr: StringProperty(default="", options={'HIDDEN'}, update=_on_change,
+                             description="Edges of the layer this one also follows")
+    # replaced by references; kept so files and presets from 0.3.0 still load
+    include_stitch: BoolProperty(default=True, options={'HIDDEN'})
     kind: EnumProperty(items=[('LINE', "Line Art", ""), ('GRID', "Grid", "")], default='LINE',
                        options={'HIDDEN'})
     grid_from: _mm("From Edge", 0.0, "Slides the squares away from the marked edge",
@@ -1197,7 +1260,7 @@ class _EditPathBase:
             try:
                 _new_stitch_row(s)
                 s.line_index = 0
-                s.ui_version = 1
+                s.ui_version = UI_VERSION
             finally:
                 _MUTE = False
         if 0 <= s.line_index < len(s.lines) and not s.lines[s.line_index].show_marks:
@@ -1432,7 +1495,7 @@ class STITCHGEN_OT_line_add(bpy.types.Operator):
         try:
             _new_line_layer(ob)
             _apply_default_to_new(context, ob, 'LINE')
-            ob.stitch_gen.ui_version = 1
+            ob.stitch_gen.ui_version = UI_VERSION
         finally:
             _MUTE = False
         regenerate(ob, context.scene, create=True)
@@ -1457,7 +1520,7 @@ class STITCHGEN_OT_grid_add(bpy.types.Operator):
         try:
             _new_line_layer(ob, 'GRID')
             _apply_default_to_new(context, ob, 'GRID')
-            ob.stitch_gen.ui_version = 1
+            ob.stitch_gen.ui_version = UI_VERSION
         finally:
             _MUTE = False
         regenerate(ob, context.scene, create=True)
@@ -1491,7 +1554,7 @@ class STITCHGEN_OT_stitch_add(bpy.types.Operator):
             s.line_index = 0
             _apply_default_to_new(context, ob, 'STITCH')
             s.stitches = True
-            s.ui_version = 1
+            s.ui_version = UI_VERSION
         finally:
             _MUTE = False
         regenerate(ob, context.scene, create=True)
@@ -1529,6 +1592,9 @@ class STITCHGEN_OT_line_remove(bpy.types.Operator):
         i = s.line_index
         name = _layer_attr(s.lines[i])
         s.lines.remove(i)
+        for l in s.lines:
+            if l.ref_attr == name:
+                l.ref_attr = ""
         s.line_index = max(min(i, len(s.lines) - 1), 0)
         if not any(_layer_attr(l) == name for l in s.lines):   # its edges go with it
             me = ob.data
@@ -1550,21 +1616,21 @@ def _bake_count(ob):
     attrs = ob.data.attributes
     n = 1 if _stitches_on(s) and s.dash_count > 0 else 0
     for l in _line_items(s):
-        if l.enabled and l.width > 0 and (
-                _layer_attr(l) in attrs or (l.include_stitch and core.PATH_ATTR in attrs)):
+        if l.enabled and l.width > 0 and any(a in attrs for a in _edge_set(s, l)):
             n += 1
     for l in _grid_items(s):
-        if l.enabled and l.grid_cell > 0 and _layer_attr(l) in attrs:
+        if l.enabled and l.grid_cell > 0 and any(a in attrs for a in _edge_set(s, l)):
             n += 1
     return n
 
 
 def _grid_layers(s, scene):
-    """[(name, edge attribute, cell, angle, from edge, along edge, wobble, into
-    folds)] of the shown grid layers, in scene units."""
+    """[(name, edge attribute, cell, angle, from edge, along edge, wobble, layout,
+    edge sets followed)] of the shown grid layers, in scene units."""
     k = 0.001 / (scene.unit_settings.scale_length or 1.0)
     return [(l.name, _layer_attr(l), l.grid_cell * k, l.grid_angle, l.grid_from * k,
-             l.grid_along * k, l.grid_wobble, l.grid_layout.lower()) for l in _grid_items(s)
+             l.grid_along * k, l.grid_wobble, l.grid_layout.lower(), _edge_set(s, l))
+            for l in _grid_items(s)
             if l.enabled and l.grid_cell > 0]
 
 
@@ -1604,6 +1670,113 @@ class STITCHGEN_OT_set_uv_map(bpy.types.Operator):
         return {'FINISHED'}
 
 
+_PICK = {}               # while the eyedropper is on: object name, edges of the layer
+
+
+def _layer_label(layer):
+    return iface("Stitches") if _is_stitch(layer) else _display_name(layer)
+
+
+def _layer_icon(layer):
+    return STITCH_ICON if _is_stitch(layer) else GRID_ICON if _is_grid(layer) else LINE_ICON
+
+
+def _selected_layer(context):
+    ob = _source_object(context)
+    if ob is None:
+        return None, None
+    s = ob.stitch_gen
+    if 0 <= s.line_index < len(s.lines):
+        return ob, s.lines[s.line_index]
+    return ob, None
+
+
+class STITCHGEN_OT_set_reference(bpy.types.Operator):
+    """Also follow this layer's edges"""
+    bl_idname = "stitch_gen.set_reference"
+    bl_label = "Reference"
+    bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+    attr: StringProperty(options={'HIDDEN', 'SKIP_SAVE'})
+
+    @classmethod
+    def poll(cls, context):
+        return _selected_layer(context)[1] is not None
+
+    def execute(self, context):
+        ob, item = _selected_layer(context)
+        item.ref_attr = self.attr if self.attr != _layer_attr(item) else ""
+        return {'FINISHED'}
+
+
+class STITCHGEN_MT_reference(bpy.types.Menu):
+    bl_label = "Reference"
+
+    def draw(self, context):
+        ob, item = _selected_layer(context)
+        if item is None:
+            return
+        lay = self.layout
+        lay.operator("stitch_gen.set_reference", text=iface("None"), translate=False).attr = ""
+        for l in ob.stitch_gen.lines:
+            if l != item:
+                lay.operator("stitch_gen.set_reference", text=_layer_label(l), translate=False,
+                             icon=_layer_icon(l)).attr = _layer_attr(l)
+
+
+class STITCHGEN_OT_pick_reference(bpy.types.Operator):
+    """Click a layer in the list to also follow its edges (Esc or right-click: cancel)"""
+    bl_idname = "stitch_gen.pick_reference"
+    bl_label = "Pick Layer"
+    bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+
+    @classmethod
+    def poll(cls, context):
+        return _selected_layer(context)[1] is not None and context.window is not None
+
+    def invoke(self, context, event):
+        ob, item = _selected_layer(context)
+        if _PICK.get("ob") == ob.name_full:            # clicked again: stop picking
+            _PICK["cancel"] = True
+            return {'CANCELLED'}
+        _PICK.clear()
+        _PICK.update(ob=ob.name_full, attr=_layer_attr(item), done=False, cancel=False)
+        context.window.cursor_modal_set('EYEDROPPER')
+        context.window_manager.modal_handler_add(self)
+        _redraw_views()
+        return {'RUNNING_MODAL'}
+
+    def _end(self, context, result):
+        _PICK.clear()
+        context.window.cursor_modal_restore()
+        _redraw_views()
+        return result
+
+    def modal(self, context, event):
+        if _PICK.get("done"):
+            return self._end(context, {'FINISHED'})
+        if _PICK.get("cancel") or not _PICK:
+            return self._end(context, {'CANCELLED'})
+        if event.type in {'ESC', 'RIGHTMOUSE'} and event.value == 'PRESS':
+            return self._end(context, {'CANCELLED'})
+        if (event.type == 'LEFTMOUSE' and event.value == 'PRESS'
+                and not _over_sidebar(context, event)):
+            return self._end(context, {'CANCELLED'})      # a click outside the panel
+        return {'PASS_THROUGH'}
+
+
+def _over_sidebar(context, event):
+    """Is the mouse over a 3D View's sidebar (where the layer list is)?"""
+    x, y = event.mouse_x, event.mouse_y
+    for area in context.window.screen.areas:
+        if area.type != 'VIEW_3D':
+            continue
+        for region in area.regions:
+            if (region.type == 'UI' and region.x <= x < region.x + region.width
+                    and region.y <= y < region.y + region.height):
+                return True
+    return False
+
+
 class STITCHGEN_MT_uv_maps(bpy.types.Menu):
     bl_label = "UV Map"
 
@@ -1633,8 +1806,7 @@ _PRESET_DEFINES = [
 ]
 _STITCH_VALUES = ["s.inset", "s.smooth", "s.corner_inset", "s.style", "s.width", "s.length",
                   "s.gap", "s.roundness", "s.zigzag_height", "s.even"]
-_LINE_VALUES = ["layer.width", "layer.offset", "layer.corner_inset", "layer.smooth",
-                "layer.include_stitch"]
+_LINE_VALUES = ["layer.width", "layer.offset", "layer.corner_inset", "layer.smooth"]
 
 
 class _PresetPoll:
@@ -1656,7 +1828,7 @@ class _PresetPoll:
 _DEFAULT_PROPS = {
     'STITCH': ("inset", "smooth", "corner_inset", "style", "width", "length", "gap",
                "roundness", "zigzag_height", "even"),
-    'LINE': ("width", "offset", "corner_inset", "smooth", "include_stitch"),
+    'LINE': ("width", "offset", "corner_inset", "smooth"),
     'GRID': ("grid_from", "grid_along", "grid_angle", "grid_cell", "grid_wobble", "grid_layout"),
 }
 
@@ -2233,12 +2405,15 @@ def _marks_toggle(row, data, prop, icon):
     sub.prop(data, prop, text="", icon=icon, emboss=False)
 
 
-def _tool_row(layout, label):
+def _tool_row(layout, label, ctxt=None):
     """A row of icon buttons with a label in the property label column."""
     split = layout.split(factor=0.4)
     left = split.row()
     left.alignment = 'RIGHT'
-    left.label(text=label)
+    if ctxt:
+        left.label(text=label, text_ctxt=ctxt)
+    else:
+        left.label(text=label)
     return split.row(align=True)
 
 
@@ -2258,8 +2433,8 @@ class VIEW3D_PT_stitch_gen(bpy.types.Panel):
         lay = self.layout
         lay.use_property_split = True
         lay.use_property_decorate = False
-        if s.ui_version < 1 and _uses_addon(ob):
-            _defer_ensure(ob)          # set up before 0.3.0: bring it to the list
+        if s.ui_version < UI_VERSION and _uses_addon(ob):
+            _defer_ensure(ob)          # set up by an older version: bring it up to date
 
         row = lay.row()
         row.template_list("STITCHGEN_UL_lines", "", s, "lines", s, "line_index", rows=3)
@@ -2297,6 +2472,14 @@ class VIEW3D_PT_stitch_gen(bpy.types.Panel):
             r.operator("stitch_gen.path_select", text="", icon='RESTRICT_SELECT_OFF')
             r.operator("stitch_gen.path_clear", text="", icon='X')
             _marks_toggle(r, item, "show_marks", 'EDGESEL')
+            r = _tool_row(body, "Reference", i18n.CTX)      # Blender's own "Reference" is 参照
+            ref = _layer_by_attr(s, item.ref_attr) if item.ref_attr else None
+            if ref is None or ref == item:
+                r.menu("STITCHGEN_MT_reference", text=iface("None"))
+            else:
+                r.menu("STITCHGEN_MT_reference", text=_layer_label(ref), icon=_layer_icon(ref))
+            r.operator("stitch_gen.pick_reference", text="", icon='EYEDROPPER',
+                       depress=_PICK.get("ob") == ob.name_full)
         if body and is_grid:
             # squares lined up with the marked edge: where, then turn and size
             body = body.column()
@@ -2324,8 +2507,6 @@ class VIEW3D_PT_stitch_gen(bpy.types.Panel):
             _marks_toggle(r, s, "show_corners", 'VERTEXSEL')
             col = body.column(align=True)
             col.prop(s, "flip")
-            if not stitch:
-                col.prop(item, "include_stitch")
             # Same groups, same order for both: where the line runs, then its shape.
             body = body.column()
             src = s if stitch else item
@@ -2417,6 +2598,9 @@ classes = (
     STITCHGEN_PT_stitch_presets,
     STITCHGEN_PT_line_presets,
     STITCHGEN_MT_uv_maps,
+    STITCHGEN_OT_set_reference,
+    STITCHGEN_MT_reference,
+    STITCHGEN_OT_pick_reference,
     STITCHGEN_UL_lines,
     STITCHGEN_OT_bake,
     VIEW3D_PT_stitch_gen,

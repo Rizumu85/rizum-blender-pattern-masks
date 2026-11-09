@@ -55,9 +55,14 @@ Each row of the list has, from left to right:
 **−** remove them, arrow selects the row's edges, **×** clears them all, and the
 edge icon at the end is the same show / hide toggle as in the list. Each line art layer
 has its own edges, so a line drawn by one layer never shows up in another, and
-marking them never adds stitches. With **Include Stitch Edges** on, a layer
-follows the stitch edges too, so edges that need both are marked once on the
-stitch row. **−** next to the list removes the selected layer together with its
+marking them never adds stitches.
+
+**Reference** row, right under Edges: the layer also follows another layer's
+edges. Pick it from the menu, or click the eyedropper and then the layer in the
+list (Esc or right-click cancels). Any layer can refer to any other: line art
+to the stitches, the stitches to a line art layer, a grid to either. A layer
+follows what the referred layer follows, its reference included, so edges
+that several layers need are marked once. **−** next to the list removes the selected layer together with its
 edges (the stitches too; **+** adds them back, without edges).
 
 **Sharp Corners** row, right under Edges (sharp points of the lines, like
@@ -113,15 +118,12 @@ corner on the line.
 
 ### Line art
 
-Each line art layer is a solid line along its own edges (and the stitch edges,
-if it includes them). A new layer starts with no edges, 0.5 mm wide, 0 mm from
+Each line art layer is a solid line along its own edges (and those of the
+layer it refers to). A new layer starts with no edges, 0.5 mm wide, 0 mm from
 the edge and black. Like the stitch row, layers you have not renamed show their
 name in the interface language ("Line 2", "线稿 2") and bake to fixed English
 file names (`_line2.png`, like `_stitch.png`); a name you type is used as it is,
 in the panel and in the file name.
-
-**Include Stitch Edges** (under the Edges row): also follow the stitch edges,
-not only the layer's own edges.
 
 | Setting | Meaning |
 |---|---|
@@ -206,7 +208,7 @@ A setting a preset doesn't hold (one added in a later version) is set to its
 default when the preset is applied. Names are kept as typed, symbols included (only `\ / : * ? " < > |`,
 which file names can't hold, become `_`). Stitch presets hold all stitch settings, style included; grid presets hold the
 six grid settings; line art presets
-hold From Edge, Corner Inset, Smooth, Width and Include Stitch Edges, and apply
+hold From Edge, Corner Inset, Smooth and Width, and apply
 to the selected layer. Presets are Blender preset files in your user scripts
 folder (`presets/rizum_pattern_masks/`), so they are available in every .blend.
 

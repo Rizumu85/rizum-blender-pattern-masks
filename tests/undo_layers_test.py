@@ -142,8 +142,8 @@ def s_add_line():
 @step
 def s_mark_line_edges():
     s = bpy.data.objects[OB].stitch_gen
-    s.lines[1].include_stitch = False
-    bpy.ops.ed.undo_push(message="include off")
+    s.lines[1].ref_attr = ""
+    bpy.ops.ed.undo_push(message="no reference")
     check("mark line edges (edit mode, back to object)", _waist_edges)
 
 
