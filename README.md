@@ -62,7 +62,12 @@ edges. Pick it from the menu, or click the eyedropper and then the layer in the
 list (Esc or right-click cancels). Any layer can refer to any other: line art
 to the stitches, the stitches to a line art layer, a grid to either. A layer
 follows what the referred layer follows, its reference included, so edges
-that several layers need are marked once. **−** next to the list removes the selected layer together with its
+that several layers need are marked once. To leave out some of the edges a
+layer gets this way, select them and press **−** on the Edges row: the layer
+drops them (shown red in the viewport while the layer is selected), and the
+layer they come from keeps them. **+** takes such an edge back, **×** clears
+the layer's own edges and what it left out, and the arrow selects the edges the
+layer ends up with. **−** next to the list removes the selected layer together with its
 edges (the stitches too; **+** adds them back, without edges).
 
 **Sharp Corners** row, right under Edges (sharp points of the lines, like

@@ -478,9 +478,9 @@ class LineBake:
         # one distance field per set of edges followed
         self.parts = []                      # (layer indices, field, faces)
         faces = []
-        for attrs in sorted({tuple(l[4]) for l in layers}):
-            idx = [i for i, l in enumerate(layers) if tuple(l[4]) == attrs]
-            chains = core.line_chains(entry, attrs)
+        for spec in dict.fromkeys(l[4] for l in layers):
+            idx = [i for i, l in enumerate(layers) if l[4] == spec]
+            chains = core.line_chains(entry, spec)
             if not idx or not chains:
                 continue
             sub = [(layers[i][1], layers[i][2], layers[i][3], layers[i][5]) for i in idx]

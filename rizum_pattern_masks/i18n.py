@@ -26,10 +26,12 @@ ZH = {
     "Works in Edit Mode": "在编辑模式下使用",
     "The stitch row stays; hide it with its eye": "缝线这一行不能删除，可以点眼睛隐藏",
     "Add the selected edges to the layer selected in the list": "把选中的边加到列表里选中的那一层",
-    "Remove the selected edges from the layer selected in the list":
-        "把选中的边从列表里选中的那一层移除",
-    "Select the edges of the layer selected in the list": "选中列表里选中那一层的边",
-    "Clear all edges of the layer selected in the list": "清空列表里选中那一层的全部边",
+    "Remove the selected edges from the layer selected in the list, also those it gets from the layer it refers to":
+        "把选中的边从列表里选中的那一层移除，引用来的边也可以去掉",
+    "Select the edges of the layer selected in the list, with those it gets from the layer it refers to":
+        "选中列表里选中那一层的边，包括引用来的边",
+    "Clear all edges of the layer selected in the list, and bring back the edges it took out of its reference":
+        "清空列表里选中那一层的全部边，去掉的引用边也恢复",
     "Keep the lines sharp at the selected vertices": "让线在所选顶点处保持尖角",
     "Let the lines round off at the selected vertices again": "所选顶点处的线恢复圆滑",
     "Mark likely corners on the marked edges automatically (replaces the marks there)":

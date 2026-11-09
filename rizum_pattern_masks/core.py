@@ -48,8 +48,10 @@ def line_attr_names(me):
                   if (n == LINE_ATTR or n.startswith(LINE_ATTR + "_")) and a.domain == 'EDGE')
 
 
-def read_path_edges(me, name=PATH_ATTR):
-    """Return (k, 2) vertex index pairs of edges marked with ``name``."""
+def read_path_edges(me, name=PATH_ATTR, sign=1):
+    """Return (k, 2) vertex index pairs of edges marked with ``name``: the
+    layer's own edges (value 1), or with ``sign`` -1 the edges it takes out
+    of what it gets from the layer it refers to (value -1)."""
     attr = me.attributes.get(name)
     ne = len(me.edges)
     if attr is None or attr.domain != 'EDGE' or ne == 0:
@@ -61,7 +63,8 @@ def read_path_edges(me, name=PATH_ATTR):
     attr.data.foreach_get("value", vals)
     ev = np.empty(ne * 2, np.int32)
     me.edges.foreach_get("vertices", ev)
-    return ev.reshape(-1, 2)[vals != 0].astype(np.int64)
+    pick = vals > 0 if sign > 0 else vals < 0
+    return ev.reshape(-1, 2)[pick].astype(np.int64)
 
 
 def read_corner_verts(me):
@@ -100,12 +103,13 @@ def mesh_signature(me, mw, uv_name):
     return (
         nv, len(me.edges), len(me.polygons), nl,
         hash(co.tobytes()),
-        hash(path.tobytes()),
+        hash(path.tobytes()), hash(read_path_edges(me, PATH_ATTR, -1).tobytes()),
         hash(read_corner_verts(me).tobytes()),
         hash(lv.tobytes()), uv_hash,
         tuple(round(x, 9) for row in mw for x in row),
         uv_name,
-    ), hash(tuple((n, hash(read_path_edges(me, n).tobytes())) for n in line_attr_names(me)))
+    ), hash(tuple((n, hash(read_path_edges(me, n).tobytes()),
+                   hash(read_path_edges(me, n, -1).tobytes())) for n in line_attr_names(me)))
 
 
 def _consistent_orientation(tri, nbr):
@@ -266,8 +270,8 @@ class Topology:
     def corner_ids(self, me):
         return set(self.vert_weld[read_corner_verts(me)].tolist())
 
-    def path_pairs(self, me, names=(PATH_ATTR,)):
-        e = np.vstack([read_path_edges(me, n) for n in names])
+    def path_pairs(self, me, names=(PATH_ATTR,), sign=1):
+        e = np.vstack([read_path_edges(me, n, sign) for n in names])
         if not len(e):
             return np.zeros((0, 2), np.int64)
         w = self.vert_weld[e]
@@ -1406,9 +1410,12 @@ def generate(key_obj, me, mw, p):
     if entry is not None and entry["sig"] == sig and entry.get("line_sig") != line_sig:
         # only the line art edges changed: keep the mesh data and the stitches
         entry["line_pairs"] = {n: entry["topo"].path_pairs(me, (n,)) for n in line_attr_names(me)}
+        entry["excl"] = {n: v for n, v in entry["excl"].items() if n == PATH_ATTR}
+        entry["excl"].update({n: entry["topo"].path_pairs(me, (n,), -1)
+                              for n in line_attr_names(me)})
         entry["line_chains"] = {}
         entry["grid_coords"] = {}
-        if any(a != PATH_ATTR for a in entry.get("stitch_attrs", ())):
+        if any(a != PATH_ATTR for a in spec_attrs(entry.get("stitch_attrs"))):
             entry["cl_key"] = None          # the stitches follow line art edges too
         entry["line_key"] = None
         entry["line_sig"] = line_sig
@@ -1416,12 +1423,13 @@ def generate(key_obj, me, mw, p):
         topo = Topology(me, mw, p["uv_name"])
         pairs = topo.path_pairs(me)
         line_pairs = {n: topo.path_pairs(me, (n,)) for n in line_attr_names(me)}
-        entry = {"sig": sig, "topo": topo, "cl_key": None, "cls": None,
+        excl = {n: topo.path_pairs(me, (n,), -1) for n in [PATH_ATTR] + line_attr_names(me)}
+        entry = {"sig": sig, "topo": topo, "cl_key": None, "cls": None, "excl": excl,
                  "corners": topo.corner_ids(me), "pairs": pairs, "line_pairs": line_pairs,
                  "line_chains": {}, "grid_coords": {}, "line_sig": line_sig}
         _cache[key_obj] = entry
     topo = entry["topo"]
-    entry["stitch_attrs"] = stitch_attrs = tuple(p.get("stitch_attrs", (PATH_ATTR,)))
+    entry["stitch_attrs"] = stitch_attrs = p.get("stitch_attrs") or (PATH_ATTR, None)
     chains = edge_chains(entry, stitch_attrs)
     rib = RibbonData()
     if chains and p.get("stitches", True):
@@ -1452,33 +1460,65 @@ def generate(key_obj, me, mw, p):
     return rib, topo
 
 
-def edge_chains(entry, attrs):
-    """Chains along the union of the edge sets ``attrs`` (the stitch edges
-    and/or line art edge attributes): a layer's own edges plus those of the
-    layers it refers to."""
-    key = tuple(sorted(set(attrs)))
+_NO_PAIRS = np.zeros((0, 2), np.int64)
+
+
+def spec_attrs(spec):
+    """Edge attributes in an edge spec (attr, spec of the layer it refers to
+    or None), in order."""
+    out = []
+    while spec is not None:
+        out.append(spec[0])
+        spec = spec[1]
+    return out
+
+
+def _rows_in(a, b):
+    """Rows of the pair array a that occur in b (both sorted per row)."""
+    n = int(max(a.max(), b.max())) + 1
+    return np.isin(a[:, 0] * n + a[:, 1], b[:, 0] * n + b[:, 1])
+
+
+def spec_pairs(entry, spec):
+    """Edges of an edge spec (attr, child): the layer's own edges, plus the
+    edges of the layer it refers to (worked out the same way), minus the
+    edges it takes out."""
+    attr, child = spec
+    own = entry["pairs"] if attr == PATH_ATTR else entry["line_pairs"].get(attr, _NO_PAIRS)
+    parts = [own] + ([spec_pairs(entry, child)] if child is not None else [])
+    pairs = np.vstack(parts)
+    if not len(pairs):
+        return _NO_PAIRS
+    pairs = np.unique(np.sort(pairs, axis=1), axis=0)
+    out = entry.get("excl", {}).get(attr, _NO_PAIRS)
+    if len(out):
+        pairs = pairs[~_rows_in(pairs, np.sort(out, axis=1))]
+    return pairs
+
+
+def _as_spec(spec):
+    return (spec, None) if isinstance(spec, str) else spec
+
+
+def edge_chains(entry, spec):
+    """Chains along a layer's edges, given as an edge spec (see spec_pairs)."""
+    spec = _as_spec(spec)
     cache = entry["line_chains"]
-    hit = cache.get(key)
+    hit = cache.get(spec)
     if hit is None:
-        parts = [entry["pairs"] if a == PATH_ATTR else
-                 entry["line_pairs"].get(a, np.zeros((0, 2), np.int64)) for a in key]
-        pairs = np.vstack(parts) if parts else np.zeros((0, 2), np.int64)
-        if len(pairs):
-            pairs = np.unique(np.sort(pairs, axis=1), axis=0)
+        pairs = spec_pairs(entry, spec)
         topo = entry["topo"]
         hit = [c for c in build_chains(pairs, topo.co) if len(c[0]) >= 2] if len(pairs) else []
-        cache[key] = hit
+        cache[spec] = hit
     return hit
 
 
 line_chains = edge_chains            # a line art layer's chains
 
 
-def grid_coords(entry, attrs):
-    """Fabric coordinates for a grid layer following the edge sets ``attrs``."""
-    if isinstance(attrs, str):
-        attrs = (attrs,)
-    key = tuple(sorted(set(attrs)))
+def grid_coords(entry, spec):
+    """Fabric coordinates for a grid layer following the edges of ``spec``."""
+    key = _as_spec(spec)
     cache = entry.setdefault("grid_coords", {})
     hit = cache.get(key)
     if hit is None:

@@ -2,6 +2,8 @@
 
 * the marked edges of each layer whose marks are shown: the stitch edges
   purple, line art edges green, the layer selected in the list brightest,
+* for the selected layer, the edges it takes out of what it gets from the
+  layer it refers to, red,
 * the vertices marked as corners as yellow dots.
 
 Drawing only; nothing is stored in the file or baked."""
@@ -18,6 +20,7 @@ YELLOW = (1.0, 0.8, 0.1, 1.0)
 OUTLINE = (0.08, 0.06, 0.02, 0.9)
 PURPLE = (0.72, 0.25, 1.0, 0.45)     # quiet, so Blender's own selection stays visible
 GREEN = (0.3, 1.0, 0.35, 0.55)    # not cyan: Blender draws sharp edges in cyan
+RED = (1.0, 0.25, 0.2, 0.75)      # edges the selected layer takes out
 DIM = 0.18                        # alpha of the layers not selected in the list
 LIFT = 0.0004            # metres off the surface, so the marks are not hidden by it
 
@@ -33,8 +36,9 @@ def invalidate(ob=None):
 
 
 def _shown(ob):
-    """[(edge attribute, color)] of the layers whose marks are shown, the
-    selected layer last (drawn on top) and at full strength."""
+    """[(edge attribute, color, sign)] of the layers whose marks are shown,
+    the selected layer last (drawn on top) and at full strength; sign 1: its
+    own edges, -1: the edges it takes out (selected layer only)."""
     s = ob.stitch_gen
     rows = list(s.lines)
     # Python wrappers of the same row are not identical: compare positions
@@ -46,9 +50,11 @@ def _shown(ob):
         attr = l.edge_attr or core.LINE_ATTR
         base = PURPLE if attr == core.PATH_ATTR else GREEN
         active = i == sel
-        out.append((active, attr, base if active else base[:3] + (DIM,)))
+        out.append((active, attr, base if active else base[:3] + (DIM,), 1))
+        if active and l.ref_attr:
+            out.append((active, attr, RED, -1))
     out.sort(key=lambda t: t[0])
-    return [(attr, col) for _, attr, col in out]
+    return [(attr, col, sign) for _, attr, col, sign in out]
 
 
 def _marks(ob):
@@ -72,15 +78,16 @@ def _marks(ob):
     if me.is_editmode:
         bm = bmesh.from_edit_mesh(me)
         uvl = (bm.loops.layers.uv.get(uv_name) if uv_name else None) or bm.loops.layers.uv.active
-        for name, col in shown:
+        for name, col, sign in shown:
             path = bm.edges.layers.int.get(name)
             pts, pts_uv = [], []
             if path is not None:
                 for e in bm.edges:
-                    if not e[path]:
+                    if e[path] * sign <= 0:
                         continue
                     a, b = e.verts
-                    on_path.update((a, b))
+                    if sign > 0:
+                        on_path.update((a, b))
                     pts += [lifted(a.co, a.normal), lifted(b.co, b.normal)]
                     if uvl is not None:
                         for lp in e.link_loops:
@@ -99,13 +106,14 @@ def _marks(ob):
         uvl = core.pick_uv(me, uv_name)
         verts = me.vertices
         keys = {}
-        for k, (name, col) in enumerate(shown):
-            pairs = core.read_path_edges(me, name)
+        for k, (name, col, sign) in enumerate(shown):
+            pairs = core.read_path_edges(me, name, sign)
             pts = []
             for a, b in pairs.tolist():
                 pts += [lifted(verts[a].co, verts[a].normal),
                         lifted(verts[b].co, verts[b].normal)]
-                on_path.update((a, b))
+                if sign > 0:
+                    on_path.update((a, b))
                 keys.setdefault((min(a, b), max(a, b)), []).append(k)
             out["edges"].append((pts, col))
             out["edges_uv"].append(([], col))

@@ -69,9 +69,9 @@ lme.polygons.foreach_get("material_index", mi)
 print("RESULT line slots", [tuple(round(c, 2) for c in m.diffuse_color[:3]) for m in lme.materials],
       "quads per slot", np.bincount(mi).tolist())
 from rizum_pattern_masks import overlay  # noqa: E402
-print("RESULT overlay shown", [a for a, _ in overlay._shown(ob)])
+print("RESULT overlay shown", [a for a, _, _ in overlay._shown(ob)])
 s.lines[1].show_marks = False
-print("RESULT overlay shown, line marks hidden", [a for a, _ in overlay._shown(ob)])
+print("RESULT overlay shown, line marks hidden", [a for a, _, _ in overlay._shown(ob)])
 s.lines[1].show_marks = True
 lz = np.array([v.co.z for v in s.line_preview.data.vertices])
 print("RESULT line preview z: below hem-ish %d, near waist %d" % ((lz < -0.2).sum(), (lz > -0.05).sum()))

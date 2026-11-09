@@ -570,11 +570,11 @@ def _params(s, scene):
         "corner_inset": s.corner_inset * k,
         "uv_name": s.uv_map,
         "stitches": _stitches_on(s),
-        "stitch_attrs": _edge_set(s, st) if st is not None else (core.PATH_ATTR,),
-        "lines": tuple((l.offset * k, l.width * k, l.corner_inset * k, _edge_set(s, l),
+        "stitch_attrs": _edge_spec(s, st) if st is not None else (core.PATH_ATTR, None),
+        "lines": tuple((l.offset * k, l.width * k, l.corner_inset * k, _edge_spec(s, l),
                         l.smooth * k, _layer_attr(l)) for l in _line_items(s) if l.enabled),
         "grids": tuple((_layer_attr(l), l.grid_cell * k, l.grid_angle, l.grid_from * k,
-                        l.grid_along * k, l.grid_wobble, l.grid_layout.lower(), _edge_set(s, l))
+                        l.grid_along * k, l.grid_wobble, l.grid_layout.lower(), _edge_spec(s, l))
                        for l in _grid_items(s) if l.enabled),
     }
 
@@ -690,18 +690,37 @@ def _layer_by_attr(s, attr):
     return None
 
 
+def _edge_spec(s, layer, seen=None):
+    """A layer's edges as (its edge attribute, the spec of the layer it refers
+    to or None): its own edges, plus what the referred layer ends up with,
+    minus the edges it takes out (marked -1). A loop of references stops
+    where it comes round again."""
+    seen = set() if seen is None else seen
+    a = _layer_attr(layer)
+    seen.add(a)
+    ref = _layer_by_attr(s, layer.ref_attr) if layer.ref_attr else None
+    if ref is None or _layer_attr(ref) in seen:
+        return (a, None)
+    return (a, _edge_spec(s, ref, seen))
+
+
 def _edge_set(s, layer):
-    """Edge attributes a layer follows: its own, then the layer it refers
-    to, that one's reference and so on (a loop of references stops where it
-    comes round again)."""
-    out, l = [], layer
-    while l is not None:
-        a = _layer_attr(l)
-        if a in out:
-            break
-        out.append(a)
-        l = _layer_by_attr(s, l.ref_attr) if l.ref_attr else None
-    return tuple(sorted(out))
+    """Edge attributes involved in a layer's edges (its own and along its
+    references)."""
+    return tuple(sorted(core.spec_attrs(_edge_spec(s, layer))))
+
+
+def _bm_spec_edges(bm, spec):
+    """Indices of the edges of an edge spec, read from an edit-mode BMesh."""
+    if spec is None:
+        return set()
+    attr, child = spec
+    lay = bm.edges.layers.int.get(attr)
+    out = _bm_spec_edges(bm, child)
+    if lay is not None:
+        out |= {e.index for e in bm.edges if e[lay] > 0}
+        out -= {e.index for e in bm.edges if e[lay] < 0}
+    return out
 
 
 def _defer_ensure(ob):
@@ -768,7 +787,7 @@ def _line_layers(s, scene):
     """[(name, offset, width, corner depth, edge sets followed, smooth, own edges)]
     of the enabled line layers."""
     k = 0.001 / (scene.unit_settings.scale_length or 1.0)
-    return [(l.name, l.offset * k, l.width * k, l.corner_inset * k, _edge_set(s, l),
+    return [(l.name, l.offset * k, l.width * k, l.corner_inset * k, _edge_spec(s, l),
              l.smooth * k, _layer_attr(l)) for l in _line_items(s)
             if l.enabled and l.width > 0]
 
@@ -1301,7 +1320,7 @@ def _on_path_verts(bm):
     for name in names:
         lay = bm.edges.layers.int.get(name)
         if lay is not None:
-            out.update(v for e in bm.edges if e[lay] for v in e.verts)
+            out.update(v for e in bm.edges if e[lay] > 0 for v in e.verts)
     return out
 
 
@@ -1321,31 +1340,46 @@ class STITCHGEN_OT_path_add(_EditPathBase, bpy.types.Operator):
             _detect_and_mark(ob, bm, select=False)     # first path: a starting guess
 
 
+def _referred_spec(ob):
+    """Edge spec of what the selected layer gets from the layer it refers to."""
+    s = ob.stitch_gen
+    if not 0 <= s.line_index < len(s.lines):
+        return None
+    return _edge_spec(s, s.lines[s.line_index])[1]
+
+
 class STITCHGEN_OT_path_remove(_EditPathBase, bpy.types.Operator):
-    """Remove the selected edges from the layer selected in the list"""
+    """Remove the selected edges from the layer selected in the list, also those it gets from the layer it refers to"""
     bl_idname = "stitch_gen.path_remove"
     bl_label = "Remove Selected"
 
     def apply(self, ob, bm, lay):
+        bm.edges.index_update()
+        referred = _bm_spec_edges(bm, _referred_spec(ob))
         for e in bm.edges:
             if e.select:
-                e[lay] = 0
+                e[lay] = -1 if e.index in referred else 0
 
 
 class STITCHGEN_OT_path_select(_EditPathBase, bpy.types.Operator):
-    """Select the edges of the layer selected in the list"""
+    """Select the edges of the layer selected in the list, with those it gets from the layer it refers to"""
     bl_idname = "stitch_gen.path_select"
     bl_label = "Select Edges"
 
     def apply(self, ob, bm, lay):
+        bm.edges.index_update()
+        s = ob.stitch_gen
+        spec = (_edge_spec(s, s.lines[s.line_index]) if 0 <= s.line_index < len(s.lines)
+                else (lay.name, None))
+        mine = _bm_spec_edges(bm, spec)
         for e in bm.edges:
-            if e[lay]:
+            if e.index in mine:
                 e.select_set(True)
         bm.select_flush_mode()
 
 
 class STITCHGEN_OT_path_clear(_EditPathBase, bpy.types.Operator):
-    """Clear all edges of the layer selected in the list"""
+    """Clear all edges of the layer selected in the list, and bring back the edges it took out of its reference"""
     bl_idname = "stitch_gen.path_clear"
     bl_label = "Clear Edges"
 
@@ -1629,7 +1663,7 @@ def _grid_layers(s, scene):
     edge sets followed)] of the shown grid layers, in scene units."""
     k = 0.001 / (scene.unit_settings.scale_length or 1.0)
     return [(l.name, _layer_attr(l), l.grid_cell * k, l.grid_angle, l.grid_from * k,
-             l.grid_along * k, l.grid_wobble, l.grid_layout.lower(), _edge_set(s, l))
+             l.grid_along * k, l.grid_wobble, l.grid_layout.lower(), _edge_spec(s, l))
             for l in _grid_items(s)
             if l.enabled and l.grid_cell > 0]
 
@@ -1739,8 +1773,10 @@ class STITCHGEN_OT_pick_reference(bpy.types.Operator):
             _PICK["cancel"] = True
             return {'CANCELLED'}
         _PICK.clear()
-        _PICK.update(ob=ob.name_full, attr=_layer_attr(item), done=False, cancel=False)
+        _PICK.update(ob=ob.name_full, attr=_layer_attr(item), done=False, cancel=False,
+                     win=context.window)
         context.window.cursor_modal_set('EYEDROPPER')
+        bpy.app.timers.register(_keep_eyedropper, first_interval=_EYEDROPPER_EVERY)
         context.window_manager.modal_handler_add(self)
         _redraw_views()
         return {'RUNNING_MODAL'}
@@ -1761,7 +1797,26 @@ class STITCHGEN_OT_pick_reference(bpy.types.Operator):
         if (event.type == 'LEFTMOUSE' and event.value == 'PRESS'
                 and not _over_sidebar(context, event)):
             return self._end(context, {'CANCELLED'})      # a click outside the panel
+        if event.type == 'MOUSEMOVE':
+            context.window.cursor_modal_set('EYEDROPPER')
         return {'PASS_THROUGH'}
+
+
+_EYEDROPPER_EVERY = 0.05
+
+
+def _keep_eyedropper():
+    """While picking, put the eyedropper cursor back: the events go on to the
+    panel (so a click on a layer in the list works), and over the list the
+    interface sets its own cursor."""
+    win = _PICK.get("win")
+    if win is None:
+        return None
+    try:
+        win.cursor_modal_set('EYEDROPPER')
+    except (ReferenceError, RuntimeError):
+        return None
+    return _EYEDROPPER_EVERY
 
 
 def _over_sidebar(context, event):
