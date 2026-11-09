@@ -278,11 +278,12 @@ def raster(topo, field, faces, res, tile, layers, inner=None, block=8):
     slope = 1.0 + field.segs.slope
 
     # 1) blocks of pixels per triangle; keep those the bands can reach
+    #    (one pixel round it: the pixels a UV island border cuts through)
     bx, by, bt = [], [], []
     for t in faces.tolist():
         U = (topo.uv[t] - tile) * res - 0.5
-        x0, y0 = np.floor(U.min(0)).astype(int)
-        x1, y1 = np.ceil(U.max(0)).astype(int)
+        x0, y0 = np.floor(U.min(0)).astype(int) - 1
+        x1, y1 = np.ceil(U.max(0)).astype(int) + 1
         x0, y0 = max(x0, 0), max(y0, 0)
         x1, y1 = min(x1, res - 1), min(y1, res - 1)
         if x1 < x0 or y1 < y0 or texel[t] <= 0:
@@ -303,7 +304,11 @@ def raster(topo, field, faces, res, tile, layers, inner=None, block=8):
     if not len(bt):
         return imgs
 
-    # 2) every pixel of the kept blocks that lies on its triangle
+    # 2) every pixel of the kept blocks that lies on its triangle, and the
+    #    pixels an open UV border cuts through (their centre just off the
+    #    island): those take the value at the border, so a line along the
+    #    border shows there even when it is thinner than a texel
+    open_edges = _open_uv_edges(topo)
     o = np.arange(block)
     ox, oy = np.meshgrid(o, o)
     ox, oy = ox.ravel(), oy.ravel()
@@ -315,7 +320,8 @@ def raster(topo, field, faces, res, tile, layers, inner=None, block=8):
         ok = (px < res) & (py < res)
         px, py, pt = px[ok], py[ok], pt[ok]
         P, inside = _points(topo, pt, px, py, tile, res)
-        px, py, pt, P = px[inside], py[inside], pt[inside], P[inside]
+        use = inside | _on_open_border(topo, open_edges, pt, px, py, tile, res)
+        px, py, pt, P = px[use], py[use], pt[use], P[use]
         if not len(pt):
             continue
         f = field.eval(P, pt)
@@ -340,6 +346,49 @@ def raster(topo, field, faces, res, tile, layers, inner=None, block=8):
             inner = np.where(np.isfinite(f), inner, 0.0).astype(np.float32)
             np.maximum.at(img, (py, px), inner)
     return imgs
+
+
+def _open_uv_edges(topo):
+    """(F, 3) bool: is the edge opposite each corner of each triangle an open
+    UV border (no other triangle has it in UV: the mesh's own border or a
+    seam)? Cached on the topology."""
+    hit = getattr(topo, "_open_uv_edges", None)
+    if hit is not None:
+        return hit
+    q = np.round(topo.uv * 2.0 ** 22).astype(np.int64)            # (F, 3, 2)
+    a = q[:, [1, 2, 0]]                                            # edge opposite corner i
+    b = q[:, [2, 0, 1]]
+    first = (a[..., 0] < b[..., 0]) | ((a[..., 0] == b[..., 0]) & (a[..., 1] <= b[..., 1]))
+    lo = np.where(first[..., None], a, b)
+    hi = np.where(first[..., None], b, a)
+    keys = np.concatenate([lo, hi], -1).reshape(-1, 4)
+    _, inv, cnt = np.unique(keys, axis=0, return_inverse=True, return_counts=True)
+    hit = (cnt[inv.reshape(-1)] == 1).reshape(-1, 3)
+    topo._open_uv_edges = hit
+    return hit
+
+
+def _on_open_border(topo, open_edges, T, px, py, tile, res, reach=0.75):
+    """Pixel centres just off their triangle, within ``reach`` pixels of it,
+    and off it only across open UV border edges. (Known limit: where two UV
+    islands are packed less than a pixel apart, such a pixel can lie on the
+    other island and take the line's border value.)"""
+    U = (topo.uv[T] - tile) * res - 0.5                              # (n,3,2)
+    out = np.zeros(len(T), bool)
+    beyond = np.zeros(len(T), bool)
+    for i in range(3):
+        A, B = U[:, (i + 1) % 3], U[:, (i + 2) % 3]
+        C = U[:, i]
+        e = B - A
+        L = np.maximum(np.linalg.norm(e, axis=1), 1e-12)
+        # signed distance of the centre from the edge line, positive towards C
+        side = lambda x, y: (e[:, 0] * (y - A[:, 1]) - e[:, 1] * (x - A[:, 0])) / L  # noqa: E731
+        sc = np.sign(side(C[:, 0], C[:, 1]))
+        d = side(px.astype(np.float64), py.astype(np.float64)) * sc
+        off = d < -1e-9                                              # beyond this edge
+        out |= off
+        beyond |= off & (~open_edges[T, i] | (d < -reach))
+    return out & ~beyond
 
 
 def _points(topo, T, px, py, tile, res, allow_outside=False):

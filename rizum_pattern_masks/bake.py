@@ -189,7 +189,9 @@ def add_margin(gray, tris_uv, band_tris_uv, res, margin):
     x1 = min(res, int(np.ceil(bpx[..., 0].max())) + margin + 3)
     y1 = min(res, int(np.ceil(bpx[..., 1].max())) + margin + 3)
     crop = gray[y0:y1, x0:x1]
-    known = _island_mask(px, x0, y0, x1 - x0, y1 - y0)
+    # the island, and pixels just off it the bake already gave a value (a
+    # line along the island border)
+    known = _island_mask(px, x0, y0, x1 - x0, y1 - y0) | (crop > 0)
     _bleed(crop, known, margin)
     return gray
 
