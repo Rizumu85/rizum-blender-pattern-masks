@@ -79,7 +79,13 @@ ZH = {
         "烘焙用的 UV 贴图；没有指定时跟随网格当前激活的 UV 贴图",
     "Active: {}": "当前：{}",
     "Follow Active UV Map": "跟随当前 UV 贴图",
-    "Set this layer's settings back to the add-on's defaults": "把这一层的参数恢复成插件的默认值",
+    "Set this layer's settings back to the default: the starred preset, or the add-on's own":
+        "把这一层的参数恢复成默认值：标了星的预设，没有的话用插件自带的",
+    "Apply Preset": "套用预设",
+    "Apply this preset": "套用这个预设",
+    "Use as Default": "设为默认",
+    "Use this preset as the default: new layers start with it, and Default applies it. Click again to go back to the add-on's own default":
+        "把这个预设设为默认：新建的层用它的参数，点“默认值”也会套用它。再点一次就恢复成插件自带的默认值",
     "Separate stitches along the line": "沿线一段一段的针脚",
     "One thread going back and forth across the line": "一根线沿着缝线来回走成锯齿",
     "Kind of stitch": "针脚的样式",
@@ -225,7 +231,7 @@ ZH_CTX = {
 OPERATOR_NAMES = ("Add Selected", "Remove Selected", "Select Edges", "Clear Edges",
                   "Update", "Bake Mask", "Mark Corner", "Clear Corner", "Detect Corners",
                   "Select Corners", "Add Line", "Remove Line", "Bake Masks", "Add Stitches",
-                  "Remove Layer")
+                  "Remove Layer", "Apply Preset", "Use as Default")
 
 translations = {
     "zh_HANS": {

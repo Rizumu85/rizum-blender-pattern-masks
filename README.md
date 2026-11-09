@@ -197,9 +197,13 @@ the black squares in the layer's color; the white squares stay clear.
 ### Presets
 
 The preset button at the right of the layer section's title saves the current
-settings under a name (**+**), applies a saved preset (click its name) or
-removes one (**−**). **Default** at the top sets the layer back to the add-on's
-defaults. Names are kept as typed, symbols included (only `\ / : * ? " < > |`,
+settings under the name typed next to **+**, applies a saved preset (click its
+name; Ctrl+Z takes it back) or removes one (**−**). The star next to a preset
+makes it the default: new layers of that kind start with it, and **Default**
+at the top applies it. Without a starred preset, **Default** sets the layer
+back to the add-on's own defaults; click the star again to go back to those.
+A setting a preset doesn't hold (one added in a later version) is set to its
+default when the preset is applied. Names are kept as typed, symbols included (only `\ / : * ? " < > |`,
 which file names can't hold, become `_`). Stitch presets hold all stitch settings, style included; grid presets hold the
 six grid settings; line art presets
 hold From Edge, Corner Inset, Smooth, Width and Include Stitch Edges, and apply

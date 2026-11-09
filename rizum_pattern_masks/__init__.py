@@ -1431,6 +1431,7 @@ class STITCHGEN_OT_line_add(bpy.types.Operator):
         _MUTE = True
         try:
             _new_line_layer(ob)
+            _apply_default_to_new(context, ob, 'LINE')
             ob.stitch_gen.ui_version = 1
         finally:
             _MUTE = False
@@ -1455,6 +1456,7 @@ class STITCHGEN_OT_grid_add(bpy.types.Operator):
         _MUTE = True
         try:
             _new_line_layer(ob, 'GRID')
+            _apply_default_to_new(context, ob, 'GRID')
             ob.stitch_gen.ui_version = 1
         finally:
             _MUTE = False
@@ -1487,6 +1489,7 @@ class STITCHGEN_OT_stitch_add(bpy.types.Operator):
         try:
             _new_stitch_row(s)
             s.line_index = 0
+            _apply_default_to_new(context, ob, 'STITCH')
             s.stitches = True
             s.ui_version = 1
         finally:
@@ -1658,51 +1661,190 @@ _DEFAULT_PROPS = {
 }
 
 
-class STITCHGEN_OT_reset_defaults(bpy.types.Operator):
-    """Set this layer's settings back to the add-on's defaults"""
-    bl_idname = "stitch_gen.reset_defaults"
-    bl_label = "Default"
+_PRESET_KINDS = [('STITCH', "", ""), ('LINE', "", ""), ('GRID', "", "")]
+_PRESET_SUBDIRS = {'STITCH': "rizum_pattern_masks/stitches",
+                   'LINE': "rizum_pattern_masks/line_art",
+                   'GRID': "rizum_pattern_masks/grid"}
+_DEFAULT_MARK = ".default"           # in each preset folder: the starred preset's file name
+
+
+def _preset_dir(kind, create=False):
+    return bpy.utils.user_resource('SCRIPTS', path=os.path.join("presets", _PRESET_SUBDIRS[kind]),
+                                   create=create)
+
+
+def _preset_files(kind):
+    """[(file stem, path)] of the saved presets of a kind, in natural order."""
+    d = _preset_dir(kind)
+    if not d or not os.path.isdir(d):
+        return []
+    out = [(f[:-3], os.path.join(d, f)) for f in os.listdir(d)
+           if f.endswith(".py") and not f.startswith(".")]
+    out.sort(key=lambda t: tuple(int(x) if x.isdigit() else x
+                                 for x in re.split(r"(\d+)", t[0].lower())))
+    return out
+
+
+def _default_stem(kind):
+    """File stem of the starred preset of a kind, or None."""
+    d = _preset_dir(kind)
+    try:
+        with open(os.path.join(d, _DEFAULT_MARK), encoding="utf-8") as f:
+            stem = f.read().strip()
+    except (OSError, TypeError):
+        return None
+    return stem if stem and os.path.isfile(os.path.join(d, stem + ".py")) else None
+
+
+def _default_preset(kind):
+    stem = _default_stem(kind)
+    return os.path.join(_preset_dir(kind), stem + ".py") if stem else None
+
+
+def _preset_target(ob, kind):
+    """What a preset of this kind sets on the object: the stitch settings, or
+    the selected layer if it is of that kind; None otherwise."""
+    s = ob.stitch_gen
+    if kind == 'STITCH':
+        return s
+    if 0 <= s.line_index < len(s.lines):
+        item = s.lines[s.line_index]
+        if not _is_stitch(item) and (kind == 'GRID') == _is_grid(item):
+            return item
+    return None
+
+
+def _apply_preset(context, ob, kind, filepath):
+    """Set the add-on's defaults, then the preset's values over them (so a
+    preset saved before a setting existed leaves that setting at its default,
+    not at whatever the last preset had). No preset: the defaults only."""
+    data = _preset_target(ob, kind)
+    if data is None:
+        return False
+    for name in _DEFAULT_PROPS[kind]:
+        data.property_unset(name)
+    if filepath:
+        # preset files act on the active object
+        with context.temp_override(active_object=ob, object=ob):
+            bpy.utils.execfile(filepath)
+    return True
+
+
+def _apply_default_to_new(context, ob, kind):
+    """A new layer starts with the starred preset, if there is one."""
+    path = _default_preset(kind)
+    if path:
+        try:
+            _apply_preset(context, ob, kind, path)
+        except Exception:
+            traceback.print_exc()
+
+
+class _PresetApplyBase:
     bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
-    kind: EnumProperty(items=[('STITCH', "", ""), ('LINE', "", ""), ('GRID', "", "")])
+    kind: EnumProperty(items=_PRESET_KINDS)
 
     @classmethod
     def poll(cls, context):
         return _source_object(context) is not None
 
-    def execute(self, context):
+    def apply(self, context, filepath):
         ob = _source_object(context)
-        s = ob.stitch_gen
-        if self.kind == 'STITCH':
-            data = s
-        elif 0 <= s.line_index < len(s.lines) and not _is_stitch(s.lines[s.line_index]) \
-                and (self.kind == 'GRID') == _is_grid(s.lines[s.line_index]):
-            data = s.lines[s.line_index]
-        else:
+        global _MUTE
+        _MUTE = True
+        try:
+            ok = _apply_preset(context, ob, self.kind, filepath)
+        except Exception as e:
+            self.report({'ERROR'}, f"{type(e).__name__}: {e}")
+            ok = False
+        finally:
+            _MUTE = False
+        if not ok:
             return {'CANCELLED'}
-        for name in _DEFAULT_PROPS[self.kind]:
-            data.property_unset(name)
         regenerate(ob, context.scene, create=True)
         return {'FINISHED'}
 
 
+class STITCHGEN_OT_reset_defaults(_PresetApplyBase, bpy.types.Operator):
+    """Set this layer's settings back to the default: the starred preset, or the add-on's own"""
+    bl_idname = "stitch_gen.reset_defaults"
+    bl_label = "Default"
+
+    def execute(self, context):
+        return self.apply(context, _default_preset(self.kind))
+
+
+class STITCHGEN_OT_apply_preset(_PresetApplyBase, bpy.types.Operator):
+    """Apply this preset"""
+    bl_idname = "stitch_gen.apply_preset"
+    bl_label = "Apply Preset"
+    filepath: StringProperty(options={'HIDDEN', 'SKIP_SAVE'})
+
+    def execute(self, context):
+        if not os.path.isfile(self.filepath):
+            return {'CANCELLED'}
+        return self.apply(context, self.filepath)
+
+
+class STITCHGEN_OT_preset_default(bpy.types.Operator):
+    """Use this preset as the default: new layers start with it, and Default applies it. Click again to go back to the add-on's own default"""
+    bl_idname = "stitch_gen.preset_default"
+    bl_label = "Use as Default"
+    bl_options = {'INTERNAL'}
+    kind: EnumProperty(items=_PRESET_KINDS)
+    name: StringProperty(options={'HIDDEN', 'SKIP_SAVE'})
+
+    def execute(self, context):
+        d = _preset_dir(self.kind, create=True)
+        mark = os.path.join(d, _DEFAULT_MARK)
+        try:
+            if _default_stem(self.kind) == self.name:
+                os.remove(mark)
+            else:
+                with open(mark, "w", encoding="utf-8") as f:
+                    f.write(self.name)
+        except OSError as e:
+            self.report({'ERROR'}, str(e))
+            return {'CANCELLED'}
+        for area in context.screen.areas if context.screen else ():
+            area.tag_redraw()
+        return {'FINISHED'}
+
+
 class _DefaultsFirst:
-    """Preset list with the add-on's defaults on top."""
+    """Preset list: Default on top, then the saved presets (apply, star as
+    the default, remove), then a name field and + to save the current
+    settings."""
     reset_kind = 'STITCH'
 
     def draw(self, context):
         lay = self.layout
         lay.emboss = 'PULLDOWN_MENU'
+        # run the buttons directly: + saves under the typed name, no second dialog
+        lay.operator_context = 'EXEC_DEFAULT'
+        kind = self.reset_kind
         lay.operator("stitch_gen.reset_defaults", text="Default",
-                     text_ctxt=i18n.CTX).kind = self.reset_kind
+                     text_ctxt=i18n.CTX).kind = kind
+        files = _preset_files(kind)
+        if files:
+            lay.separator()
+            starred = _default_stem(kind)
+            col = lay.column(align=True)
+            for stem, path in files:
+                row = col.row(align=True)
+                op = row.operator("stitch_gen.apply_preset", text=stem, translate=False)
+                op.kind, op.filepath = kind, path
+                op = row.operator("stitch_gen.preset_default", text="",
+                                  icon='SOLO_ON' if stem == starred else 'SOLO_OFF')
+                op.kind, op.name = kind, stem
+                op = row.operator(self.preset_add_operator, text="", icon='REMOVE')
+                op.name, op.remove_name = stem, True
         lay.separator()
-        if any(f.endswith(".py") for d in bpy.utils.preset_paths(self.preset_subdir)
-               for f in os.listdir(d)):
-            PresetPanel.draw(self, context)
-            return
-        # none saved yet: just the name field (Blender would say "missing path")
         wm = bpy.data.window_managers[0]
-        row = lay.row(align=True)
-        row.prop(wm, "preset_name", text="")
+        row = lay.row()
+        sub = row.row()
+        sub.emboss = 'NORMAL'
+        sub.prop(wm, "preset_name", text="")
         row.operator(self.preset_add_operator, text="", icon='ADD').name = wm.preset_name
 
 
@@ -2263,6 +2405,8 @@ classes = (
     STITCHGEN_OT_edit_color,
     STITCHGEN_OT_open_folder,
     STITCHGEN_OT_reset_defaults,
+    STITCHGEN_OT_apply_preset,
+    STITCHGEN_OT_preset_default,
     STITCHGEN_OT_stitch_preset_add,
     STITCHGEN_OT_grid_preset_add,
     STITCHGEN_MT_grid_presets,
