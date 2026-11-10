@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bake and use · Pattern Masks</title>
+<link rel="icon" href="../img/icon-small.svg">
+<link rel="stylesheet" href="../style.css">
+<script>(function(){var d=document.documentElement,t=null;try{t=localStorage.getItem('pm-theme')}catch(e){}if(t)d.dataset.theme=t;var m=matchMedia('(prefers-color-scheme: dark)');function s(){var k=d.dataset.theme?d.dataset.theme==='dark':m.matches;if(k)d.setAttribute('data-dark','');else d.removeAttribute('data-dark')}s();m.addEventListener('change',s);window.pmToggleTheme=function(){var k=d.hasAttribute('data-dark');d.dataset.theme=k?'light':'dark';try{localStorage.setItem('pm-theme',d.dataset.theme)}catch(e){}s()}})()</script>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="index.html"><img src="../img/icon-small.svg" alt=""><span>Pattern Masks</span><small>Documentation</small></a>
+  <nav class="langs" aria-label="Language"><a href="../en/bake.html" aria-current=page>English</a><a href="../zh-CN/bake.html">简体中文</a><a href="../ja/bake.html">日本語</a></nav>
+  <a class="repo" href="https://github.com/Rizumu85/rizum-blender-pattern-masks">GitHub</a>
+  <button class="theme" type="button" aria-label="Light or dark theme" title="Light or dark theme" onclick="pmToggleTheme()">
+    <!-- moon and sun: Lucide 0.460.0 (lucide.dev), ISC License, (c) Lucide Contributors -->
+    <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+    <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2m-7.07-17.07 1.41 1.41m11.32 11.32 1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+  </button>
+</header>
+<div class="wrap">
+  <nav class="side" aria-label="Pages"><button class="side-toggle" type="button" aria-expanded="false"
+    onclick="var n=this.parentNode;n.classList.toggle('open');this.setAttribute('aria-expanded',n.classList.contains('open'))">Bake and use</button><p class="grp">Start</p><ol><li><a href="index.html">Overview</a></li><li><a href="start.html">Install and first mask</a></li></ol><p class="grp">How it works</p><ol><li><a href="layers.html">Layers and edges</a></li><li><a href="stitches.html">Stitches</a></li><li><a href="line-art.html">Line art</a></li><li><a href="grid.html">Grid</a></li><li><a href="presets.html">Presets</a></li><li><a class="here" href="bake.html">Bake and use</a></li></ol><p class="grp">Reference</p><ol><li><a href="limits.html">Notes and limits</a></li></ol></nav>
+  <main>
+    <h1>Bake and use</h1>
+    <p class="lead">One PNG per layer and material.</p>
+    <section id="files"><h2>Files</h2>
+<p>One PNG per layer and material, named from the object, the material and the layer.</p>
+<p class="note">The bake runs in the background, so you can keep working.</p>
+<figure class="fig practice mini" id="demo-bakeall" data-sandbox="{&quot;stitches&quot;: &quot;Stitches&quot;, &quot;lineArt&quot;: &quot;Line Art&quot;, &quot;auto&quot;: &quot;Auto&quot;, &quot;fromEdge&quot;: &quot;From Edge&quot;, &quot;width&quot;: &quot;Width&quot;, &quot;none&quot;: &quot;None&quot;, &quot;add&quot;: &quot;Add&quot;, &quot;remove&quot;: &quot;Remove&quot;, &quot;select&quot;: &quot;Select&quot;, &quot;clear&quot;: &quot;Clear&quot;, &quot;pick&quot;: &quot;Eyedropper&quot;, &quot;showEdges&quot;: &quot;Show Edges&quot;, &quot;visible&quot;: &quot;Show and bake&quot;, &quot;skip&quot;: &quot;Skip this step&quot;, &quot;restart&quot;: &quot;Start over&quot;, &quot;edges&quot;: &quot;Edges&quot;, &quot;reference&quot;: &quot;Reference&quot;, &quot;corners&quot;: &quot;Sharp Corners&quot;, &quot;flip&quot;: &quot;Flip Side&quot;, &quot;grid&quot;: &quot;Grid&quot;, &quot;along&quot;: &quot;Along Edge&quot;, &quot;angle&quot;: &quot;Angle&quot;, &quot;cell&quot;: &quot;Cell Size&quot;, &quot;pickInList&quot;: &quot;Pick in List&quot;, &quot;clickLayer&quot;: &quot;Click a layer in the list&quot;, &quot;stop&quot;: &quot;Stop following&quot;, &quot;length&quot;: &quot;Length&quot;, &quot;gap&quot;: &quot;Gap&quot;, &quot;bake&quot;: &quot;Bake Masks&quot;, &quot;model&quot;: &quot;Model&quot;, &quot;live&quot;: &quot;Live Update&quot;, &quot;rebuild&quot;: &quot;Update&quot;, &quot;keyEdges&quot;: &quot;This layer&#x27;s edges&quot;, &quot;keyOut&quot;: &quot;Left out&quot;, &quot;keyCorners&quot;: &quot;Sharp corners&quot;, &quot;keySel&quot;: &quot;Selected&quot;, &quot;presetName&quot;: &quot;Hem stitches&quot;, &quot;preDefault&quot;: &quot;Default&quot;, &quot;preStar&quot;: &quot;Use as the default&quot;, &quot;preName&quot;: &quot;Preset name&quot;, &quot;presets&quot;: &quot;Stitch Presets&quot;, &quot;showCorners&quot;: &quot;Show Corners&quot;, &quot;style&quot;: &quot;Style&quot;, &quot;dashed&quot;: &quot;Dashed&quot;, &quot;zigzag&quot;: &quot;Zigzag&quot;, &quot;height&quot;: &quot;Height&quot;, &quot;bakeHead&quot;: &quot;Bake&quot;, &quot;background&quot;: &quot;Background&quot;, &quot;black&quot;: &quot;Black&quot;, &quot;transparent&quot;: &quot;Transparent&quot;, &quot;bake1&quot;: &quot;Bake 1 Mask&quot;, &quot;bakeN&quot;: &quot;Bake {} Masks&quot;, &quot;object&quot;: &quot;Object&quot;, &quot;material&quot;: &quot;Material&quot;, &quot;demo&quot;: &quot;bakeall&quot;, &quot;steps&quot;: [&quot;Press **Bake 3 Masks**.&quot;, &quot;Change the object or material name above.&quot;], &quot;results&quot;: [&quot;Four files: one per layer, and two for the grid (its dark squares and its light ones). Pick one at the top left to see it.&quot;, &quot;The file names changed with it. Baking again overwrites files of the same name.&quot;], &quot;done&quot;: &quot;Try **Transparent** under **Background**: the mask is kept in the alpha instead of on black.&quot;}"></figure>
+</section><section id="painter"><h2>Using the masks</h2>
+<ul><li>Substance 3D Painter: import the PNG and use it as a mask on a fill layer. Re-import it after each new bake.</li><li>Clip Studio Paint: set <strong>Background</strong> to <strong>Transparent</strong>, bake, then use it as a layer or a mask.</li></ul>
+</section><section id="settings"><h2>Bake settings</h2>
+
+<figure class="fig refpanel" data-ref="bake"><div class="rp-row" data-r="size"><div class="rp-ui"><span class="rp-lb">Size</span><span class="rp-field">4096<i class="dd"></i></span></div><div class="rp-desc">Image size in pixels.</div></div><div class="rp-row" data-r="uv"><div class="rp-ui"><span class="rp-lb">UV Map</span><span class="rp-field">Active: UVMap<i class="dd"></i></span></div><div class="rp-desc">Which UV map to bake into.</div></div><div class="rp-row" data-r="folder"><div class="rp-ui"><span class="rp-lb">Folder</span><span class="rp-field path">//stitch_masks/</span></div><div class="rp-desc">Where the files go. // means the .blend's folder, so save the .blend first.</div></div><div class="rp-row" data-r="background"><div class="rp-ui"><span class="rp-lb">Background</span><span class="rp-seg"><button type="button" data-v="black" class=on>Black</button><button type="button" data-v="transparent">Transparent</button></span></div><div class="rp-desc"><strong>Black</strong> for Painter, <strong>Transparent</strong> for 2D apps.</div></div><div class="rp-gap"></div><div class="rp-row" data-r="samples"><div class="rp-ui"><span class="rp-lb"></span><span class="rp-sub">Stitches: Samples &amp; Device</span></div><div class="rp-desc">Quality of the stitch bake, and CPU or GPU.</div></div></figure>
+</section>
+    <nav class="pager"><a href="presets.html"><small>Previous</small>Presets</a><a href="limits.html"><small>Next</small>Notes and limits</a></nav>
+  </main>
+  <aside class="toc"><p>On this page</p><ol><li><a href="#files">Files</a></li><li><a href="#painter">Using the masks</a></li><li><a href="#settings">Bake settings</a></li></ol></aside>
+</div>
+
+<script src="../practice.js"></script>
+<script>(function(){var l=[].slice.call(document.querySelectorAll('.toc a'));if(!l.length)return;var s=l.map(function(a){return document.getElementById(decodeURIComponent(a.hash.slice(1)))});function u(){var n=0;for(var i=0;i<s.length;i++)if(s[i]&&s[i].getBoundingClientRect().top<=150)n=i;if(scrollY>0&&innerHeight+scrollY>=document.documentElement.scrollHeight-4)n=s.length-1;l.forEach(function(a,i){a.classList.toggle('now',i===n)})}addEventListener('scroll',u,{passive:true});addEventListener('resize',u);u()})()</script>
+</body>
+</html>

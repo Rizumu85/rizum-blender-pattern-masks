@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>注意事项 · Pattern Masks</title>
+<link rel="icon" href="../img/icon-small.svg">
+<link rel="stylesheet" href="../style.css">
+<script>(function(){var d=document.documentElement,t=null;try{t=localStorage.getItem('pm-theme')}catch(e){}if(t)d.dataset.theme=t;var m=matchMedia('(prefers-color-scheme: dark)');function s(){var k=d.dataset.theme?d.dataset.theme==='dark':m.matches;if(k)d.setAttribute('data-dark','');else d.removeAttribute('data-dark')}s();m.addEventListener('change',s);window.pmToggleTheme=function(){var k=d.hasAttribute('data-dark');d.dataset.theme=k?'light':'dark';try{localStorage.setItem('pm-theme',d.dataset.theme)}catch(e){}s()}})()</script>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="index.html"><img src="../img/icon-small.svg" alt=""><span>Pattern Masks</span><small>文档</small></a>
+  <nav class="langs" aria-label="语言"><a href="../en/limits.html">English</a><a href="../zh-CN/limits.html" aria-current=page>简体中文</a><a href="../ja/limits.html">日本語</a></nav>
+  <a class="repo" href="https://github.com/Rizumu85/rizum-blender-pattern-masks">GitHub</a>
+  <button class="theme" type="button" aria-label="切换浅色或深色主题" title="切换浅色或深色主题" onclick="pmToggleTheme()">
+    <!-- moon and sun: Lucide 0.460.0 (lucide.dev), ISC License, (c) Lucide Contributors -->
+    <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+    <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2m-7.07-17.07 1.41 1.41m11.32 11.32 1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+  </button>
+</header>
+<div class="wrap">
+  <nav class="side" aria-label="页面"><button class="side-toggle" type="button" aria-expanded="false"
+    onclick="var n=this.parentNode;n.classList.toggle('open');this.setAttribute('aria-expanded',n.classList.contains('open'))">注意事项</button><p class="grp">入门</p><ol><li><a href="index.html">概览</a></li><li><a href="start.html">安装和第一张遮罩</a></li></ol><p class="grp">功能讲解</p><ol><li><a href="layers.html">图层和边</a></li><li><a href="stitches.html">缝线</a></li><li><a href="line-art.html">线稿</a></li><li><a href="grid.html">格纹</a></li><li><a href="presets.html">预设</a></li><li><a href="bake.html">烘焙和使用</a></li></ol><p class="grp">参考</p><ol><li><a class="here" href="limits.html">注意事项</a></li></ol></nav>
+  <main>
+    <h1>注意事项</h1>
+    <p class="lead">烘焙之前需要知道的几件事。</p>
+    <section id="mesh"><h2>网格</h2>
+<ul><li>不读取修改器。请先在副本上应用修改器。</li><li>比离边距离两倍还窄的缺口，线会直接跨过去。</li><li>布料折叠重叠的地方，缝线只烘焙到它所在的那一层布上。</li></ul>
+</section><section id="grid"><h2>格纹</h2>
+<ul><li><strong>顺布线</strong> 在衣片变宽处会分叉；方格越大，分叉越少。</li><li><strong>展开</strong> 需要在后台算一两秒。</li></ul>
+</section><section id="bake"><h2>烘焙</h2>
+<ul><li>烘焙 8192 尺寸大约需要 2 GB 空闲内存。</li><li>跨越 UDIM 块边界的面，只会烘焙进其中一块。</li></ul>
+</section><section id="faq"><h2>常见问题</h2>
+<h3>烘焙按钮是灰的</h3>
+<p>至少显示一个图层，并给它加上边。</p>
+<h3>缝线在错的一侧</h3>
+<p>打开 <strong>翻到另一侧</strong>。</p>
+<h3>拐角被切掉了</h3>
+<p>在 <strong>尖角</strong> 那一行标记这个顶点。</p>
+<h3>Painter 里还是旧遮罩</h3>
+<p>重新导入文件。</p>
+</section>
+    <nav class="pager"><a href="bake.html"><small>上一页</small>烘焙和使用</a><span></span></nav>
+  </main>
+  <aside class="toc"><p>本页内容</p><ol><li><a href="#mesh">网格</a></li><li><a href="#grid">格纹</a></li><li><a href="#bake">烘焙</a></li><li><a href="#faq">常见问题</a></li></ol></aside>
+</div>
+
+<script>(function(){var l=[].slice.call(document.querySelectorAll('.toc a'));if(!l.length)return;var s=l.map(function(a){return document.getElementById(decodeURIComponent(a.hash.slice(1)))});function u(){var n=0;for(var i=0;i<s.length;i++)if(s[i]&&s[i].getBoundingClientRect().top<=150)n=i;if(scrollY>0&&innerHeight+scrollY>=document.documentElement.scrollHeight-4)n=s.length-1;l.forEach(function(a,i){a.classList.toggle('now',i===n)})}addEventListener('scroll',u,{passive:true});addEventListener('resize',u);u()})()</script>
+</body>
+</html>

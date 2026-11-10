@@ -1,0 +1,598 @@
+{
+ "lang": "en",
+ "pages": [
+  {
+   "slug": "index",
+   "title": "Overview",
+   "lead": "Mark edges on a mesh. Get stitches, lines and checks along them, baked to UV masks.",
+   "sections": [
+    {
+     "id": "what",
+     "heading": "What it does",
+     "body": "Pick edges in Blender, and the add-on draws patterns along them. Each pattern bakes to a 16-bit mask PNG.\n\nUse the masks in painting apps such as Substance 3D Painter or Clip Studio Paint.",
+     "table": [],
+     "figure": ""
+    },
+    {
+     "id": "layers",
+     "heading": "Three kinds of layers",
+     "body": "- **Stitches**: dashed or zigzag, a set distance in from the edge.\n- **Line Art**: solid lines of one real width.\n- **Grid**: a checkerboard laid from a marked edge.",
+     "table": [],
+     "figure": "fig-hero-render"
+    },
+    {
+     "id": "workflow",
+     "heading": "Workflow",
+     "body": "",
+     "table": [],
+     "figure": "fig-workflow"
+    },
+    {
+     "id": "why",
+     "heading": "Why on the 3D surface",
+     "body": "Sizes are real millimetres on the model, so stretched UVs don't change them.\n\nLines keep their distance along the cloth and stay sharp at marked corners.",
+     "table": [],
+     "figure": ""
+    },
+    {
+     "id": "requirements",
+     "heading": "Requirements",
+     "body": "Blender 4.2 or newer, and a mesh with UVs.",
+     "table": [],
+     "figure": ""
+    }
+   ]
+  },
+  {
+   "slug": "start",
+   "title": "Install and first mask",
+   "lead": "Install, then bake a stitch mask along a hem.",
+   "sections": [
+    {
+     "id": "install",
+     "heading": "Install",
+     "body": "- From Blender: Edit › Preferences › Get Extensions, search *Pattern Masks*.\n- From a zip: Get Extensions › ▾ › **Install from Disk…**",
+     "table": [],
+     "figure": "fig-install",
+     "keys": [
+      [
+       "tab",
+       "**Pattern Masks** tab",
+       "Press N in the 3D View to open the sidebar, then click this tab."
+      ],
+      [
+       "panel",
+       "The panel",
+       "The layer list on top, the selected layer's settings below it, and the bake further down."
+      ]
+     ]
+    },
+    {
+     "id": "layer",
+     "heading": "Add a stitch layer",
+     "body": "Each pattern is a layer in the list: one **Stitches** layer per object, and as many **Line Art** and **Grid** layers as you like.",
+     "table": [],
+     "figure": "sb-flow",
+     "step": 0
+    },
+    {
+     "id": "hem",
+     "heading": "Give it the hem",
+     "body": "A layer draws only along its own edges. In Blender, pick them in Edit Mode first.",
+     "table": [],
+     "figure": "",
+     "step": 1
+    },
+    {
+     "id": "tune",
+     "heading": "Set the stitches",
+     "body": "Sizes are real millimetres on the model, whatever its size.",
+     "table": [],
+     "figure": "",
+     "keys": [
+      [
+       "from",
+       "**From Edge**",
+       "How far the stitches sit from the edge."
+      ],
+      [
+       "length",
+       "**Length**",
+       "How long each stitch is."
+      ],
+      [
+       "gap",
+       "**Gap**",
+       "The space between stitches."
+      ]
+     ],
+     "step": 2
+    },
+    {
+     "id": "bake",
+     "heading": "Bake",
+     "body": "Save the .blend, then press the bake button at the bottom of the panel. Each layer gives one 16-bit PNG per material, in the `stitch_masks` folder next to the .blend.",
+     "table": [],
+     "figure": "",
+     "step": 3
+    },
+    {
+     "id": "use",
+     "heading": "Paint with it",
+     "body": "In Substance 3D Painter, import the PNG and use it as a grayscale mask on a fill layer.\n\n> Other apps and file names: [Bake and use](bake.html).",
+     "table": [],
+     "figure": ""
+    },
+    {
+     "id": "safety",
+     "heading": "What it changes",
+     "body": "Only edge and vertex attributes. Shape, UVs and materials stay as they are.",
+     "table": [],
+     "figure": ""
+    }
+   ]
+  },
+  {
+   "slug": "layers",
+   "title": "Layers and edges",
+   "lead": "Every layer draws along its own edges. Try each idea below on the skirt piece.",
+   "sections": [
+    {
+     "id": "list",
+     "heading": "The layer list",
+     "body": "Each pattern is a row in the list.",
+     "table": [],
+     "figure": "sb-list",
+     "keys": [
+      [
+       "name",
+       "**Name**",
+       "Also used as the file name."
+      ],
+      [
+       "color",
+       "**Color**",
+       "The preview color."
+      ],
+      [
+       "marks",
+       "**Edges toggle**",
+       "Shows the layer's marked edges."
+      ],
+      [
+       "eye",
+       "**Eye**",
+       "Shows the layer. A hidden layer isn't baked."
+      ],
+      [
+       "add",
+       "**+**",
+       "Adds **Stitches** (one per object), **Line Art** or **Grid**."
+      ],
+      [
+       "remove",
+       "**−**",
+       "Removes the selected layer."
+      ],
+      [
+       "play",
+       "**Play**",
+       "Turns live updates on and off."
+      ],
+      [
+       "refresh",
+       "**Refresh**",
+       "Rebuilds once."
+      ]
+     ]
+    },
+    {
+     "id": "edges",
+     "heading": "Edges row",
+     "body": "Select edges in Edit Mode, pick the layer in the list, then use the **Edges** row.\n\n> Each layer keeps its own edges.",
+     "table": [],
+     "figure": "sb-edges",
+     "keys": [
+      [
+       "e-add",
+       "**+**",
+       "Adds the selected edges to the layer."
+      ],
+      [
+       "e-remove",
+       "**−**",
+       "Takes them out of the layer."
+      ],
+      [
+       "e-select",
+       "**Arrow**",
+       "Selects all of the layer's edges."
+      ],
+      [
+       "e-clear",
+       "**×**",
+       "Clears the layer's edges."
+      ],
+      [
+       "link",
+       "**Link**",
+       "Follows another layer's edges: see [Reference](#reference)."
+      ],
+      [
+       "e-marks",
+       "**Show Edges**",
+       "Shows this layer's marked edges in the view, like the toggle in the list."
+      ]
+     ]
+    },
+    {
+     "id": "reference",
+     "heading": "Reference",
+     "body": "A layer can use the edges of another one, and follows when those change.\n\n> To leave a few of them out, select them and press **−**: they turn red here, and the other layer keeps them.",
+     "table": [],
+     "figure": "sb-reference"
+    },
+    {
+     "id": "corners",
+     "heading": "Sharp corners",
+     "body": "Where two edges meet at a tip, a line rounds the corner. To keep it sharp, mark the vertex on the **Sharp Corners** row.\n\n> The marks are shared by all layers.",
+     "table": [],
+     "figure": "sb-corners",
+     "keys": [
+      [
+       "c-add",
+       "**+**",
+       "Marks the selected tips."
+      ],
+      [
+       "c-remove",
+       "**−**",
+       "Clears them."
+      ],
+      [
+       "c-select",
+       "**Arrow**",
+       "Selects every marked tip."
+      ],
+      [
+       "c-auto",
+       "**Auto**",
+       "Marks every likely tip."
+      ],
+      [
+       "c-marks",
+       "**Show Corners**",
+       "Shows the marked corners in the view."
+      ]
+     ]
+    },
+    {
+     "id": "side",
+     "heading": "Flip Side",
+     "body": "**Flip Side** moves every line to the other side of its edges.\n\nUse it for edges inside the mesh. A border has no cloth on its other side, so its lines disappear.\n\n> Shared by all layers.",
+     "table": [],
+     "figure": "sb-flip"
+    }
+   ]
+  },
+  {
+   "slug": "stitches",
+   "title": "Stitches",
+   "lead": "Dashed or zigzag stitches, a set distance in from the edge.",
+   "sections": [
+    {
+     "id": "style",
+     "heading": "Dashed and zigzag",
+     "body": "Two styles: **Dashed**, separate stitches, and **Zigzag**, one thread going back and forth.",
+     "table": [],
+     "figure": "sb-style"
+    },
+    {
+     "id": "settings",
+     "heading": "Settings",
+     "body": "",
+     "table": [],
+     "figure": "ref-stitch",
+     "keys": [
+      [
+       "from",
+       "**From Edge**",
+       "Distance from the edge, measured along the cloth."
+      ],
+      [
+       "corner_inset",
+       "**Corner Inset**",
+       "Extra inset at marked corners."
+      ],
+      [
+       "smooth",
+       "**Smooth**",
+       "Evens out the kinks a low-poly edge puts in the line. Mark the corners that should stay sharp."
+      ],
+      [
+       "style",
+       "**Style**",
+       "**Dashed** draws separate stitches; **Zigzag** one thread going back and forth."
+      ],
+      [
+       "width",
+       "**Width**",
+       "Stitch width; for a zigzag, the thread width."
+      ],
+      [
+       "length",
+       "**Length**",
+       "Stitch length; for a zigzag, peak to peak."
+      ],
+      [
+       "gap",
+       "**Gap**",
+       "Space between stitches."
+      ],
+      [
+       "round",
+       "**Round Ends**",
+       "How round the stitch ends are (1 is fully round)."
+      ],
+      [
+       "height",
+       "**Height**",
+       "How far a zigzag swings. Raise **From Edge** with it."
+      ],
+      [
+       "even",
+       "**Even Fit**",
+       "Whole stitches on closed loops; even ends on open lines."
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "slug": "line-art",
+   "title": "Line art",
+   "lead": "Solid lines of one real width, from an outline to a band.",
+   "sections": [
+    {
+     "id": "what",
+     "heading": "What it draws",
+     "body": "A solid line along the layer's edges: the same width everywhere on the model, following the edge's exact shape, sharp at marked corners. Add as many Line Art layers as you need.",
+     "table": [],
+     "figure": "sb-lineart"
+    },
+    {
+     "id": "settings",
+     "heading": "Settings",
+     "body": "",
+     "table": [],
+     "figure": "ref-line",
+     "keys": [
+      [
+       "from",
+       "**From Edge**",
+       "Distance from the edge to the line's outer side (0 = an outline)."
+      ],
+      [
+       "corner_inset",
+       "**Corner Inset**",
+       "Extra inset at marked corners."
+      ],
+      [
+       "smooth",
+       "**Smooth**",
+       "Smooths the inner side between corners."
+      ],
+      [
+       "width",
+       "**Width**",
+       "Line width, the same everywhere on the model."
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "slug": "grid",
+   "title": "Grid",
+   "lead": "A checkerboard laid from a marked edge.",
+   "sections": [
+    {
+     "id": "what",
+     "heading": "What it makes",
+     "body": "Squares of one real size on the model, laid from a marked edge.\n\n> Each grid bakes two masks: `_black.png` and `_white.png`.",
+     "table": [],
+     "figure": "sb-grid"
+    },
+    {
+     "id": "marking",
+     "heading": "Which edge to mark",
+     "body": "Mark one edge per piece, such as the waist. Every UV island with a marked edge gets filled.",
+     "table": [],
+     "figure": ""
+    },
+    {
+     "id": "layouts",
+     "heading": "Two layouts",
+     "body": "",
+     "table": [],
+     "figure": "fig-grid-layouts"
+    },
+    {
+     "id": "settings",
+     "heading": "Settings",
+     "body": "",
+     "table": [],
+     "figure": "ref-grid",
+     "keys": [
+      [
+       "from",
+       "**From Edge**",
+       "Slides the squares away from the edge."
+      ],
+      [
+       "along",
+       "**Along Edge**",
+       "Slides them along the edge."
+      ],
+      [
+       "angle",
+       "**Angle**",
+       "Turns them (45° = on the bias)."
+      ],
+      [
+       "cell",
+       "**Cell Size**",
+       "The size of a square."
+      ],
+      [
+       "wobble",
+       "**Wobble**",
+       "Bows the lines slightly at random (0 = straight)."
+      ],
+      [
+       "layout",
+       "**Layout**",
+       "**Follow Loops** or **Unrolled**: see the two renders above."
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "slug": "presets",
+   "title": "Presets",
+   "lead": "Save a layer's settings and reuse them in any file.",
+   "sections": [
+    {
+     "id": "use",
+     "heading": "Save, apply and set a default",
+     "body": "> Ctrl+Z undoes applying a preset.",
+     "table": [],
+     "figure": "sb-presets",
+     "keys": [
+      [
+       "p-button",
+       "Preset button",
+       "Opens this layer's presets."
+      ],
+      [
+       "p-default",
+       "**Default**",
+       "Applies the starred preset, or the add-on's own values when none is starred."
+      ],
+      [
+       "p-name",
+       "Name",
+       "The name to save under."
+      ],
+      [
+       "p-save",
+       "**+**",
+       "Saves the current settings under that name."
+      ],
+      [
+       "p-star",
+       "Star",
+       "Makes the preset the default for new layers of that kind."
+      ],
+      [
+       "p-del",
+       "**−**",
+       "Deletes the preset."
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "slug": "bake",
+   "title": "Bake and use",
+   "lead": "One PNG per layer and material.",
+   "sections": [
+    {
+     "id": "files",
+     "heading": "Files",
+     "body": "One PNG per layer and material, named from the object, the material and the layer.\n\n> The bake runs in the background, so you can keep working.",
+     "table": [],
+     "figure": "sb-bakeall"
+    },
+    {
+     "id": "painter",
+     "heading": "Using the masks",
+     "body": "- Substance 3D Painter: import the PNG and use it as a mask on a fill layer. Re-import it after each new bake.\n- Clip Studio Paint: set **Background** to **Transparent**, bake, then use it as a layer or a mask.",
+     "table": [],
+     "figure": ""
+    },
+    {
+     "id": "settings",
+     "heading": "Bake settings",
+     "body": "",
+     "table": [],
+     "figure": "ref-bake",
+     "keys": [
+      [
+       "size",
+       "**Size**",
+       "Image size in pixels."
+      ],
+      [
+       "uv",
+       "**UV Map**",
+       "Which UV map to bake into."
+      ],
+      [
+       "folder",
+       "**Folder**",
+       "Where the files go. // means the .blend's folder, so save the .blend first."
+      ],
+      [
+       "background",
+       "**Background**",
+       "**Black** for Painter, **Transparent** for 2D apps."
+      ],
+      [
+       "samples",
+       "**Stitches: Samples & Device**",
+       "Quality of the stitch bake, and CPU or GPU."
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "slug": "limits",
+   "title": "Notes and limits",
+   "lead": "Good to know before you bake.",
+   "sections": [
+    {
+     "id": "mesh",
+     "heading": "Mesh",
+     "body": "- Modifiers are ignored. Apply them on a copy first.\n- Lines skip notches narrower than twice their distance from the edge.\n- Where cloth folds over itself, stitches bake only on the layer they belong to.",
+     "table": [],
+     "figure": ""
+    },
+    {
+     "id": "grid",
+     "heading": "Grid",
+     "body": "- **Follow Loops** forks where the piece widens. Larger squares mean fewer forks.\n- **Unrolled** takes a second or two to compute, in the background.",
+     "table": [],
+     "figure": ""
+    },
+    {
+     "id": "bake",
+     "heading": "Bake",
+     "body": "- An 8192 bake needs about 2 GB of free memory.\n- A face that crosses a UDIM tile border is baked into one tile only.",
+     "table": [],
+     "figure": ""
+    },
+    {
+     "id": "faq",
+     "heading": "Questions",
+     "body": "### Bake is greyed out\nShow a layer and give it edges.\n\n### Stitches are on the wrong side\nTurn on **Flip Side**.\n\n### A corner is cut off\nMark it on the **Sharp Corners** row.\n\n### Painter shows the old mask\nRe-import the file.",
+     "table": [],
+     "figure": ""
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pattern Masks</title>
+<link rel="icon" href="../img/icon-small.svg">
+<link rel="stylesheet" href="../style.css">
+<script>(function(){var d=document.documentElement,t=null;try{t=localStorage.getItem('pm-theme')}catch(e){}if(t)d.dataset.theme=t;var m=matchMedia('(prefers-color-scheme: dark)');function s(){var k=d.dataset.theme?d.dataset.theme==='dark':m.matches;if(k)d.setAttribute('data-dark','');else d.removeAttribute('data-dark')}s();m.addEventListener('change',s);window.pmToggleTheme=function(){var k=d.hasAttribute('data-dark');d.dataset.theme=k?'light':'dark';try{localStorage.setItem('pm-theme',d.dataset.theme)}catch(e){}s()}})()</script>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="index.html"><img src="../img/icon-small.svg" alt=""><span>Pattern Masks</span><small>文档</small></a>
+  <nav class="langs" aria-label="语言"><a href="../en/index.html">English</a><a href="../zh-CN/index.html" aria-current=page>简体中文</a><a href="../ja/index.html">日本語</a></nav>
+  <a class="repo" href="https://github.com/Rizumu85/rizum-blender-pattern-masks">GitHub</a>
+  <button class="theme" type="button" aria-label="切换浅色或深色主题" title="切换浅色或深色主题" onclick="pmToggleTheme()">
+    <!-- moon and sun: Lucide 0.460.0 (lucide.dev), ISC License, (c) Lucide Contributors -->
+    <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+    <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2m-7.07-17.07 1.41 1.41m11.32 11.32 1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+  </button>
+</header>
+<div class="wrap">
+  <nav class="side" aria-label="页面"><button class="side-toggle" type="button" aria-expanded="false"
+    onclick="var n=this.parentNode;n.classList.toggle('open');this.setAttribute('aria-expanded',n.classList.contains('open'))">概览</button><p class="grp">入门</p><ol><li><a class="here" href="index.html">概览</a></li><li><a href="start.html">安装和第一张遮罩</a></li></ol><p class="grp">功能讲解</p><ol><li><a href="layers.html">图层和边</a></li><li><a href="stitches.html">缝线</a></li><li><a href="line-art.html">线稿</a></li><li><a href="grid.html">格纹</a></li><li><a href="presets.html">预设</a></li><li><a href="bake.html">烘焙和使用</a></li></ol><p class="grp">参考</p><ol><li><a href="limits.html">注意事项</a></li></ol></nav>
+  <main>
+    <h1>概览</h1>
+    <p class="lead">在网格上标几条边，沿着它们生成缝线、线稿和格纹，再烘焙成 UV 遮罩。</p>
+    <section id="what"><h2>能做什么</h2>
+<p>在 Blender 里选几条边，插件就沿着它们画出图案，每种图案烘焙成一张 16 位的遮罩 PNG。</p>
+<p>遮罩可以在绘画软件里使用，例如 Substance 3D Painter 或 Clip Studio Paint。</p>
+</section><section id="layers"><h2>三种图层</h2>
+<dl class="keys"><dt><strong>缝线</strong></dt><dd>虚线或锯齿线，和边保持固定距离。</dd><dt><strong>线稿</strong></dt><dd>实线，在模型上粗细一致。</dd><dt><strong>格纹</strong></dt><dd>棋盘格，从标记的边开始铺。</dd></dl>
+<figure class="fig dark"><img src="../img/render.png" alt="" loading="lazy"></figure>
+</section><section id="workflow"><h2>流程</h2>
+
+<figure class="fig workflow"><ol><li><img src="../img/step1.svg" alt=""><span>1. 标边</span></li><li><img src="../img/step2.svg" alt=""><span>2. 调参数</span></li><li><img src="../img/step3.svg" alt=""><span>3. 烘焙</span></li><li><img src="../img/step4.svg" alt=""><span>4. 绘制</span></li></ol></figure>
+</section><section id="why"><h2>为什么在 3D 表面上计算</h2>
+<p>尺寸按模型上的真实毫米计算，UV 拉伸了也不受影响。</p>
+<p>线沿着布面和边保持距离，在标记的尖角处保持尖锐。</p>
+</section><section id="requirements"><h2>需要</h2>
+<p>Blender 4.2 或更新版本，网格需要有 UV。</p>
+</section>
+    <nav class="pager"><span></span><a href="start.html"><small>下一页</small>安装和第一张遮罩</a></nav>
+  </main>
+  <aside class="toc"><p>本页内容</p><ol><li><a href="#what">能做什么</a></li><li><a href="#layers">三种图层</a></li><li><a href="#workflow">流程</a></li><li><a href="#why">为什么在 3D 表面上计算</a></li><li><a href="#requirements">需要</a></li></ol></aside>
+</div>
+
+<script>(function(){var l=[].slice.call(document.querySelectorAll('.toc a'));if(!l.length)return;var s=l.map(function(a){return document.getElementById(decodeURIComponent(a.hash.slice(1)))});function u(){var n=0;for(var i=0;i<s.length;i++)if(s[i]&&s[i].getBoundingClientRect().top<=150)n=i;if(scrollY>0&&innerHeight+scrollY>=document.documentElement.scrollHeight-4)n=s.length-1;l.forEach(function(a,i){a.classList.toggle('now',i===n)})}addEventListener('scroll',u,{passive:true});addEventListener('resize',u);u()})()</script>
+</body>
+</html>

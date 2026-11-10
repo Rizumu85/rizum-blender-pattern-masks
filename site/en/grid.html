@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Grid · Pattern Masks</title>
+<link rel="icon" href="../img/icon-small.svg">
+<link rel="stylesheet" href="../style.css">
+<script>(function(){var d=document.documentElement,t=null;try{t=localStorage.getItem('pm-theme')}catch(e){}if(t)d.dataset.theme=t;var m=matchMedia('(prefers-color-scheme: dark)');function s(){var k=d.dataset.theme?d.dataset.theme==='dark':m.matches;if(k)d.setAttribute('data-dark','');else d.removeAttribute('data-dark')}s();m.addEventListener('change',s);window.pmToggleTheme=function(){var k=d.hasAttribute('data-dark');d.dataset.theme=k?'light':'dark';try{localStorage.setItem('pm-theme',d.dataset.theme)}catch(e){}s()}})()</script>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="index.html"><img src="../img/icon-small.svg" alt=""><span>Pattern Masks</span><small>Documentation</small></a>
+  <nav class="langs" aria-label="Language"><a href="../en/grid.html" aria-current=page>English</a><a href="../zh-CN/grid.html">简体中文</a><a href="../ja/grid.html">日本語</a></nav>
+  <a class="repo" href="https://github.com/Rizumu85/rizum-blender-pattern-masks">GitHub</a>
+  <button class="theme" type="button" aria-label="Light or dark theme" title="Light or dark theme" onclick="pmToggleTheme()">
+    <!-- moon and sun: Lucide 0.460.0 (lucide.dev), ISC License, (c) Lucide Contributors -->
+    <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+    <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2m-7.07-17.07 1.41 1.41m11.32 11.32 1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+  </button>
+</header>
+<div class="wrap">
+  <nav class="side" aria-label="Pages"><button class="side-toggle" type="button" aria-expanded="false"
+    onclick="var n=this.parentNode;n.classList.toggle('open');this.setAttribute('aria-expanded',n.classList.contains('open'))">Grid</button><p class="grp">Start</p><ol><li><a href="index.html">Overview</a></li><li><a href="start.html">Install and first mask</a></li></ol><p class="grp">How it works</p><ol><li><a href="layers.html">Layers and edges</a></li><li><a href="stitches.html">Stitches</a></li><li><a href="line-art.html">Line art</a></li><li><a class="here" href="grid.html">Grid</a></li><li><a href="presets.html">Presets</a></li><li><a href="bake.html">Bake and use</a></li></ol><p class="grp">Reference</p><ol><li><a href="limits.html">Notes and limits</a></li></ol></nav>
+  <main>
+    <h1>Grid</h1>
+    <p class="lead">A checkerboard laid from a marked edge.</p>
+    <section id="what"><h2>What it makes</h2>
+<p>Squares of one real size on the model, laid from a marked edge.</p>
+<p class="note">Each grid bakes two masks: <code>_<wbr>black.png</code> and <code>_<wbr>white.png</code>.</p>
+<figure class="fig practice mini" id="demo-grid" data-sandbox="{&quot;stitches&quot;: &quot;Stitches&quot;, &quot;lineArt&quot;: &quot;Line Art&quot;, &quot;auto&quot;: &quot;Auto&quot;, &quot;fromEdge&quot;: &quot;From Edge&quot;, &quot;width&quot;: &quot;Width&quot;, &quot;none&quot;: &quot;None&quot;, &quot;add&quot;: &quot;Add&quot;, &quot;remove&quot;: &quot;Remove&quot;, &quot;select&quot;: &quot;Select&quot;, &quot;clear&quot;: &quot;Clear&quot;, &quot;pick&quot;: &quot;Eyedropper&quot;, &quot;showEdges&quot;: &quot;Show Edges&quot;, &quot;visible&quot;: &quot;Show and bake&quot;, &quot;skip&quot;: &quot;Skip this step&quot;, &quot;restart&quot;: &quot;Start over&quot;, &quot;edges&quot;: &quot;Edges&quot;, &quot;reference&quot;: &quot;Reference&quot;, &quot;corners&quot;: &quot;Sharp Corners&quot;, &quot;flip&quot;: &quot;Flip Side&quot;, &quot;grid&quot;: &quot;Grid&quot;, &quot;along&quot;: &quot;Along Edge&quot;, &quot;angle&quot;: &quot;Angle&quot;, &quot;cell&quot;: &quot;Cell Size&quot;, &quot;pickInList&quot;: &quot;Pick in List&quot;, &quot;clickLayer&quot;: &quot;Click a layer in the list&quot;, &quot;stop&quot;: &quot;Stop following&quot;, &quot;length&quot;: &quot;Length&quot;, &quot;gap&quot;: &quot;Gap&quot;, &quot;bake&quot;: &quot;Bake Masks&quot;, &quot;model&quot;: &quot;Model&quot;, &quot;live&quot;: &quot;Live Update&quot;, &quot;rebuild&quot;: &quot;Update&quot;, &quot;keyEdges&quot;: &quot;This layer&#x27;s edges&quot;, &quot;keyOut&quot;: &quot;Left out&quot;, &quot;keyCorners&quot;: &quot;Sharp corners&quot;, &quot;keySel&quot;: &quot;Selected&quot;, &quot;presetName&quot;: &quot;Hem stitches&quot;, &quot;preDefault&quot;: &quot;Default&quot;, &quot;preStar&quot;: &quot;Use as the default&quot;, &quot;preName&quot;: &quot;Preset name&quot;, &quot;presets&quot;: &quot;Stitch Presets&quot;, &quot;showCorners&quot;: &quot;Show Corners&quot;, &quot;style&quot;: &quot;Style&quot;, &quot;dashed&quot;: &quot;Dashed&quot;, &quot;zigzag&quot;: &quot;Zigzag&quot;, &quot;height&quot;: &quot;Height&quot;, &quot;bakeHead&quot;: &quot;Bake&quot;, &quot;background&quot;: &quot;Background&quot;, &quot;black&quot;: &quot;Black&quot;, &quot;transparent&quot;: &quot;Transparent&quot;, &quot;bake1&quot;: &quot;Bake 1 Mask&quot;, &quot;bakeN&quot;: &quot;Bake {} Masks&quot;, &quot;object&quot;: &quot;Object&quot;, &quot;material&quot;: &quot;Material&quot;, &quot;demo&quot;: &quot;grid&quot;, &quot;steps&quot;: [&quot;Drag **Angle** to 45°.&quot;, &quot;Drag **Along Edge** or **From Edge**.&quot;], &quot;results&quot;: [&quot;The checks turned {angle}, still laid from the marked waist.&quot;, &quot;The checks slide along the waist, or away from it, without changing size.&quot;], &quot;done&quot;: &quot;Try **Cell Size** too.&quot;}"></figure>
+</section><section id="marking"><h2>Which edge to mark</h2>
+<p>Mark one edge per piece, such as the waist. Every UV island with a marked edge gets filled.</p>
+</section><section id="layouts"><h2>Two layouts</h2>
+
+<figure class="fig pair dark"><div><img src="../img/grid_loops.png" alt="" loading="lazy"><figcaption><strong>Follow Loops</strong><span>Squares follow the mesh's loops and keep one size. Small forks appear where the piece widens.</span></figcaption></div><div><img src="../img/grid_unrolled.png" alt="" loading="lazy"><figcaption><strong>Unrolled</strong><span>The piece is laid flat with the marked edge straight. No forks, but the squares grow toward the hem. For open panels, not closed tubes.</span></figcaption></div></figure>
+</section><section id="settings"><h2>Settings</h2>
+
+<figure class="fig refpanel" data-ref="grid"><div class="rp-row" data-r="from"><div class="rp-ui"><span class="rp-lb">From Edge</span><span class="rp-field">0 mm</span></div><div class="rp-desc">Slides the squares away from the edge.</div></div><div class="rp-row" data-r="along"><div class="rp-ui"><span class="rp-lb">Along Edge</span><span class="rp-field">0 mm</span></div><div class="rp-desc">Slides them along the edge.</div></div><div class="rp-gap"></div><div class="rp-row" data-r="angle"><div class="rp-ui"><span class="rp-lb">Angle</span><span class="rp-field">0°</span></div><div class="rp-desc">Turns them (45° = on the bias).</div></div><div class="rp-row" data-r="cell"><div class="rp-ui"><span class="rp-lb">Cell Size</span><span class="rp-field">8 mm</span></div><div class="rp-desc">The size of a square.</div></div><div class="rp-row" data-r="wobble"><div class="rp-ui"><span class="rp-lb">Wobble</span><span class="rp-field slider" style="--f:30%">0.300</span></div><div class="rp-desc">Bows the lines slightly at random (0 = straight).</div></div><div class="rp-gap"></div><div class="rp-row" data-r="layout"><div class="rp-ui"><span class="rp-lb">Layout</span><span class="rp-seg"><button type="button" data-v="loops" class=on>Follow Loops</button><button type="button" data-v="unrolled">Unrolled</button></span></div><div class="rp-desc"><strong>Follow Loops</strong> or <strong>Unrolled</strong>: see the two renders above.</div></div></figure>
+</section>
+    <nav class="pager"><a href="line-art.html"><small>Previous</small>Line art</a><a href="presets.html"><small>Next</small>Presets</a></nav>
+  </main>
+  <aside class="toc"><p>On this page</p><ol><li><a href="#what">What it makes</a></li><li><a href="#marking">Which edge to mark</a></li><li><a href="#layouts">Two layouts</a></li><li><a href="#settings">Settings</a></li></ol></aside>
+</div>
+
+<script src="../practice.js"></script>
+<script>(function(){var l=[].slice.call(document.querySelectorAll('.toc a'));if(!l.length)return;var s=l.map(function(a){return document.getElementById(decodeURIComponent(a.hash.slice(1)))});function u(){var n=0;for(var i=0;i<s.length;i++)if(s[i]&&s[i].getBoundingClientRect().top<=150)n=i;if(scrollY>0&&innerHeight+scrollY>=document.documentElement.scrollHeight-4)n=s.length-1;l.forEach(function(a,i){a.classList.toggle('now',i===n)})}addEventListener('scroll',u,{passive:true});addEventListener('resize',u);u()})()</script>
+</body>
+</html>

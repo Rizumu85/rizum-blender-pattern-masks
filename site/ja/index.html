@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pattern Masks</title>
+<link rel="icon" href="../img/icon-small.svg">
+<link rel="stylesheet" href="../style.css">
+<script>(function(){var d=document.documentElement,t=null;try{t=localStorage.getItem('pm-theme')}catch(e){}if(t)d.dataset.theme=t;var m=matchMedia('(prefers-color-scheme: dark)');function s(){var k=d.dataset.theme?d.dataset.theme==='dark':m.matches;if(k)d.setAttribute('data-dark','');else d.removeAttribute('data-dark')}s();m.addEventListener('change',s);window.pmToggleTheme=function(){var k=d.hasAttribute('data-dark');d.dataset.theme=k?'light':'dark';try{localStorage.setItem('pm-theme',d.dataset.theme)}catch(e){}s()}})()</script>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="index.html"><img src="../img/icon-small.svg" alt=""><span>Pattern Masks</span><small>ドキュメント</small></a>
+  <nav class="langs" aria-label="言語"><a href="../en/index.html">English</a><a href="../zh-CN/index.html">简体中文</a><a href="../ja/index.html" aria-current=page>日本語</a></nav>
+  <a class="repo" href="https://github.com/Rizumu85/rizum-blender-pattern-masks">GitHub</a>
+  <button class="theme" type="button" aria-label="ライトまたはダークテーマ" title="ライトまたはダークテーマ" onclick="pmToggleTheme()">
+    <!-- moon and sun: Lucide 0.460.0 (lucide.dev), ISC License, (c) Lucide Contributors -->
+    <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+    <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2m-7.07-17.07 1.41 1.41m11.32 11.32 1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+  </button>
+</header>
+<div class="wrap">
+  <nav class="side" aria-label="ページ"><button class="side-toggle" type="button" aria-expanded="false"
+    onclick="var n=this.parentNode;n.classList.toggle('open');this.setAttribute('aria-expanded',n.classList.contains('open'))">概要</button><p class="grp">はじめに</p><ol><li><a class="here" href="index.html">概要</a></li><li><a href="start.html">インストールと最初のマスク</a></li></ol><p class="grp">しくみ</p><ol><li><a href="layers.html">レイヤーと辺</a></li><li><a href="stitches.html">ステッチ</a></li><li><a href="line-art.html">線画</a></li><li><a href="grid.html">チェック柄</a></li><li><a href="presets.html">プリセット</a></li><li><a href="bake.html">ベイクと使い方</a></li></ol><p class="grp">リファレンス</p><ol><li><a href="limits.html">注意点</a></li></ol></nav>
+  <main>
+    <h1>概要</h1>
+    <p class="lead">メッシュの辺をマークするだけで、それに沿ったステッチ・線画・チェック柄を UV マスクとしてベイクできます。</p>
+    <section id="what"><h2>できること</h2>
+<p>Blender で辺を選ぶと、アドオンがその辺に沿って模様を描き、模様ごとに 16 ビットのマスク PNG をベイクします。</p>
+<p>マスクは Substance 3D Painter や CLIP STUDIO PAINT などのペイントソフトで使えます。</p>
+</section><section id="layers"><h2>3 種類のレイヤー</h2>
+<dl class="keys"><dt><strong>Stitches</strong></dt><dd>破線またはジグザグのステッチ。辺から一定の距離に入ります。</dd><dt><strong>Line Art</strong></dt><dd>モデル上でどこでも同じ太さの実線。</dd><dt><strong>Grid</strong></dt><dd>マークした辺を起点に敷く市松模様。</dd></dl>
+<figure class="fig dark"><img src="../img/render.png" alt="" loading="lazy"></figure>
+</section><section id="workflow"><h2>流れ</h2>
+
+<figure class="fig workflow"><ol><li><img src="../img/step1.svg" alt=""><span>1. 辺をマーク</span></li><li><img src="../img/step2.svg" alt=""><span>2. 調整</span></li><li><img src="../img/step3.svg" alt=""><span>3. ベイク</span></li><li><img src="../img/step4.svg" alt=""><span>4. ペイント</span></li></ol></figure>
+</section><section id="why"><h2>3D の表面で計算する理由</h2>
+<p>寸法はモデル上の実寸（ミリ）で決まるので、UV が伸びていても変わりません。</p>
+<p>線は布の上で辺との距離を保ち、マークした角ではシャープなままです。</p>
+</section><section id="requirements"><h2>必要なもの</h2>
+<p>Blender 4.2 以降と、UV を展開済みのメッシュが必要です。</p>
+</section>
+    <nav class="pager"><span></span><a href="start.html"><small>次へ</small>インストールと最初のマスク</a></nav>
+  </main>
+  <aside class="toc"><p>このページの内容</p><ol><li><a href="#what">できること</a></li><li><a href="#layers">3 種類のレイヤー</a></li><li><a href="#workflow">流れ</a></li><li><a href="#why">3D の表面で計算する理由</a></li><li><a href="#requirements">必要なもの</a></li></ol></aside>
+</div>
+
+<script>(function(){var l=[].slice.call(document.querySelectorAll('.toc a'));if(!l.length)return;var s=l.map(function(a){return document.getElementById(decodeURIComponent(a.hash.slice(1)))});function u(){var n=0;for(var i=0;i<s.length;i++)if(s[i]&&s[i].getBoundingClientRect().top<=150)n=i;if(scrollY>0&&innerHeight+scrollY>=document.documentElement.scrollHeight-4)n=s.length-1;l.forEach(function(a,i){a.classList.toggle('now',i===n)})}addEventListener('scroll',u,{passive:true});addEventListener('resize',u);u()})()</script>
+</body>
+</html>
