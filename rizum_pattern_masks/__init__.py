@@ -1158,10 +1158,11 @@ class StitchGenLine(bpy.types.PropertyGroup):
     material: PointerProperty(type=bpy.types.Material, options={'HIDDEN'})
     width: _mm("Width", 0.5, "Width of the line, the same real size everywhere",
                minv=0.0, soft_max=10.0)
-    # the offsets from the marked edge share one name, like Location X / Y / Z
+    # the offsets from the marked edge read as one family: Offset Inward, Offset
+    # Along (grids), Corner Depth
     offset: _mm("Offset Inward", 0.0, "How far the line sits inward from the marked edges, "
                 "to its outer side (0 = the line starts at the edge)", soft_max=20.0)
-    corner_inset: _mm("At Corners", 0.0, "Extra inward offset at marked corners, tapering "
+    corner_inset: _mm("Corner Depth", 0.0, "Extra inward offset at marked corners, tapering "
                       "off along the line, for a deeper, pointed corner", soft_max=10.0)
     smooth: _mm("Smooth", 0.0, "Smooths the inner side of the line between corners, like "
                 "the stitch line; the outer side keeps the exact edge", soft_max=50.0)
@@ -1175,7 +1176,7 @@ class StitchGenLine(bpy.types.PropertyGroup):
                        options={'HIDDEN'})
     grid_from: _mm("Offset Inward", 0.0, "Slides the squares inward from the marked edge",
                    minv=-1000.0, soft_min=-100.0, soft_max=100.0)
-    grid_along: _mm("Along", 0.0, "Slides the squares along the marked edge",
+    grid_along: _mm("Offset Along", 0.0, "Slides the squares along the marked edge",
                     minv=-1000.0, soft_min=-100.0, soft_max=100.0)
     grid_angle: FloatProperty(name="Angle", default=0.0, subtype='ANGLE', soft_min=-math.pi,
                               soft_max=math.pi, update=_on_change, translation_context=i18n.CTX,
@@ -1226,7 +1227,7 @@ class StitchGenSettings(bpy.types.PropertyGroup):
                "edges", minv=-1000.0, soft_max=30.0)
     smooth: _mm("Smooth", 2.0, "Evens out low-poly zigzags along the line; larger values "
                 "also flatten curves", soft_max=50.0)
-    corner_inset: _mm("At Corners", 0.0, "Extra inward offset at marked corners, tapering "
+    corner_inset: _mm("Corner Depth", 0.0, "Extra inward offset at marked corners, tapering "
                       "off along the line, for a deeper, pointed corner", soft_max=10.0)
     flip: BoolProperty(name="Flip Side", default=False, update=_on_change,
                        description="Inset to the other side of the picked edges")

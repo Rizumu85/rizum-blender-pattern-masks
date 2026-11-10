@@ -231,9 +231,9 @@ ZH = {
 # Lengths (shown with mm in the field) use their own context.
 CTX = "StitchGen"
 ZH_CTX = {
-    "Offset Inward": "偏移 向内",       # the offsets read like Location X / Y / Z
-    "At Corners": "尖角处",
-    "Along": "沿边",
+    "Offset Inward": "向内偏移",
+    "Corner Depth": "尖角加深",
+    "Offset Along": "沿边偏移",
     "Grid": "格纹",
     "Cell Size": "格子大小",
     "Angle": "角度",
