@@ -165,6 +165,10 @@ ZH = {
     "Reference": "引用",
     "Also follow this layer's edges": "也沿这个图层的边走",
     "Pick Layer": "吸取图层",
+    "Pick in List": "在列表里点选",
+    "Click a layer in the list": "在列表里点一个图层",
+    "Also follow another layer's edges": "也沿另一个图层的边走",
+    "Stop following that layer's edges": "不再沿那个图层的边走",
     "Click a layer in the list to also follow its edges (Esc or right-click: cancel)":
         "在列表里点一个图层，也沿它的边走（Esc 或右键取消）",
     "Rebuild the stitches": "重新生成缝线",

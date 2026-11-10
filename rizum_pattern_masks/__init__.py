@@ -1736,6 +1736,10 @@ class STITCHGEN_OT_set_reference(bpy.types.Operator):
     def poll(cls, context):
         return _selected_layer(context)[1] is not None
 
+    @classmethod
+    def description(cls, context, props):
+        return "Stop following that layer's edges" if not props.attr else cls.__doc__
+
     def execute(self, context):
         ob, item = _selected_layer(context)
         item.ref_attr = self.attr if self.attr != _layer_attr(item) else ""
@@ -1743,6 +1747,7 @@ class STITCHGEN_OT_set_reference(bpy.types.Operator):
 
 
 class STITCHGEN_MT_reference(bpy.types.Menu):
+    """Also follow another layer's edges"""
     bl_label = "Reference"
 
     def draw(self, context):
@@ -1750,7 +1755,12 @@ class STITCHGEN_MT_reference(bpy.types.Menu):
         if item is None:
             return
         lay = self.layout
-        lay.operator("stitch_gen.set_reference", text=iface("None"), translate=False).attr = ""
+        # the eyedropper first, then the layers; clearing is the X next to
+        # the layer once one is picked
+        lay.operator_context = 'INVOKE_DEFAULT'
+        lay.operator("stitch_gen.pick_reference", text=iface("Pick in List"), translate=False,
+                     icon='EYEDROPPER')
+        lay.separator()
         for l in ob.stitch_gen.lines:
             if l != item:
                 lay.operator("stitch_gen.set_reference", text=_layer_label(l), translate=False,
@@ -2225,6 +2235,10 @@ class STITCHGEN_UL_lines(bpy.types.UIList):
         else:
             name.prop(item, "label", text="", emboss=False,
                       icon=GRID_ICON if _is_grid(item) else LINE_ICON)
+        # a link when this layer follows another one, so the list shows who follows whom
+        ref = _layer_by_attr(s, item.ref_attr) if item.ref_attr else None
+        if ref is not None and ref != item:
+            row.label(text="", icon='LINKED')
         # The color as an icon like the toggles next to it (a framed swatch
         # gets joined with the swatches of the rows above and below).
         op = row.operator("stitch_gen.edit_color", text="", emboss=False,
@@ -2526,15 +2540,20 @@ class VIEW3D_PT_stitch_gen(bpy.types.Panel):
             r.operator("stitch_gen.path_remove", text="", icon='REMOVE')
             r.operator("stitch_gen.path_select", text="", icon='RESTRICT_SELECT_OFF')
             r.operator("stitch_gen.path_clear", text="", icon='X')
+            # Reference: a small menu at the end of the row (most layers never
+            # use it); a row of its own only while picking or once it is set
+            r.separator(factor=0.5)
+            r.menu("STITCHGEN_MT_reference", text="", icon='LINKED')
             _marks_toggle(r, item, "show_marks", 'EDGESEL')
-            r = _tool_row(body, "Reference", i18n.CTX)      # Blender's own "Reference" is 参照
             ref = _layer_by_attr(s, item.ref_attr) if item.ref_attr else None
-            if ref is None or ref == item:
-                r.menu("STITCHGEN_MT_reference", text=iface("None"))
-            else:
-                r.menu("STITCHGEN_MT_reference", text=_layer_label(ref), icon=_layer_icon(ref))
-            r.operator("stitch_gen.pick_reference", text="", icon='EYEDROPPER',
-                       depress=_PICK.get("ob") == ob.name_full)
+            if _PICK.get("ob") == ob.name_full:
+                r = body.row()                  # the whole width: the hint must not be cut off
+                r.alignment = 'CENTER'
+                r.label(text=iface("Click a layer in the list"), icon='EYEDROPPER', translate=False)
+            elif ref is not None and ref != item:
+                r = _tool_row(body, "Reference", i18n.CTX)      # Blender's own "Reference" is 参照
+                r.label(text=_layer_label(ref), icon=_layer_icon(ref), translate=False)
+                r.operator("stitch_gen.set_reference", text="", icon='X', emboss=False).attr = ""
         if body and is_grid:
             # squares lined up with the marked edge: where, then turn and size
             body = body.column()

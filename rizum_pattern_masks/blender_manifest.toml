@@ -7,10 +7,12 @@ tagline = "Patterns that follow the mesh, baked to UV masks"
 maintainer = "Rizum"
 website = "https://github.com/Rizumu85/rizum-blender-pattern-masks"
 type = "add-on"
+tags = ["Bake", "Paint", "UV"]
 
 blender_version_min = "4.2.0"
 
 license = ["SPDX:GPL-3.0-or-later"]
+copyright = ["2026 Rizum"]
 
 [permissions]
 files = "Writes baked pattern mask PNGs to the chosen folder"
