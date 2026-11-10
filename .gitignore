@@ -9,3 +9,6 @@ dist/
 # old versions kept by hand
 test/
 backup/
+
+# design process files (oil-ui-pro)
+.oil-ui/

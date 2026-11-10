@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-labelledby="title">
+  <title id="title">Rizum Pattern Masks icon</title>
+  <defs>
+    <clipPath id="tile"><rect width="256" height="256" rx="56.3"/></clipPath>
+    <clipPath id="fabric"><path d="M -192.0 -400 L -192.0 26 L -192.00 26.00 A 84.30 84.30 0 0 0 -96.00 26.00 A 84.30 84.30 0 0 0 0.00 26.00 A 84.30 84.30 0 0 0 96.00 26.00 A 84.30 84.30 0 0 0 192.00 26.00 L 192.0 -400 Z"/></clipPath>
+  </defs>
+  <rect width="256" height="256" rx="56.3" fill="#161B24"/>
+  <g clip-path="url(#tile)"><g transform="translate(128.0 128.0) rotate(-45)">
+    <path d="M -192.0 -400 L -192.0 26 L -192.00 26.00 A 84.30 84.30 0 0 0 -96.00 26.00 A 84.30 84.30 0 0 0 0.00 26.00 A 84.30 84.30 0 0 0 96.00 26.00 A 84.30 84.30 0 0 0 192.00 26.00 L 192.0 -400 Z" fill="#EFE7D8"/>
+    <g clip-path="url(#fabric)"><rect x="-221.87" y="-118.00" width="34.13" height="34.13" fill="#22304A"/><rect x="-187.73" y="-152.13" width="34.13" height="34.13" fill="#22304A"/><rect x="-153.60" y="-118.00" width="34.13" height="34.13" fill="#22304A"/><rect x="-119.47" y="-152.13" width="34.13" height="34.13" fill="#22304A"/><rect x="-85.33" y="-118.00" width="34.13" height="34.13" fill="#22304A"/><rect x="-51.20" y="-152.13" width="34.13" height="34.13" fill="#22304A"/><rect x="-17.07" y="-118.00" width="34.13" height="34.13" fill="#22304A"/><rect x="17.07" y="-152.13" width="34.13" height="34.13" fill="#22304A"/><rect x="51.20" y="-118.00" width="34.13" height="34.13" fill="#22304A"/><rect x="85.33" y="-152.13" width="34.13" height="34.13" fill="#22304A"/><rect x="119.47" y="-118.00" width="34.13" height="34.13" fill="#22304A"/><rect x="153.60" y="-152.13" width="34.13" height="34.13" fill="#22304A"/><rect x="187.73" y="-118.00" width="34.13" height="34.13" fill="#22304A"/>
+      <path d="M -192.00 13.41 L -192.00 13.41 A 74.30 74.30 0 0 0 -96.00 13.41 L -96.00 13.41 A 74.30 74.30 0 0 0 0.00 13.41 L 0.00 13.41 A 74.30 74.30 0 0 0 96.00 13.41 L 96.00 13.41 A 74.30 74.30 0 0 0 192.00 13.41" fill="none" stroke="#22304A" stroke-width="8" stroke-miterlimit="20"/>
+      <path d="M -192.00 -10.21 L -192.00 -10.21 A 58.30 58.30 0 0 0 -96.00 -10.21 L -96.00 -10.21 A 58.30 58.30 0 0 0 0.00 -10.21 L 0.00 -10.21 A 58.30 58.30 0 0 0 96.00 -10.21 L 96.00 -10.21 A 58.30 58.30 0 0 0 192.00 -10.21" fill="none" stroke="#E8843A" stroke-width="7.5" stroke-linecap="round" stroke-dasharray="9.42 18.78" stroke-dashoffset="18.81"/>
+    </g>
+  </g></g>
+</svg>
