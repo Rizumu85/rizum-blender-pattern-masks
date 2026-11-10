@@ -115,27 +115,68 @@ def _preview_collection(scene):
     return col
 
 
+def _unhide_in(lc, ob, chain=()):
+    """Clear one thing that keeps ``ob`` out of view below this layer
+    collection: its collection left out of the view layer, or a collection on
+    the way down hidden. True when something was changed."""
+    chain += (lc,)
+    if ob.name in lc.collection.objects:
+        if lc.exclude:
+            lc.exclude = False
+            return True
+        for a in chain:
+            if a.hide_viewport:
+                a.hide_viewport = False
+                return True
+            if a.collection.hide_viewport:
+                a.collection.hide_viewport = False
+                return True
+    return any(_unhide_in(c, ob, chain) for c in lc.children)
+
+
+def _show_preview(ob, scene):
+    """A button was pressed: show the preview (operators only). It can have
+    been deleted from the scene or hidden, and so can the collection it is in;
+    otherwise the button rebuilds stitches nobody sees."""
+    if not ob.users_collection:
+        _preview_collection(scene).objects.link(ob)
+    ob.hide_viewport = False
+    if bpy.context.scene != scene:
+        return
+    vl = bpy.context.view_layer
+    # one change at a time (each can move the others); each clears one of at
+    # most three flags per collection, so this ends even if a flag won't change
+    for _ in range(3 * len(bpy.data.collections) + 4):
+        inside = ob.name in vl.objects
+        if inside and ob.hide_get():
+            ob.hide_set(False)
+        if inside and ob.visible_get():
+            return
+        if _unhide_in(vl.layer_collection, ob):
+            continue
+        col = _preview_collection(scene)   # only in other scenes: into this one too
+        if inside or ob.name in col.objects:
+            return
+        col.objects.link(ob)
+
+
 def _ribbon_object(obj, scene, create):
     """The preview object. Only operators may create it (create=True): creating or
     deleting data-blocks from a property update callback breaks undo."""
     s = obj.stitch_gen
     rib = s.ribbon
     if rib is not None and rib.name in bpy.data.objects and rib.type == 'MESH':
-        if create:                                 # a button was pressed: show the preview
-            if not rib.users_collection:           # user deleted it from the scene
-                _preview_collection(scene).objects.link(rib)
-            if rib.name in bpy.context.view_layer.objects and rib.hide_get():
-                rib.hide_set(False)
-            rib.hide_viewport = False
+        if create:
+            _show_preview(rib, scene)
         return rib
     if not create:
         return None
     me = bpy.data.meshes.new(obj.name + "_Stitches")
     me.materials.append(_mask_material())
     rib = bpy.data.objects.new(obj.name + "_Stitches", me)
-    _preview_collection(scene).objects.link(rib)
     rib.hide_render = True
     s.ribbon = rib
+    _show_preview(rib, scene)
     return rib
 
 
@@ -224,20 +265,16 @@ def _line_object(obj, scene, create):
             for mat in lo.data.materials:
                 if mat is not None:
                     _ensure_emission(mat)
-            if not lo.users_collection:
-                _preview_collection(scene).objects.link(lo)
-            if lo.name in bpy.context.view_layer.objects and lo.hide_get():
-                lo.hide_set(False)
-            lo.hide_viewport = False
+            _show_preview(lo, scene)
         return lo
     if not create:
         return None
     me = bpy.data.meshes.new(obj.name + "_LineArt")
     me.materials.append(_line_material())
     lo = bpy.data.objects.new(obj.name + "_LineArt", me)
-    _preview_collection(scene).objects.link(lo)
     lo.hide_render = True
     s.line_preview = lo
+    _show_preview(lo, scene)
     return lo
 
 
@@ -334,19 +371,15 @@ def _grid_object(obj, scene, create):
     go = s.grid_preview
     if go is not None and go.name in bpy.data.objects and go.type == 'MESH':
         if create:
-            if not go.users_collection:
-                _preview_collection(scene).objects.link(go)
-            if go.name in bpy.context.view_layer.objects and go.hide_get():
-                go.hide_set(False)
-            go.hide_viewport = False
+            _show_preview(go, scene)
         return go
     if not create:
         return None
     me = bpy.data.meshes.new(obj.name + "_Grid")
     go = bpy.data.objects.new(obj.name + "_Grid", me)
-    _preview_collection(scene).objects.link(go)
     go.hide_render = True
     s.grid_preview = go
+    _show_preview(go, scene)
     return go
 
 
@@ -1054,6 +1087,13 @@ def _mm(name, default, description, minv=0.0, soft_max=10.0, upd=_on_change, **k
                          translation_context=i18n.CTX, **kw)
 
 
+def _on_all_marks(self, context):
+    for win in context.window_manager.windows:
+        for area in win.screen.areas:
+            if area.type in ('VIEW_3D', 'IMAGE_EDITOR'):
+                area.tag_redraw()
+
+
 def _on_marks(self, context):
     """The overlay shows the shown layers' edges, the selected one brightest.
     While the eyedropper is on, a click on a layer in the list sets it as the
@@ -1118,10 +1158,11 @@ class StitchGenLine(bpy.types.PropertyGroup):
     material: PointerProperty(type=bpy.types.Material, options={'HIDDEN'})
     width: _mm("Width", 0.5, "Width of the line, the same real size everywhere",
                minv=0.0, soft_max=10.0)
-    offset: _mm("From Edge", 0.0, "Distance from the picked edges to the outer side of the "
-                "line (0 = the line starts at the edge)", soft_max=20.0)
-    corner_inset: _mm("Corner Inset", 0.0, "Extra inset at marked corners, tapering off "
-                      "along the edge, for a deeper, pointed corner", soft_max=10.0)
+    # the offsets from the marked edge share one name, like Location X / Y / Z
+    offset: _mm("Offset Inward", 0.0, "How far the line sits inward from the marked edges, "
+                "to its outer side (0 = the line starts at the edge)", soft_max=20.0)
+    corner_inset: _mm("At Corners", 0.0, "Extra inward offset at marked corners, tapering "
+                      "off along the line, for a deeper, pointed corner", soft_max=10.0)
     smooth: _mm("Smooth", 0.0, "Smooths the inner side of the line between corners, like "
                 "the stitch line; the outer side keeps the exact edge", soft_max=50.0)
     edge_attr: StringProperty(default="", options={'HIDDEN'},
@@ -1132,9 +1173,9 @@ class StitchGenLine(bpy.types.PropertyGroup):
     include_stitch: BoolProperty(default=True, options={'HIDDEN'})
     kind: EnumProperty(items=[('LINE', "Line Art", ""), ('GRID', "Grid", "")], default='LINE',
                        options={'HIDDEN'})
-    grid_from: _mm("From Edge", 0.0, "Slides the squares away from the marked edge",
+    grid_from: _mm("Offset Inward", 0.0, "Slides the squares inward from the marked edge",
                    minv=-1000.0, soft_min=-100.0, soft_max=100.0)
-    grid_along: _mm("Along Edge", 0.0, "Slides the squares along the marked edge",
+    grid_along: _mm("Along", 0.0, "Slides the squares along the marked edge",
                     minv=-1000.0, soft_min=-100.0, soft_max=100.0)
     grid_angle: FloatProperty(name="Angle", default=0.0, subtype='ANGLE', soft_min=-math.pi,
                               soft_max=math.pi, update=_on_change, translation_context=i18n.CTX,
@@ -1181,12 +1222,12 @@ class StitchGenSettings(bpy.types.PropertyGroup):
     live: BoolProperty(name="Live", default=True, update=_on_change,
                        description="Rebuild the stitches while you change the values")
 
-    inset: _mm("From Edge", 3.0, "Distance of the stitch line from the picked edges",
-               minv=-1000.0, soft_max=30.0)
+    inset: _mm("Offset Inward", 3.0, "How far the stitch line sits inward from the marked "
+               "edges", minv=-1000.0, soft_max=30.0)
     smooth: _mm("Smooth", 2.0, "Evens out low-poly zigzags along the line; larger values "
                 "also flatten curves", soft_max=50.0)
-    corner_inset: _mm("Corner Inset", 0.0, "Extra inset at marked corners, tapering off "
-                      "along the line, for a deeper, pointed corner", soft_max=10.0)
+    corner_inset: _mm("At Corners", 0.0, "Extra inward offset at marked corners, tapering "
+                      "off along the line, for a deeper, pointed corner", soft_max=10.0)
     flip: BoolProperty(name="Flip Side", default=False, update=_on_change,
                        description="Inset to the other side of the picked edges")
 
@@ -1204,6 +1245,13 @@ class StitchGenSettings(bpy.types.PropertyGroup):
     roundness: FloatProperty(name="Round Ends", default=1.0, min=0.0, max=1.0,
                              description="Corner radius of each stitch as a fraction of half its width (1 = fully round ends)",
                              subtype='FACTOR', update=_on_change)
+    # the same value shown as a percentage (stored as the fraction above,
+    # so files and presets keep working)
+    roundness_pct: FloatProperty(
+        name="Round Ends", min=0.0, max=100.0, subtype='PERCENTAGE', precision=0, step=500,
+        description="Corner radius of each stitch: 100% gives fully round ends",
+        get=lambda self: self.roundness * 100.0,
+        set=lambda self, v: setattr(self, "roundness", v / 100.0))
     offset: _mm("Offset", 0.0, "Slide the stitches along the line", minv=-1000.0,
                 soft_max=20.0)
     even: BoolProperty(name="Even Fit", default=True, update=_on_change,
@@ -1219,16 +1267,23 @@ class StitchGenSettings(bpy.types.PropertyGroup):
                               description="Save white stitches on a transparent background "
                                           "(the stitch is the alpha), e.g. for Clip Studio. Off: "
                                           "white on black, as Painter masks expect")
+    invert: BoolProperty(name="White Background", default=False,
+                         description="Save black stitches on white (used when Transparent is off)")
     background: EnumProperty(
         name="Background", translation_context=i18n.CTX,
         items=[('BLACK', "Black", "White on black, as Painter masks expect"),
+               ('WHITE', "White", "Black on white. In Clip Studio Paint, Convert Brightness "
+                                  "to Opacity turns it into a mask (it can't open a transparent "
+                                  "PNG that holds very little)"),
                ('TRANSPARENT', "Transparent", "White with the mask in the alpha channel "
-                                              "(soft edges kept), for Clip Studio and other "
+                                              "(soft edges kept), for Photoshop and other "
                                               "2D apps")],
-        get=lambda self: 1 if self.transparent else 0,
-        set=lambda self, v: setattr(self, "transparent", v == 1),
+        get=lambda self: 2 if self.transparent else (1 if self.invert else 0),
+        set=lambda self, v: (setattr(self, "transparent", v == 2),
+                             setattr(self, "invert", v == 1)) and None,
         description="Background of the saved mask PNGs")
-    output_dir: StringProperty(name="Folder", default="//stitch_masks/", subtype='DIR_PATH',
+    # a plain field: the folder button next to it is the add-on's own
+    output_dir: StringProperty(name="Folder", default="//stitch_masks/",
                                description="Folder for the mask PNGs; baking again overwrites them")
     samples: IntProperty(name="Samples", default=16, min=1, max=256,
                          description="Bake samples per texel")
@@ -1248,15 +1303,90 @@ class StitchGenSettings(bpy.types.PropertyGroup):
 
 # -- operators -----------------------------------------------------------------
 
+def _previews():
+    """Names of every preview object."""
+    out = set()
+    for o in bpy.data.objects:
+        if o.type == 'MESH':
+            st = o.stitch_gen
+            out.update(x.name_full for x in (st.ribbon, st.line_preview, st.grid_preview)
+                       if x is not None)
+    return out
+
+
+def _edited(context, main):
+    """The meshes in Edit Mode, the one the panel shows first (not the
+    previews, and each mesh once)."""
+    previews = _previews()
+    out, seen = [main], {main.data.name_full}
+    for o in getattr(context, "objects_in_mode_unique_data", None) or []:
+        if o.type == 'MESH' and o.name_full not in previews and o.data.name_full not in seen:
+            out.append(o)
+            seen.add(o.data.name_full)
+    return out
+
+
+def _layer_spec(s):
+    """('STITCH', None) or (kind, name) of the layer selected in the list."""
+    if 0 <= s.line_index < len(s.lines) and not _is_stitch(s.lines[s.line_index]):
+        item = s.lines[s.line_index]
+        return ('GRID' if _is_grid(item) else 'LINE', item.name)
+    return ('STITCH', None)
+
+
+def _select_twin(context, ob, spec, create):
+    """Select on ``ob`` the layer that matches ``spec``: its stitches, or its
+    line art or grid layer of that name. ``create`` makes it when missing.
+    False when there is none."""
+    s = ob.stitch_gen
+    _ensure_layers(ob)
+    kind, name = spec
+    if kind == 'STITCH':
+        found = next((i for i, l in enumerate(s.lines) if _is_stitch(l)), None)
+    else:
+        found = next((i for i, l in enumerate(s.lines) if not _is_stitch(l)
+                      and _is_grid(l) == (kind == 'GRID') and l.name == name), None)
+    if found is not None:
+        if s.line_index != found:
+            s.line_index = found
+        return True
+    if not create:
+        return False
+    global _MUTE
+    _MUTE = True
+    try:
+        if kind == 'STITCH':               # the stitch settings are the object's own: kept
+            _new_stitch_row(s)
+            s.line_index = 0
+        else:
+            _new_line_layer(ob, kind)
+            _apply_default_to_new(context, ob, kind)
+            s.lines[s.line_index].name = name
+        s.ui_version = UI_VERSION
+    finally:
+        _MUTE = False
+    return True
+
+
+def _has_selected_edges(ob):
+    return any(e.select for e in bmesh.from_edit_mesh(ob.data).edges)
+
+
 class _EditPathBase:
+    """The edge buttons. They work on every mesh in Edit Mode: on each, on the
+    layer that matches the one selected in the list."""
     bl_options = {'REGISTER', 'UNDO'}
 
     @classmethod
     def poll(cls, context):
-        ob = context.active_object
-        if ob is not None and ob.type == 'MESH' and ob.mode == 'EDIT':
+        ob = _source_object(context)
+        if ob is not None and ob.mode == 'EDIT':
             return True
-        cls.poll_message_set(rpt("Works in Edit Mode"))
+        act = context.active_object
+        if act is not None and act != ob and act.mode == 'EDIT':
+            cls.poll_message_set(rpt("Edit the mesh, not its preview"))
+        else:
+            cls.poll_message_set(rpt("Works in Edit Mode"))
         return False
 
     def _layer(self, bm, name, create=True):
@@ -1269,21 +1399,38 @@ class _EditPathBase:
         raise NotImplementedError
 
     def execute(self, context):
-        ob = context.active_object
-        me = ob.data
+        main = _source_object(context)
+        adds = getattr(self, "adds", False)
+        _ensure_layers(main)
+        spec = _layer_spec(main.stitch_gen)
+        targets = []
+        for ob in _edited(context, main):
+            if adds and not _has_selected_edges(ob):
+                continue
+            s = ob.stitch_gen
+            if ob == main and 0 <= s.line_index < len(s.lines):
+                targets.append(ob)
+            elif _select_twin(context, ob, spec, adds) or ob == main:
+                targets.append(ob)       # main without layers (scripts): the stitch edges
+        if adds and not targets:
+            self.report({'WARNING'}, rpt("No edges selected"))
+            return {'CANCELLED'}
+        done = [ob for ob in targets if self._edit(context, ob, adds)]
+        if targets and not done:
+            return {'CANCELLED'}
+        if adds and spec[0] == 'STITCH' and any(
+                ob.stitch_gen.dash_count == 0 and not ob.stitch_gen.status for ob in done):
+            self.report({'WARNING'}, rpt("The marked edges are too short for a stitch"))
+        return {'FINISHED'}
+
+    def _edit(self, context, ob, adds):
         s = ob.stitch_gen
-        _ensure_layers(ob)
-        if not 0 <= s.line_index < len(s.lines) and getattr(self, "adds", False):
-            global _MUTE
-            _MUTE = True                 # no layer yet (scripts): edges are stitch edges
-            try:
-                _new_stitch_row(s)
-                s.line_index = 0
-                s.ui_version = UI_VERSION
-            finally:
-                _MUTE = False
-        if 0 <= s.line_index < len(s.lines) and not s.lines[s.line_index].show_marks:
-            s.lines[s.line_index].show_marks = True       # show what is being edited
+        item = s.lines[s.line_index] if 0 <= s.line_index < len(s.lines) else None
+        if item is not None and not item.show_marks:
+            item.show_marks = True                         # show what is being edited
+        if not context.scene.stitch_gen_marks:
+            context.scene.stitch_gen_marks = True
+        me = ob.data
         name = _edge_attr(ob)
         bm = bmesh.from_edit_mesh(me)
         if name in bm.edges.layers.int:
@@ -1295,12 +1442,22 @@ class _EditPathBase:
             # Never overwrite someone else's data with the same name.
             self.report({'ERROR'}, rpt('The mesh already has an attribute "{}" of another '
                                        'type; rename it first').format(name))
-            return {'CANCELLED'}
+            return False
         lay = self._layer(bm, name)
         self.apply(ob, bm, lay)
         bmesh.update_edit_mesh(me, loop_triangles=False, destructive=False)
+        if adds and item is not None:
+            global _MUTE
+            _MUTE = True                     # edges added to a hidden layer: show it
+            try:
+                if _is_stitch(item):
+                    s.stitches = True
+                else:
+                    item.enabled = True
+            finally:
+                _MUTE = False
         regenerate(ob, context.scene, create=True)
-        return {'FINISHED'}
+        return True
 
 
 def _edge_attr(ob):
@@ -1421,24 +1578,32 @@ def _detect_and_mark(ob, bm, select):
     return count
 
 
+def _corner_objects(context):
+    """The meshes in Edit Mode the corner buttons act on: the one the panel
+    shows, and the others that use the add-on."""
+    main = _source_object(context)
+    return [o for o in _edited(context, main) if o == main or _uses_addon(o)]
+
+
 class _EditCornerBase(_EditPathBase):
     def execute(self, context):
-        ob = context.active_object
-        me = ob.data
-        bm = bmesh.from_edit_mesh(me)
-        lay = bm.verts.layers.int.get(core.CORNER_ATTR)
-        if lay is None:
-            if core.CORNER_ATTR in me.attributes:
-                self.report({'ERROR'}, rpt('The mesh already has an attribute "{}" of another '
-                                           'type; rename it first').format(core.CORNER_ATTR))
-                return {'CANCELLED'}
-            lay = bm.verts.layers.int.new(core.CORNER_ATTR)
-        on_path = _on_path_verts(bm)
-        for v in bm.verts:
-            if v.select and (v in on_path or self.value == 0):   # only path vertices get marks
-                v[lay] = self.value
-        bmesh.update_edit_mesh(me, loop_triangles=False, destructive=False)
-        regenerate(ob, context.scene, create=True)
+        for ob in _corner_objects(context):
+            me = ob.data
+            bm = bmesh.from_edit_mesh(me)
+            lay = bm.verts.layers.int.get(core.CORNER_ATTR)
+            if lay is None:
+                if core.CORNER_ATTR in me.attributes:
+                    self.report({'ERROR'}, rpt('The mesh already has an attribute "{}" of '
+                                               'another type; rename it first')
+                                .format(core.CORNER_ATTR))
+                    continue
+                lay = bm.verts.layers.int.new(core.CORNER_ATTR)
+            on_path = _on_path_verts(bm)
+            for v in bm.verts:
+                if v.select and (v in on_path or self.value == 0):   # only path vertices get marks
+                    v[lay] = self.value
+            bmesh.update_edit_mesh(me, loop_triangles=False, destructive=False)
+            regenerate(ob, context.scene, create=True)
         return {'FINISHED'}
 
 
@@ -1462,15 +1627,18 @@ class STITCHGEN_OT_corner_detect(_EditPathBase, bpy.types.Operator):
     bl_label = "Detect Corners"
 
     def execute(self, context):
-        ob = context.active_object
-        bm = bmesh.from_edit_mesh(ob.data)
-        if core.CORNER_ATTR not in bm.verts.layers.int and core.CORNER_ATTR in ob.data.attributes:
-            self.report({'ERROR'}, rpt('The mesh already has an attribute "{}" of another '
-                                       'type; rename it first').format(core.CORNER_ATTR))
-            return {'CANCELLED'}
-        n = _detect_and_mark(ob, bm, select=True)
-        bmesh.update_edit_mesh(ob.data, loop_triangles=False, destructive=False)
-        regenerate(ob, context.scene, create=True)
+        n = 0
+        for ob in _corner_objects(context):
+            bm = bmesh.from_edit_mesh(ob.data)
+            if core.CORNER_ATTR not in bm.verts.layers.int and \
+                    core.CORNER_ATTR in ob.data.attributes:
+                self.report({'ERROR'}, rpt('The mesh already has an attribute "{}" of '
+                                           'another type; rename it first')
+                            .format(core.CORNER_ATTR))
+                continue
+            n += _detect_and_mark(ob, bm, select=True)
+            bmesh.update_edit_mesh(ob.data, loop_triangles=False, destructive=False)
+            regenerate(ob, context.scene, create=True)
         self.report({'INFO'}, rpt("Marked {} corners").format(n))
         return {'FINISHED'}
 
@@ -1481,13 +1649,13 @@ class STITCHGEN_OT_corner_select(_EditPathBase, bpy.types.Operator):
     bl_label = "Select Corners"
 
     def execute(self, context):
-        bm = bmesh.from_edit_mesh(context.active_object.data)
-        lay = bm.verts.layers.int.get(core.CORNER_ATTR)
-        for v in bm.verts:
-            v.select_set(bool(lay and v[lay]))
-        bm.select_flush_mode()
-        bmesh.update_edit_mesh(context.active_object.data, loop_triangles=False,
-                               destructive=False)
+        for ob in _corner_objects(context):
+            bm = bmesh.from_edit_mesh(ob.data)
+            lay = bm.verts.layers.int.get(core.CORNER_ATTR)
+            for v in bm.verts:
+                v.select_set(bool(lay and v[lay]))
+            bm.select_flush_mode()
+            bmesh.update_edit_mesh(ob.data, loop_triangles=False, destructive=False)
         return {'FINISHED'}
 
 
@@ -1606,6 +1774,85 @@ class STITCHGEN_MT_add_layer(bpy.types.Menu):
         lay.operator("stitch_gen.grid_add", text="Grid", text_ctxt=i18n.CTX, icon=GRID_ICON)
 
 
+class STITCHGEN_OT_clear_scene(bpy.types.Operator):
+    """Remove all layers, with their marked edges and corners, and the previews from every object in the scene"""
+    bl_idname = "stitch_gen.clear_scene"
+    bl_label = "Clear All Layers"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    @classmethod
+    def poll(cls, context):
+        if any(o.type == 'MESH' and _uses_addon(o) for o in context.scene.objects):
+            return True
+        cls.poll_message_set(rpt("Nothing to clear"))
+        return False
+
+    def invoke(self, context, event):
+        return context.window_manager.invoke_confirm(
+            self, event, title=iface("Clear All Layers"), icon='WARNING',
+            message=iface("Remove all layers, marked edges, corners and previews "
+                          "from every object in this scene?"),
+            confirm_text=iface("Clear"))
+
+    def execute(self, context):
+        global _MUTE
+        previews = _previews()
+        obs = [o for o in context.scene.objects
+               if o.type == 'MESH' and o.name_full not in previews and _uses_addon(o)]
+        _MUTE = True
+        try:
+            for ob in obs:
+                s = ob.stitch_gen
+                for prev in {p for p in (s.ribbon, s.line_preview, s.grid_preview)
+                             if p is not None}:
+                    me = prev.data if prev.type == 'MESH' else None
+                    bpy.data.objects.remove(prev)
+                    if me is not None and me.users == 0:
+                        bpy.data.meshes.remove(me)
+                s.lines.clear()
+                s.line_index = 0
+                s.status = ""
+                s.dash_count = 0
+                _drop_marks(ob)
+                core.drop_cache(ob)
+                overlay.invalidate(ob)
+                _last.pop(ob.name_full, None)
+                _last_params.pop(ob.name_full, None)
+        finally:
+            _MUTE = False
+        col = bpy.data.collections.get(COLLECTION)
+        if col is not None and not col.all_objects and not col.children:
+            bpy.data.collections.remove(col)
+        self.report({'INFO'}, rpt("Cleared {} objects").format(len(obs)))
+        return {'FINISHED'}
+
+
+def _drop_marks(ob):
+    """Remove the add-on's edge and corner attributes from the mesh."""
+    me = ob.data
+    ours = lambda n: n == core.PATH_ATTR or n == core.LINE_ATTR or \
+        n.startswith(core.LINE_ATTR + "_")                                   # noqa: E731
+    if me.is_editmode:
+        bm = bmesh.from_edit_mesh(me)
+        for n in [n for n in bm.edges.layers.int.keys() if ours(n)]:
+            bm.edges.layers.int.remove(bm.edges.layers.int[n])
+        lay = bm.verts.layers.int.get(core.CORNER_ATTR)
+        if lay is not None:
+            bm.verts.layers.int.remove(lay)
+        bmesh.update_edit_mesh(me, loop_triangles=False, destructive=False)
+        return
+    for n in [n for n, a in me.attributes.items()
+              if (ours(n) and a.domain == 'EDGE') or (n == core.CORNER_ATTR and a.domain == 'POINT')]:
+        me.attributes.remove(me.attributes[n])
+
+
+class STITCHGEN_MT_list_extras(bpy.types.Menu):
+    bl_label = "Layers"
+
+    def draw(self, context):
+        self.layout.operator("stitch_gen.clear_scene", icon='TRASH')
+
+
 class STITCHGEN_OT_line_remove(bpy.types.Operator):
     """Remove the selected layer together with its marked edges"""
     bl_idname = "stitch_gen.line_remove"
@@ -1666,6 +1913,36 @@ def _grid_layers(s, scene):
              l.grid_along * k, l.grid_wobble, l.grid_layout.lower(), _edge_spec(s, l))
             for l in _grid_items(s)
             if l.enabled and l.grid_cell > 0]
+
+
+class STITCHGEN_OT_pick_folder(bpy.types.Operator):
+    """Choose the folder for the mask PNGs"""
+    bl_idname = "stitch_gen.pick_folder"
+    bl_label = "Choose Folder"
+    bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
+    directory: StringProperty(subtype='DIR_PATH', options={'HIDDEN', 'SKIP_SAVE'})
+    filter_folder: BoolProperty(default=True, options={'HIDDEN', 'SKIP_SAVE'})
+    relative_path: BoolProperty(name="Relative Path", default=True,
+                                description="Keep the folder relative to the .blend file")
+
+    @classmethod
+    def poll(cls, context):
+        return _source_object(context) is not None
+
+    def invoke(self, context, event):
+        self.directory = bpy.path.abspath(_source_object(context).stitch_gen.output_dir)
+        context.window_manager.fileselect_add(self)
+        return {'RUNNING_MODAL'}
+
+    def execute(self, context):
+        path = self.directory
+        if self.relative_path and bpy.data.filepath:
+            try:
+                path = bpy.path.relpath(path)
+            except ValueError:            # on another drive
+                pass
+        _source_object(context).stitch_gen.output_dir = path
+        return {'FINISHED'}
 
 
 class STITCHGEN_OT_open_folder(bpy.types.Operator):
@@ -1746,6 +2023,32 @@ class STITCHGEN_OT_set_reference(bpy.types.Operator):
         return {'FINISHED'}
 
 
+class STITCHGEN_OT_reference_menu(bpy.types.Operator):
+    """Also follow another layer's edges"""
+    bl_idname = "stitch_gen.reference_menu"
+    bl_label = "Reference"
+    bl_options = {'INTERNAL'}
+
+    @classmethod
+    def poll(cls, context):
+        return _selected_layer(context)[1] is not None
+
+    @classmethod
+    def description(cls, context, props):
+        ob, item = _selected_layer(context)
+        ref = _layer_by_attr(ob.stitch_gen, item.ref_attr) if item and item.ref_attr else None
+        if ref is None or ref == item:
+            return iface(cls.__doc__)
+        return iface("Also follows {}").format(_layer_label(ref))
+
+    def invoke(self, context, event):
+        bpy.ops.wm.call_menu(name="STITCHGEN_MT_reference")
+        return {'FINISHED'}
+
+    def execute(self, context):
+        return self.invoke(context, None)
+
+
 class STITCHGEN_MT_reference(bpy.types.Menu):
     """Also follow another layer's edges"""
     bl_label = "Reference"
@@ -1755,16 +2058,21 @@ class STITCHGEN_MT_reference(bpy.types.Menu):
         if item is None:
             return
         lay = self.layout
-        # the eyedropper first, then the layers; clearing is the X next to
-        # the layer once one is picked
+        # the eyedropper first, then the layers (the current one ticked), then
+        # clearing it
         lay.operator_context = 'INVOKE_DEFAULT'
         lay.operator("stitch_gen.pick_reference", text=iface("Pick in List"), translate=False,
                      icon='EYEDROPPER')
         lay.separator()
         for l in ob.stitch_gen.lines:
             if l != item:
+                cur = item.ref_attr == _layer_attr(l)
                 lay.operator("stitch_gen.set_reference", text=_layer_label(l), translate=False,
-                             icon=_layer_icon(l)).attr = _layer_attr(l)
+                             icon='CHECKMARK' if cur else _layer_icon(l)).attr = _layer_attr(l)
+        if item.ref_attr:
+            lay.separator()
+            lay.operator("stitch_gen.set_reference", text=iface("Clear Reference"),
+                         translate=False, icon='X').attr = ""
 
 
 class STITCHGEN_OT_pick_reference(bpy.types.Operator):
@@ -1786,6 +2094,7 @@ class STITCHGEN_OT_pick_reference(bpy.types.Operator):
         _PICK.update(ob=ob.name_full, attr=_layer_attr(item), done=False, cancel=False,
                      win=context.window)
         context.window.cursor_modal_set('EYEDROPPER')
+        context.workspace.status_text_set(iface("Click a layer in the list") + "    Esc")
         bpy.app.timers.register(_keep_eyedropper, first_interval=_EYEDROPPER_EVERY)
         context.window_manager.modal_handler_add(self)
         _redraw_views()
@@ -1794,6 +2103,7 @@ class STITCHGEN_OT_pick_reference(bpy.types.Operator):
     def _end(self, context, result):
         _PICK.clear()
         context.window.cursor_modal_restore()
+        context.workspace.status_text_set(None)
         _redraw_views()
         return result
 
@@ -1978,8 +2288,8 @@ def _apply_default_to_new(context, ob, kind):
 
 
 class _PresetApplyBase:
-    bl_options = {'REGISTER', 'UNDO', 'INTERNAL'}
-    kind: EnumProperty(items=_PRESET_KINDS)
+    bl_options = {'UNDO', 'INTERNAL'}     # no Adjust Last Operation panel: nothing to adjust
+    kind: EnumProperty(items=_PRESET_KINDS, options={'HIDDEN', 'SKIP_SAVE'})
 
     @classmethod
     def poll(cls, context):
@@ -2166,6 +2476,71 @@ class STITCHGEN_PT_line_presets(_DefaultsFirst, PresetPanel, bpy.types.Panel):
 _icons = {"coll": None}
 
 
+# The add-on's own icons (icons.npz, drawn by tools/make_icons.py at every icon
+# size) for its own buttons; Blender's stay for the common ones. They are
+# shapes, painted in the theme's text colour like Blender's own icons.
+_FALLBACK = {"marks": 'EDGESEL', "preset": 'PRESET', "corners": 'VERTEXSEL',
+             "link": 'LINKED', "folder": 'FILE_FOLDER', "reveal": 'FOLDER_REDIRECT'}
+_shapes = {}             # "masks": icon masks by "<name>_<px>"
+
+
+def _icon_masks():
+    """All icon masks (icons.npz, from tools/make_icons.py), loaded once."""
+    if "masks" not in _shapes:
+        path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "icons.npz")
+        try:
+            with np.load(path) as f:
+                _shapes["masks"] = {k: f[k] for k in f.files}
+        except Exception:
+            traceback.print_exc()
+            _shapes["masks"] = {}
+    return _shapes["masks"]
+
+
+def _icon(name, widget="wcol_regular", on=False):
+    """icon= / icon_value= keywords for one of the add-on's icons, coloured as
+    Blender colours its own: the widget's text colour, its selected text
+    colour for a toggle that is on, and the theme's icon border if it has one."""
+    coll = _icons["coll"]
+    if coll is None:
+        return {"icon": _FALLBACK[name]}
+    prefs = bpy.context.preferences
+    # Blender's icon size now: 16 px times the UI scale (with the system's display
+    # scaling); drawn at exactly that size, the icon is not resampled (soft)
+    size = min(max(round(16.0 * getattr(prefs.system, "ui_scale", 1.0)), 12), 64)
+    mask = _icon_masks().get(f"{name}_{size}")
+    if mask is None:
+        return {"icon": _FALLBACK[name]}
+    shape = mask[::-1] / 255.0                     # previews start at the bottom row
+    ui = prefs.themes[0].user_interface
+    wcol = getattr(ui, widget, ui.wcol_regular)
+    rgb = tuple(min(max(float(c), 0.0), 1.0) for c in (wcol.text_sel if on else wcol.text))
+    edge = min(max(float(getattr(ui, "icon_border_intensity", 0.0)), 0.0), 1.0)
+    if sum(rgb) < 1.5:
+        edge = 0.0                        # a rim only keeps light icons readable
+    key = "i_%s_%d_%02x%02x%02x_%02x" % ((name, size) + tuple(round(c * 255) for c in rgb)
+                                         + (round(edge * 255),))
+    hit = coll.get(key)
+    if hit is None:
+        n = shape.shape[0]
+        a = shape
+        b = np.zeros_like(a)
+        if edge > 0:                      # a dark rim, about a pixel wide on screen
+            r = max(1, round(n / 16))
+            for dy in range(-r, r + 1):
+                for dx in range(-r, r + 1):
+                    if dx * dx + dy * dy <= r * r + r:
+                        b = np.maximum(b, np.roll(np.roll(a, dy, 0), dx, 1))
+            b = b * edge * (1.0 - a)
+        px = np.empty((n, n, 4), np.float32)
+        px[..., :3] = np.asarray(rgb)[None, None, :] * a[..., None]     # premultiplied
+        px[..., 3] = a + b
+        hit = coll.new(key)
+        hit.icon_size = (n, n)
+        hit.icon_pixels_float = px.ravel()
+    return {"icon_value": hit.icon_id}
+
+
 def _color_icon(rgba):
     """Icon id of a rounded square in this color (cached per color)."""
     coll = _icons["coll"]
@@ -2238,15 +2613,16 @@ class STITCHGEN_UL_lines(bpy.types.UIList):
         # a link when this layer follows another one, so the list shows who follows whom
         ref = _layer_by_attr(s, item.ref_attr) if item.ref_attr else None
         if ref is not None and ref != item:
-            row.label(text="", icon='LINKED')
+            row.label(text="", **_icon("link", "wcol_list_item"))
         # The color as an icon like the toggles next to it (a framed swatch
         # gets joined with the swatches of the rows above and below).
         op = row.operator("stitch_gen.edit_color", text="", emboss=False,
                           icon_value=_color_icon(s.stitch_color if stitch else item.color))
         op.index = index
         marks = row.row(align=True)
-        marks.active = item.show_marks
-        marks.prop(item, "show_marks", text="", icon='EDGESEL', emboss=False)
+        marks.active = item.show_marks and context.scene.stitch_gen_marks
+        marks.prop(item, "show_marks", text="", emboss=False,
+                   **_icon("marks", "wcol_list_item", item.show_marks))
         row.prop(s if stitch else item, "stitches" if stitch else "enabled", text="",
                  icon='HIDE_OFF' if on else 'HIDE_ON', emboss=False)
 
@@ -2269,21 +2645,38 @@ def _redraw(context):
                 area.tag_redraw()
 
 
+def _bakeable(ob, scene):
+    s = ob.stitch_gen
+    return bool(_bake_count(ob) and ((_stitches_on(s) and s.ribbon is not None)
+                                     or _line_layers(s, scene) or _grid_layers(s, scene)))
+
+
+def _bake_targets(context):
+    """What one press of Bake bakes: the object the panel shows and the other
+    selected objects, each that has something to bake, with its own settings."""
+    main = _source_object(context)
+    obs = [main] if main is not None else []
+    previews = _previews()
+    obs += [o for o in context.selected_objects
+            if o.type == 'MESH' and o != main and o.name_full not in previews]
+    return [o for o in obs if _bakeable(o, context.scene)]
+
+
+def _object_by_uid(uid):
+    return next((o for o in bpy.data.objects if o.session_uid == uid), None)
+
+
 class STITCHGEN_OT_bake(bpy.types.Operator):
-    """Bake the stitches and each line art layer into a 16-bit mask PNG per texture set"""
+    """Bake the stitches and each line art layer into a 16-bit mask PNG per texture set, for every selected object"""
     bl_idname = "stitch_gen.bake"
     bl_label = "Bake Masks"
     bl_options = {'REGISTER'}
 
     @classmethod
     def poll(cls, context):
-        ob = _source_object(context)
-        if ob is None or context.window_manager.stitch_gen_baking:
+        if _source_object(context) is None or context.window_manager.stitch_gen_baking:
             return False
-        s = ob.stitch_gen
-        if _bake_count(ob) and ((_stitches_on(s) and s.ribbon is not None)
-                                or _line_layers(s, context.scene)
-                                or _grid_layers(s, context.scene)):
+        if _bake_targets(context):
             return True
         cls.poll_message_set(rpt("Nothing to bake: show a layer that has edges"))
         return False
@@ -2311,69 +2704,98 @@ class STITCHGEN_OT_bake(bpy.types.Operator):
             raise RuntimeError(rpt("No stitches to bake"))
         return session, lines
 
+    def _error(self, ob, msg):
+        many = len(getattr(self, "_queue", ())) > 1
+        self.report({'ERROR'}, f"{ob.name}: {msg}" if many else msg)
+
     def execute(self, context):
         """Blocking bake (used without a window, e.g. from scripts)."""
-        ob = _source_object(context)
-        data = regenerate(ob, context.scene, create=True)
-        if data is None:
-            self.report({'ERROR'}, ob.stitch_gen.status)
-            return {'CANCELLED'}
+        targets = _bake_targets(context)
+        self._queue = [o.session_uid for o in targets]
+        paths = []
         try:
-            session, lines = self._jobs(context, ob, data)
-            paths = []
-            if session is not None:
-                paths += bake.bake_masks(context, ob, ob.stitch_gen.ribbon, data, ob.stitch_gen)
-            if lines is not None:
-                for i in range(len(lines.groups)):
-                    paths += lines.step(i, paths)
-        except Exception as e:
-            traceback.print_exc()
-            self.report({'ERROR'}, str(e))
-            return {'CANCELLED'}
+            for ob in targets:
+                _baking["name"] = ob.name_full
+                data = regenerate(ob, context.scene, create=True)
+                if data is None:
+                    self._error(ob, ob.stitch_gen.status)
+                    return {'CANCELLED'}
+                try:
+                    session, lines = self._jobs(context, ob, data)
+                    if session is not None:
+                        paths += bake.bake_masks(context, ob, ob.stitch_gen.ribbon, data,
+                                                 ob.stitch_gen)
+                    if lines is not None:
+                        for i in range(len(lines.groups)):
+                            paths += lines.step(i, paths)
+                except Exception as e:
+                    traceback.print_exc()
+                    self._error(ob, str(e))
+                    return {'CANCELLED'}
+        finally:
+            _baking["name"] = None
         self.report({'INFO'}, rpt("Saved {}").format(", ".join(paths)))
         return {'FINISHED'}
 
     def invoke(self, context, event):
         """Bake as a background job: Blender stays usable, the status bar shows
-        the progress (cancel there or with Esc)."""
+        the progress (cancel there or with Esc). The selected objects are baked
+        one after another."""
         if bpy.app.background or context.window is None:
             return self.execute(context)
-        ob = _source_object(context)
-        data = regenerate(ob, context.scene, create=True)
-        if data is None:
-            self.report({'ERROR'}, ob.stitch_gen.status)
-            return {'CANCELLED'}
-        self._session = None
-        try:
-            self._session, self._lines = self._jobs(context, ob, data)
-            if self._session is not None:
-                self._session.begin()
-                if not self._session.groups:
-                    self._session.end()
-                    self._session = None
-        except Exception as e:
-            traceback.print_exc()
-            if getattr(self, "_session", None) is not None:
-                self._session.end()
-            self.report({'ERROR'}, str(e))
-            return {'CANCELLED'}
-        if self._session is None and self._lines is None:
-            self.report({'ERROR'}, rpt("No stitches to bake"))
-            return {'CANCELLED'}
+        self._queue = [o.session_uid for o in _bake_targets(context)]    # names can change
+        self._k = -1
+        self._session = self._lines = None
         self._written = []
         self._window = context.window
-        self._i = 0
         handlers = bpy.app.handlers
         handlers.object_bake_complete.append(_on_bake_complete)
         handlers.object_bake_cancel.append(_on_bake_cancel)
         wm = context.window_manager
         wm.stitch_gen_baking = True
-        _baking["name"] = ob.name_full
-        if not self._start(context):
+        started = self._next_object(context)
+        if not started:
+            if started is None:
+                self.report({'ERROR'}, rpt("No stitches to bake"))
             return self._end(context, ok=False)
         self._timer = wm.event_timer_add(0.25, window=context.window)
         wm.modal_handler_add(self)
         return {'RUNNING_MODAL'}
+
+    def _next_object(self, context):
+        """Start baking the next object in the queue. True when started, False
+        on an error (reported), None when there is nothing left."""
+        while True:
+            self._session = self._lines = None
+            self._k += 1
+            if self._k >= len(self._queue):
+                return None
+            ob = _object_by_uid(self._queue[self._k])
+            if ob is None:                     # deleted while the others were baking
+                continue
+            _baking["name"] = ob.name_full
+            data = regenerate(ob, context.scene, create=True)
+            if data is None:
+                self._error(ob, ob.stitch_gen.status)
+                return False
+            try:
+                self._session, self._lines = self._jobs(context, ob, data)
+                if self._session is not None:
+                    self._session.begin()
+                    if not self._session.groups:
+                        self._session.end()
+                        self._session = None
+            except Exception as e:
+                traceback.print_exc()
+                if self._session is not None:
+                    self._session.end()
+                    self._session = None
+                self._error(ob, str(e))
+                return False
+            if self._session is None and self._lines is None:
+                continue
+            self._i = 0
+            return self._start(context)
 
     def _steps(self):
         a = len(self._session.groups) if self._session is not None else 0
@@ -2384,8 +2806,12 @@ class STITCHGEN_OT_bake(bpy.types.Operator):
         wm = context.window_manager
         a, b = self._steps()
         n = a + b
-        wm.stitch_gen_bake_progress = self._i / n
-        wm.stitch_gen_bake_label = rpt("Baking {}/{}").format(self._i + 1, n)
+        k, objects = self._k, len(self._queue)
+        wm.stitch_gen_bake_progress = (k + self._i / n) / objects
+        label = rpt("Baking {}/{}").format(self._i + 1, n)
+        if objects > 1:                  # which object, as the outliner names it
+            label = f"{_object_by_uid(self._queue[k]).name}  {self._i + 1}/{n}"
+        wm.stitch_gen_bake_label = label
         _redraw(context)
         if self._i >= a:                 # line art: no Cycles job, done on the next tick
             _bake_flag["state"] = "lines"
@@ -2427,7 +2853,10 @@ class STITCHGEN_OT_bake(bpy.types.Operator):
                 if not self._start(context):
                     return self._end(context, ok=False)
                 return {'PASS_THROUGH'}
-            return self._end(context, ok=True)
+            started = self._next_object(context)
+            if started:
+                return {'PASS_THROUGH'}
+            return self._end(context, ok=started is None)
         if state == "cancel":
             self.report({'WARNING'}, rpt("Baking stopped"))
             return self._end(context, ok=False)
@@ -2468,14 +2897,15 @@ GRID_ICON = 'MESH_GRID'
 
 def _marks_toggle(row, data, prop, icon):
     """Show / hide toggle for marks at the end of a tool row (dim when off)."""
-    row.separator()
     sub = row.row(align=True)
-    sub.active = getattr(data, prop)
-    sub.prop(data, prop, text="", icon=icon, emboss=False)
+    sub.active = getattr(data, prop) and bpy.context.scene.stitch_gen_marks
+    sub.prop(data, prop, text="", emboss=False, **_icon(icon, on=getattr(data, prop)))
 
 
-def _tool_row(layout, label, ctxt=None):
-    """A row of icon buttons with a label in the property label column."""
+def _tool_row(layout, label, ctxt=None, tail=False):
+    """A row of icon buttons with a label in the property label column. With
+    tail, also a slot at the right edge (row, slot), so the icons at the ends
+    of the rows line up."""
     split = layout.split(factor=0.4)
     left = split.row()
     left.alignment = 'RIGHT'
@@ -2483,7 +2913,15 @@ def _tool_row(layout, label, ctxt=None):
         left.label(text=label, text_ctxt=ctxt)
     else:
         left.label(text=label)
-    return split.row(align=True)
+    if not tail:
+        return split.row(align=True)
+    right = split.row()
+    row = right.row(align=True)
+    row.alignment = 'LEFT'
+    end = right.row()
+    end.alignment = 'RIGHT'                # against the right edge in every row
+    end.emboss = 'NONE'
+    return row, end
 
 
 class VIEW3D_PT_stitch_gen(bpy.types.Panel):
@@ -2495,6 +2933,21 @@ class VIEW3D_PT_stitch_gen(bpy.types.Panel):
     @classmethod
     def poll(cls, context):
         return _source_object(context) is not None
+
+    def draw_header_preset(self, context):
+        # what applies beyond the selected layer: every layer's marks (the
+        # scene) and the preview of this object; Update only while not live
+        ob = _source_object(context)
+        row = self.layout.row(align=True)
+        row.prop(context.scene, "stitch_gen_marks", text="",
+                 **_icon("marks", "wcol_toggle", context.scene.stitch_gen_marks))
+        if ob is None or not len(ob.stitch_gen.lines):
+            return
+        s = ob.stitch_gen
+        row.separator()
+        if not s.live:
+            row.operator("stitch_gen.update", text="", icon='FILE_REFRESH')
+        row.prop(s, "live", text="", icon='PLAY')
 
     def draw(self, context):
         ob = _source_object(context)
@@ -2510,19 +2963,47 @@ class VIEW3D_PT_stitch_gen(bpy.types.Panel):
         ops = row.column(align=True)
         ops.menu("STITCHGEN_MT_add_layer", text="", icon='ADD')
         ops.operator("stitch_gen.line_remove", text="", icon='REMOVE')
+        ops.menu("STITCHGEN_MT_list_extras", text="", icon='DOWNARROW_HLT')
         if not len(s.lines):
             return                     # nothing to set up until there is a layer
-        ops.separator()
-        ops.prop(s, "live", text="", icon='PLAY')
-        ops.operator("stitch_gen.update", text="", icon='FILE_REFRESH')
         if s.status:
             lay.label(text=s.status, icon='ERROR', translate=False)
 
-        # the selected layer: marking in working order (edges, then corners),
-        # then its settings
         item = s.lines[s.line_index] if 0 <= s.line_index < len(s.lines) else s.lines[0]
         stitch = _is_stitch(item)
         is_grid = _is_grid(item)
+
+        # marking, in working order: the selected layer's edges, then the
+        # corners and side, which all layers share (a corner is a vertex)
+        mark = lay.column()
+        r, end = _tool_row(mark, "Edges", tail=True)
+        r.operator("stitch_gen.path_add", text="", icon='ADD')
+        r.operator("stitch_gen.path_remove", text="", icon='REMOVE')
+        r.operator("stitch_gen.path_select", text="", icon='RESTRICT_SELECT_OFF')
+        r.operator("stitch_gen.path_clear", text="", icon='X')
+        # Reference: a small menu at the end of the row (most layers never
+        # use it); a row of its own only while picking or once it is set
+        # Reference: a small menu at the end of the row, pressed while one is
+        # set (its tooltip names it); picking shows its hint in the status bar.
+        # No rows come and go here: the rows below stay where the hand knows them.
+        ref = _layer_by_attr(s, item.ref_attr) if item.ref_attr else None
+        if ref is not None and ref != item:
+            sub = end.row()
+            sub.emboss = 'NORMAL'
+            sub.operator("stitch_gen.reference_menu", text="", depress=True,
+                         **_icon("link", "wcol_toggle", True))
+        else:
+            end.operator("stitch_gen.reference_menu", text="", **_icon("link"))
+        if not is_grid:
+            r, end = _tool_row(mark, "Sharp Corners", tail=True)
+            r.operator("stitch_gen.corner_mark", text="", icon='ADD')
+            r.operator("stitch_gen.corner_clear", text="", icon='REMOVE')
+            r.operator("stitch_gen.corner_select", text="", icon='RESTRICT_SELECT_OFF')
+            r.operator("stitch_gen.corner_detect", text="Auto")
+            _marks_toggle(end, s, "show_corners", "corners")
+            mark.prop(s, "flip")
+
+        # the selected layer's own settings, with its presets
         header, body = lay.panel("stitch_gen_layer", default_closed=False)
         if stitch:
             header.label(text="Stitches", icon=STITCH_ICON)
@@ -2531,29 +3012,10 @@ class VIEW3D_PT_stitch_gen(bpy.types.Panel):
                          translate=False)
         pr = header.row()
         pr.alignment = 'RIGHT'
+        pr.emboss = 'NONE'                  # a plain icon, not a dark popup button
         pr.popover(panel="STITCHGEN_PT_stitch_presets" if stitch else
                    "STITCHGEN_PT_grid_presets" if is_grid else "STITCHGEN_PT_line_presets",
-                   text="", icon='PRESET')
-        if body:
-            r = _tool_row(body, "Edges")
-            r.operator("stitch_gen.path_add", text="", icon='ADD')
-            r.operator("stitch_gen.path_remove", text="", icon='REMOVE')
-            r.operator("stitch_gen.path_select", text="", icon='RESTRICT_SELECT_OFF')
-            r.operator("stitch_gen.path_clear", text="", icon='X')
-            # Reference: a small menu at the end of the row (most layers never
-            # use it); a row of its own only while picking or once it is set
-            r.separator(factor=0.5)
-            r.menu("STITCHGEN_MT_reference", text="", icon='LINKED')
-            _marks_toggle(r, item, "show_marks", 'EDGESEL')
-            ref = _layer_by_attr(s, item.ref_attr) if item.ref_attr else None
-            if _PICK.get("ob") == ob.name_full:
-                r = body.row()                  # the whole width: the hint must not be cut off
-                r.alignment = 'CENTER'
-                r.label(text=iface("Click a layer in the list"), icon='EYEDROPPER', translate=False)
-            elif ref is not None and ref != item:
-                r = _tool_row(body, "Reference", i18n.CTX)      # Blender's own "Reference" is 参照
-                r.label(text=_layer_label(ref), icon=_layer_icon(ref), translate=False)
-                r.operator("stitch_gen.set_reference", text="", icon='X', emboss=False).attr = ""
+                   text="", **_icon("preset"))
         if body and is_grid:
             # squares lined up with the marked edge: where, then turn and size
             body = body.column()
@@ -2571,24 +3033,15 @@ class VIEW3D_PT_stitch_gen(bpy.types.Panel):
                 k, n = job["round"]
                 body.progress(factor=(k + 0.5) / max(n, 1), type='BAR',
                               text=iface("Unrolling {}/{}").format(k + 1, n))
-        if body and not is_grid:
-            # corners and side are shared by all layers (a corner is a vertex)
-            r = _tool_row(body, "Sharp Corners")
-            r.operator("stitch_gen.corner_mark", text="", icon='ADD')
-            r.operator("stitch_gen.corner_clear", text="", icon='REMOVE')
-            r.operator("stitch_gen.corner_select", text="", icon='RESTRICT_SELECT_OFF')
-            r.operator("stitch_gen.corner_detect", text="Auto")
-            _marks_toggle(r, s, "show_corners", 'VERTEXSEL')
-            col = body.column(align=True)
-            col.prop(s, "flip")
-            # Same groups, same order for both: where the line runs, then its shape.
+        elif body:
+            # Same groups, same order for all: where the line runs, then its shape.
             body = body.column()
             src = s if stitch else item
             body.active = s.stitches if stitch else item.enabled
             col = body.column(align=True)
             col.prop(src, "inset" if stitch else "offset")
             col.prop(src, "corner_inset")
-            col.prop(src, "smooth")
+            body.prop(src, "smooth")
             col = body.column(align=True)
             if stitch:
                 col = body.column()
@@ -2601,11 +3054,25 @@ class VIEW3D_PT_stitch_gen(bpy.types.Panel):
             elif stitch:
                 col.prop(s, "length")
                 col.prop(s, "gap")
-                col.prop(s, "roundness")
+                col.prop(s, "roundness_pct", slider=True)
                 body.prop(s, "even")
+
+        wm = context.window_manager
+
+        def bake_button(where):
+            if wm.stitch_gen_baking:
+                where.progress(factor=wm.stitch_gen_bake_progress, type='BAR',
+                               text=wm.stitch_gen_bake_label)
+                return
+            n = sum(_bake_count(o) for o in _bake_targets(context))
+            where.operator("stitch_gen.bake", icon='RENDER_STILL',
+                           text=(iface("Bake 1 Mask") if n == 1 else
+                                 iface("Bake {} Masks").format(n) if n else iface("Bake Masks")))
 
         header, body = lay.panel("stitch_gen_bake", default_closed=False)
         header.label(text="Bake")
+        if not body:                       # folded away: the button stays at hand
+            bake_button(header.row())
         if body:
             body.prop(s, "resolution")
             uvl = core.pick_uv(ob.data, s.uv_map)
@@ -2619,7 +3086,8 @@ class VIEW3D_PT_stitch_gen(bpy.types.Panel):
                                             translate=False)
             row = body.row(align=True)
             row.prop(s, "output_dir")
-            row.operator("stitch_gen.open_folder", text="", icon='FOLDER_REDIRECT')
+            row.operator("stitch_gen.pick_folder", text="", **_icon("folder"))
+            row.operator("stitch_gen.open_folder", text="", **_icon("reveal"))
             body.row().prop(s, "background", expand=True)
             if _stitches_on(s) and s.dash_count > 0:      # line art doesn't use these
                 h2, b2 = body.panel("stitch_gen_bake_render", default_closed=True)
@@ -2629,14 +3097,16 @@ class VIEW3D_PT_stitch_gen(bpy.types.Panel):
                     b2.row().prop(s, "device", expand=True)
                     if s.device == 'CPU':
                         b2.prop(s, "cpu_usage")
-            wm = context.window_manager
-            if wm.stitch_gen_baking:
+            if wm.stitch_gen_baking:       # the button below, greyed out, keeps its place
                 body.progress(factor=wm.stitch_gen_bake_progress, type='BAR',
                               text=wm.stitch_gen_bake_label)
-            n = _bake_count(ob)
-            body.operator("stitch_gen.bake", icon='RENDER_STILL',
-                          text=(iface("Bake 1 Mask") if n == 1 else
-                                iface("Bake {} Masks").format(n) if n else iface("Bake Masks")))
+                n = _bake_count(ob)
+                body.operator("stitch_gen.bake", icon='RENDER_STILL',
+                              text=(iface("Bake 1 Mask") if n == 1 else
+                                    iface("Bake {} Masks").format(n) if n else
+                                    iface("Bake Masks")))
+            else:
+                bake_button(body)
 
 
 classes = (
@@ -2656,8 +3126,11 @@ classes = (
     STITCHGEN_OT_stitch_add,
     STITCHGEN_MT_add_layer,
     STITCHGEN_OT_line_remove,
+    STITCHGEN_OT_clear_scene,
+    STITCHGEN_MT_list_extras,
     STITCHGEN_OT_set_uv_map,
     STITCHGEN_OT_edit_color,
+    STITCHGEN_OT_pick_folder,
     STITCHGEN_OT_open_folder,
     STITCHGEN_OT_reset_defaults,
     STITCHGEN_OT_apply_preset,
@@ -2675,6 +3148,7 @@ classes = (
     STITCHGEN_OT_set_reference,
     STITCHGEN_MT_reference,
     STITCHGEN_OT_pick_reference,
+    STITCHGEN_OT_reference_menu,
     STITCHGEN_UL_lines,
     STITCHGEN_OT_bake,
     VIEW3D_PT_stitch_gen,
@@ -2688,6 +3162,9 @@ def register():
     wm = bpy.types.WindowManager
     wm.stitch_gen_baking = BoolProperty(default=False)
     bpy.types.Scene.stitch_gen_last_size = StringProperty(default="", options={'HIDDEN'})
+    bpy.types.Scene.stitch_gen_marks = BoolProperty(
+        name="Show Marks", default=True, update=_on_all_marks,
+        description="Show the marked edges and corners of all layers in the viewport (display only)")
     wm.stitch_gen_bake_progress = FloatProperty(default=0.0, min=0.0, max=1.0)
     wm.stitch_gen_bake_label = StringProperty(default="")
     i18n.register(__package__)
@@ -2711,8 +3188,9 @@ def unregister():
         bpy.app.timers.unregister(_flush)
     _pending.clear()
     del bpy.types.Object.stitch_gen
-    if hasattr(bpy.types.Scene, "stitch_gen_last_size"):
-        del bpy.types.Scene.stitch_gen_last_size
+    for name in ("stitch_gen_last_size", "stitch_gen_marks"):
+        if hasattr(bpy.types.Scene, name):
+            delattr(bpy.types.Scene, name)
     for name in ("stitch_gen_baking", "stitch_gen_bake_progress", "stitch_gen_bake_label"):
         if hasattr(bpy.types.WindowManager, name):
             delattr(bpy.types.WindowManager, name)

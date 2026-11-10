@@ -169,7 +169,13 @@ def _dots(coords, size):
     batch.draw(shader)
 
 
+def _marks_on(context):
+    return getattr(context.scene, "stitch_gen_marks", True)
+
+
 def _draw_3d():
+    if not _marks_on(bpy.context):
+        return
     obs = _objects(bpy.context)
     if not obs:
         return
@@ -188,7 +194,7 @@ def _draw_3d():
 def _draw_uv():
     context = bpy.context
     space = context.space_data
-    if space is None or getattr(space, "mode", "") != 'UV':
+    if space is None or getattr(space, "mode", "") != 'UV' or not _marks_on(context):
         return
     obs = [ob for ob in _objects(context) if ob.mode == 'EDIT']
     if not obs:

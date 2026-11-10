@@ -53,15 +53,18 @@ def own_layer_mask(rib, tile, res, pad_px=1.5):
     return keep
 
 
-def write_png16(path, gray, transparent=False):
+def write_png16(path, gray, transparent=False, invert=False):
     """gray: (h, w) float array, row 0 = top. Written atomically, 16 bit.
 
-    transparent=False: grayscale, white stitches on black (Painter masks).
+    transparent=False: grayscale, white stitches on black (Painter masks), or
+    with invert black stitches on white.
     transparent=True: grayscale + alpha, white everywhere and the stitch
     coverage (soft edges included) as the alpha channel.
     """
     h, w = gray.shape
     a = np.clip(np.rint(gray * 65535.0), 0, 65535).astype(">u2")
+    if invert and not transparent:
+        a = (65535 - a.astype(np.int64)).astype(">u2")
     if transparent:
         ga = np.empty((h, w, 2), ">u2")
         ga[..., 0] = 65535
@@ -194,6 +197,12 @@ def add_margin(gray, tris_uv, band_tris_uv, res, margin):
     known = _island_mask(px, x0, y0, x1 - x0, y1 - y0) | (crop > 0)
     _bleed(crop, known, margin)
     return gray
+
+
+def _write_mask(path, gray, settings):
+    """A mask PNG with the background picked in the bake settings."""
+    write_png16(path, gray, transparent=settings.transparent,
+                invert=getattr(settings, "invert", False))
 
 
 def _safe(name):
@@ -433,7 +442,7 @@ class BakeSession:
         path = output_path(self.obj, mat_name, tile, self.folder)
         if path in self.written:     # e.g. "Red/Blue" and "Red_Blue"
             path = path[:-4] + f"_{zlib.crc32(mat_name.encode()) % 10000:04d}.png"
-        write_png16(path, gray[::-1], transparent=self.settings.transparent)
+        _write_mask(path, gray[::-1], self.settings)
         self.written.append(path)
         return path
 
@@ -530,7 +539,7 @@ class LineBake:
                 path = f"{base}_{k}.png"
                 k += 1
             os.makedirs(self.folder, exist_ok=True)
-            write_png16(path, gray[::-1], transparent=self.settings.transparent)
+            _write_mask(path, gray[::-1], self.settings)
             self.written.append(path)
             out.append(path)
         return out
@@ -594,7 +603,7 @@ class GridBake:
                     path = f"{base}_{k}.png"
                     k += 1
                 os.makedirs(self.folder, exist_ok=True)
-                write_png16(path, gray[::-1], transparent=self.settings.transparent)
+                _write_mask(path, gray[::-1], self.settings)
                 self.written.append(path)
                 out.append(path)
         return out

@@ -26,7 +26,7 @@ def manifest_value(key):
 
 def main():
     ext_id, version = manifest_value("id"), manifest_value("version")
-    files = sorted(f for f in os.listdir(PKG) if f.endswith((".py", ".toml")))
+    files = sorted(f for f in os.listdir(PKG) if f.endswith((".py", ".toml", ".npz")))
     os.makedirs(os.path.join(HERE, "dist"), exist_ok=True)
     out = os.path.join(HERE, "dist", f"{ext_id}-{version}.zip")
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:

@@ -24,6 +24,23 @@ ZH = {
     "Select Edges": "选择边",
     "Clear Edges": "清空边",
     "Works in Edit Mode": "在编辑模式下使用",
+    "Edit the mesh, not its preview": "请编辑模型本身，不是它的预览",
+    "No edges selected": "没有选中的边",
+    "Choose Folder": "选择文件夹",
+    "Choose the folder for the mask PNGs": "选择保存遮罩 PNG 的文件夹",
+    "Keep the folder relative to the .blend file": "按相对 .blend 文件的路径保存",
+    "Clear All Layers": "清空所有图层",
+    "Remove all layers, with their marked edges and corners, and the previews from every object in the scene":
+        "删除场景里所有物体的图层，连同标记的边、尖角和预览",
+    "Remove all layers, marked edges, corners and previews from every object in this scene?":
+        "删除这个场景里所有物体的图层、标记的边、尖角和预览？",
+    "Clear": "清空",
+    "Nothing to clear": "没有可以清空的内容",
+    "Cleared {} objects": "已清空 {} 个物体",
+    "Show Marks": "显示标记",
+    "Show the marked edges and corners of all layers in the viewport (display only)":
+        "在视图里显示所有图层标记的边和尖角（只影响显示）",
+    "The marked edges are too short for a stitch": "标记的边太短，放不下一针",
     "The stitch row stays; hide it with its eye": "缝线这一行不能删除，可以点眼睛隐藏",
     "Add the selected edges to the layer selected in the list": "把选中的边加到列表里选中的那一层",
     "Remove the selected edges from the layer selected in the list, also those it gets from the layer it refers to":
@@ -44,10 +61,15 @@ ZH = {
 
     # settings
     "Live": "实时更新",
-    "Extra inset at marked corners, tapering off along the line, for a deeper, pointed corner":
-        "在尖角处额外往里缩，并沿缝线逐渐过渡回来，让拐角更深更尖",
     "Flip Side": "翻到另一侧",
     "Round Ends": "圆角",
+    "Corner radius of each stitch: 100% gives fully round ends": "每针两端的圆角，100% 是完全圆头",
+    "How far the stitch line sits inward from the marked edges": "缝线从标记的边向内偏移多少",
+    "How far the line sits inward from the marked edges, to its outer side (0 = the line starts at the edge)":
+        "线稿从标记的边向内偏移多少，量到线的外侧（0 = 线从边上开始）",
+    "Extra inward offset at marked corners, tapering off along the line, for a deeper, pointed corner":
+        "在标记的尖角处再向内多偏移这么多，沿线逐渐减小，让尖角更深更尖",
+    "Slides the squares inward from the marked edge": "让方格从标记的边向内整体滑动",
     "Even Fit": "均匀排布",
     "Size": "尺寸",
     "UV Map": "UV 贴图",
@@ -65,7 +87,6 @@ ZH = {
 
     # tooltips of the settings
     "Rebuild the stitches while you change the values": "改数值时自动重新生成缝线",
-    "Distance of the stitch line from the picked edges": "缝线离所选边的距离",
     "Evens out low-poly zigzags along the line; larger values also flatten curves":
         "抹平低模边上的折线；数值越大，弧线也会被拉平",
     "Inset to the other side of the picked edges": "向所选边的另一侧内缩",
@@ -111,8 +132,12 @@ ZH = {
     "Nothing baked here yet": "这里还没有烘焙过",
     "Nothing to bake: show a layer that has edges": "没有可烘焙的内容：请显示一个标了边的层",
     "White on black, as Painter masks expect": "黑底白遮罩，Painter 用这种",
-    "White with the mask in the alpha channel (soft edges kept), for Clip Studio and other 2D apps":
-        "白色，遮罩在 alpha 通道里（保留柔边），CSP 等 2D 软件用这种",
+    "Black on white. In Clip Studio Paint, Convert Brightness to Opacity turns it into a mask (it can't open a transparent PNG that holds very little)":
+        "白底黑遮罩。在 Clip Studio Paint 里用「将亮度转换为透明度」就能变成遮罩（内容很少的透明 PNG 它导入不了）",
+    "Save black stitches on white (used when Transparent is off)": "保存成白底黑缝线（不透明时生效）",
+    "White Background": "白底",
+    "White with the mask in the alpha channel (soft edges kept), for Photoshop and other 2D apps":
+        "白色，遮罩在 alpha 通道里（保留柔边），Photoshop 等 2D 软件用这种",
     "Background of the saved mask PNGs": "保存的遮罩 PNG 的背景",
     "Stitch Presets": "缝线预设",
     "Grid Presets": "格纹预设",
@@ -125,7 +150,6 @@ ZH = {
     "Save this grid layer's settings as a preset, or remove the selected preset":
         "把这层格纹的参数存成预设，或删除选中的预设",
     "Slides the squares along the marked edge": "让方格沿标记的边整体滑动",
-    "Slides the squares away from the marked edge": "让方格离开标记的边整体滑动",
     "Size of each square": "每个方格的大小",
     "Bends the lines of the squares a little at random, as cloth pulls them out of true; the corners stay sharp":
         "让格子的线随机地轻轻弯曲，像布料被拉扯后那样；四个角仍然是尖的",
@@ -167,6 +191,8 @@ ZH = {
     "Pick Layer": "吸取图层",
     "Pick in List": "在列表里点选",
     "Click a layer in the list": "在列表里点一个图层",
+    "Also follows {}": "也沿「{}」的边走",
+    "Clear Reference": "取消引用",
     "Also follow another layer's edges": "也沿另一个图层的边走",
     "Stop following that layer's edges": "不再沿那个图层的边走",
     "Click a layer in the list to also follow its edges (Esc or right-click: cancel)":
@@ -180,17 +206,13 @@ ZH = {
     "Stitch Color": "缝线颜色",
     "Color of the stitch preview in the viewport (not baked)": "视图里缝线预览的颜色（不影响烘焙）",
     "Width of the line, the same real size everywhere": "线的宽度，在模型上处处是同样的实际尺寸",
-    "Distance from the picked edges to the outer side of the line (0 = the line starts at the edge)":
-        "从所选边到线外侧的距离（0 = 线从边上开始）",
-    "Extra inset at marked corners, tapering off along the edge, for a deeper, pointed corner":
-        "在尖角处额外往里缩，并沿边逐渐过渡回来，让拐角更深更尖",
     "Used in the file name of this layer's mask": "用在这一层遮罩的文件名里",
     "Add Line": "添加线稿",
     "Remove Line": "删除线稿",
     "Remove the selected line art layer": "删除选中的线稿层",
     "Bake Masks": "烘焙遮罩",
-    "Bake the stitches and each line art layer into a 16-bit mask PNG per texture set":
-        "把缝线和每层线稿烘焙成遮罩，每个纹理集各一张 16 位 PNG",
+    "Bake the stitches and each line art layer into a 16-bit mask PNG per texture set, for every selected object":
+        "把缝线和每层线稿烘焙成遮罩，每个纹理集各一张 16 位 PNG；选中的物体都会烘焙",
 
     # messages (templates)
     "{count} stitches: Length + Gap too small for this path (limit {limit})":
@@ -209,8 +231,10 @@ ZH = {
 # Lengths (shown with mm in the field) use their own context.
 CTX = "StitchGen"
 ZH_CTX = {
+    "Offset Inward": "偏移 向内",       # the offsets read like Location X / Y / Z
+    "At Corners": "尖角处",
+    "Along": "沿边",
     "Grid": "格纹",
-    "Along Edge": "沿边偏移",
     "Cell Size": "格子大小",
     "Angle": "角度",
     "Wobble": "扭曲",
@@ -229,20 +253,19 @@ ZH_CTX = {
     "Line": "线稿",           # default name of a line art layer
     "Background": "背景",
     "Black": "黑底",
+    "White": "白底",
     "Transparent": "透明",
     "Smooth": "平滑",
-    "Corner Inset": "尖角内缩",
     "Length": "长度",
     "Gap": "间隔",
     "Width": "宽度",
-    "From Edge": "离边距离",
 }
 
 OPERATOR_NAMES = ("Add Selected", "Remove Selected", "Select Edges", "Clear Edges",
                   "Update", "Bake Mask", "Mark Corner", "Clear Corner", "Detect Corners",
                   "Select Corners", "Add Line", "Remove Line", "Bake Masks", "Add Stitches",
                   "Remove Layer", "Apply Preset", "Use as Default",
-                  "Reference", "Pick Layer")
+                  "Reference", "Pick Layer", "Clear All Layers", "Choose Folder")
 
 translations = {
     "zh_HANS": {

@@ -61,7 +61,14 @@ class _Charts:
     the fabric. The UV layout lies flat, so a distance measured there (scaled to
     real size per UV island) is the distance along the fabric. Across a UV seam
     the coordinates are carried over with the transform that maps the edge on
-    one side onto the other."""
+    one side onto the other.
+
+    A UV layout is rarely true to size everywhere: a strip that tapers on the
+    model is often unwrapped as an even band, so across it the UVs are
+    stretched. So the real size per UV unit is not one number per island: each
+    hem segment measures it at its two ends, inward across the hem where the
+    line will be (``across``), and it is blended along the segment, which
+    keeps the distance continuous along the hem and over UV seams."""
 
     def __init__(self, topo):
         F = len(topo.tri)
@@ -144,6 +151,67 @@ class _Charts:
         J = Q @ Pinv
         sv = np.linalg.svd(J, compute_uv=False)[:, 0]
         self.stretch = np.maximum(1.0, sv * self.scale_f.max())
+        # real length per UV vector on each face (zero where the UVs are degenerate)
+        detJ = J[:, 0, 0] * J[:, 1, 1] - J[:, 0, 1] * J[:, 1, 0]
+        good = np.abs(detJ) > 1e-30
+        safe = np.where(good, detJ, 1.0)
+        Minv = np.stack([np.stack([J[:, 1, 1], -J[:, 0, 1]], 1),
+                         np.stack([-J[:, 1, 0], J[:, 0, 0]], 1)], 1) / safe[:, None, None]
+        self.Minv = np.where(good[:, None, None], Minv, 0.0)
+        self._trees = {}
+
+    def _face_at(self, z, isl):
+        """The face of island isl whose UV triangle holds the UV point z, or -1."""
+        tree = self._trees.get(isl)
+        if tree is None:
+            faces = np.nonzero(self.isl == isl)[0]
+            tree = kdtree.KDTree(len(faces))
+            for f in faces.tolist():
+                c = self.Uz[f].mean()
+                tree.insert((c.real, c.imag, 0.0), f)
+            tree.balance()
+            self._trees[isl] = tree
+        for _, f, _ in tree.find_n((z.real, z.imag, 0.0), 12):
+            a, b, c = self.Uz[f]
+            v0, v1, v2 = b - a, c - a, z - a
+            den = (v0.conjugate() * v1).imag
+            if abs(den) < 1e-30:
+                continue
+            u = (v2.conjugate() * v1).imag / den
+            v = (v0.conjugate() * v2).imag / den
+            if u >= -1e-9 and v >= -1e-9 and u + v <= 1.0 + 1e-9:
+                return f
+        return -1
+
+    def across(self, z, nz, isl, d, f0):
+        """Real distance from the hem per UV unit, going inward from the hem
+        point z (UV) along the unit UV direction nz (square to the hem there),
+        averaged over the first ``d`` of real distance; f0 is the starting
+        guess (the island's). Only the part of each step square to the hem in
+        real space counts: where the UVs are sheared a step also slides along
+        the hem."""
+        f = f0
+        for _ in range(2):                         # where the line is depends on f
+            u = d / max(f, 1e-30)
+            got = []
+            for s in (0.125, 0.375, 0.625, 0.875):
+                t = self._face_at(z + nz * (u * s), isl)
+                if t < 0:
+                    break
+                M = self.Minv[t]
+                v = M @ np.array([nz.real, nz.imag])
+                a = M @ np.array([-nz.imag, nz.real])        # along the hem
+                na = float(np.hypot(a[0], a[1]))
+                g = abs(float(a[0] * v[1] - a[1] * v[0])) / na if na > 0 else 0.0
+                if g <= 0.0:
+                    break
+                got.append(g)
+            if not got:
+                return f
+            prev, f = f, float(np.mean(got))
+            if abs(f - prev) < 0.03 * prev:        # settled: the line stays put
+                break
+        return f
 
     def uv(self, X, T):
         """UV (complex) of points X lying on faces T."""
@@ -295,6 +363,15 @@ class _Segments:
             self.psi = np.where(cross < 0, -1.0, 1.0)
             ok = (self.tri >= 0) & (np.abs(self.Bz - self.Az) > 1e-12)
             self.scale = np.where(ok, charts.scale_f[t], 0.0)
+        # real size per UV unit across the hem at each end of each segment
+        self.fA, self.fB = self.scale.copy(), self.scale.copy()
+        if charts is not None and charts.ok and nS and d > 0:
+            for k in np.nonzero(self.scale > 0)[0].tolist():
+                AB = self.Bz[k] - self.Az[k]
+                nz = AB / abs(AB) * 1j * self.psi[k]       # inward, in the UV layout
+                isl = int(charts.isl[self.tri[k]])
+                self.fA[k] = charts.across(self.Az[k], nz, isl, d, self.scale[k])
+                self.fB[k] = charts.across(self.Bz[k], nz, isl, d, self.scale[k])
         if self.miters:
             M = self.miters
             self.mAlpha = np.array([m[7] for m in M])
@@ -438,7 +515,10 @@ def _visible(topo, segs, reach, charts):
     # farthest one never wins there.
     c = topo.centroid[f]
     val = _pair_value(segs, rows, np.arange(len(f)), c, charts.uv(c, f) if uv else None)
-    r = topo.radius[f] * charts.stretch[f]
+    boost = 1.0
+    if uv and len(segs.fA):
+        boost = max(1.0, float(np.max(np.r_[segs.fA, segs.fB])) / max(float(charts.scale_f.max()), 1e-30))
+    r = topo.radius[f] * charts.stretch[f] * boost
     lo = val - r - np.maximum(segs.eA[k], segs.eB[k])
     hi = val + r - np.minimum(segs.eA[k], segs.eB[k])
     starts = np.flatnonzero(np.r_[True, f[1:] != f[:-1]])
@@ -462,7 +542,8 @@ def _pair_value(segs, rows, r, X, Xz):
         Dz = Xz - Az
         L2z = np.maximum((ABz * ABz.conjugate()).real, 1e-30)
         tz = np.clip((Dz * ABz.conjugate()).real / L2z, 0.0, 1.0)
-        dist = np.maximum(dist, np.abs(Dz - tz * ABz) * segs.scale[k])
+        f = segs.fA[k] + tz * (segs.fB[k] - segs.fA[k])
+        dist = np.maximum(dist, np.abs(Dz - tz * ABz) * f)
     return dist
 
 
@@ -583,7 +664,7 @@ class _Field:
             inz = ((Rz * u_in.conjugate()).real >= 0) & ((Rz * u_out.conjugate()).real <= 0)
             vz = np.where(inz, np.maximum((Rz * n_in.conjugate()).real,
                                           (Rz * n_out.conjugate()).real), np.abs(Rz))
-            val = np.maximum(val, vz * sg.scale[k])
+            val = np.maximum(val, vz * np.where(out, sg.fA[k], sg.fB[k]))
         return val - sg.mExtra[m], np.zeros(len(i), bool)
 
 
