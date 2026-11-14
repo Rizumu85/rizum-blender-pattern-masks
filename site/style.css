@@ -573,3 +573,39 @@ section:has(> .fig.shot) > ol.um-keys { grid-template-columns: 22px minmax(0, 1f
                color: #C9C9C9; font-size: 11px; pointer-events: none; }
 .bp-picknote svg { width: 12px; height: 12px; }
 .bp-menu.more { top: 72px; right: 0; min-width: 150px; }
+
+/* Background: a menu field, as in the add-on */
+.bp-dd { position: relative; min-width: 0; }
+.bp-dd > button { width: 100%; justify-content: flex-start; background: #282828; }
+.bp-dd > button.on { background: #4772B3; }
+.bp-dd .dd { margin-left: auto; border: 4px solid transparent; border-top-color: #C9C9C9; transform: translateY(2px); }
+.bp-menu.bg { top: 24px; left: 0; right: auto; min-width: 100%; }
+
+/* Overview: the kinds of layers beside a 3D skirt that wears them all */
+.l3d { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 20px; align-items: center; margin: 18px 0 28px; }
+.l3d-stage { position: relative; aspect-ratio: 1; overflow: hidden; border-radius: 16px;
+             background: radial-gradient(circle at 50% 38%, var(--bg), var(--card) 78%); }
+.l3d-stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; transition: opacity .5s; }
+.l3d-fallback { display: block; width: 100%; height: 100%; padding: 20px; object-fit: contain; }
+.l3d-stage.live canvas { opacity: 1; }
+.l3d-stage.live .l3d-fallback { display: none; }
+.l3d-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+main .l3d-list li { max-width: none; display: grid; grid-template-columns: 22px 1fr; column-gap: 10px; padding: 12px 14px;
+               border: 1px solid var(--line); border-radius: 12px; cursor: default;
+               transition: background .2s, border-color .2s; }
+.l3d-list li.on { background: var(--card); border-color: var(--thread); }
+.l3d-list li:focus-visible { outline: 2px solid var(--thread); outline-offset: 2px; }
+.l3d-list li + li { margin-top: 0; }
+.l3d-list li::before { content: none; }
+main .l3d-list strong { align-self: center; padding: 0; border: 0; background: none; }
+.l3d-list span { grid-column: 2; color: var(--muted); font-size: 15px; line-height: 1.6; }
+.l3d-list .sw { align-self: center; width: 22px; height: 14px; border-radius: 3px; }
+.l3d-list .sw.stitch { background: repeating-linear-gradient(90deg, var(--thread) 0 6px, transparent 6px 10px) center / 100% 3px no-repeat; }
+.l3d-list .sw.line { background: linear-gradient(var(--navy), var(--navy)) center / 100% 3px no-repeat; }
+:root[data-dark] .l3d-list .sw.line { background-image: linear-gradient(#C9D2E3, #C9D2E3); }
+.l3d-list .sw.grid { background: repeating-conic-gradient(#6E7C98 0 25%, var(--fabric) 0 50%) 0 0 / 7px 7px;
+                     box-shadow: 0 0 0 1px var(--line); }
+@media (max-width: 640px) {
+  .l3d { grid-template-columns: 1fr; }
+  .l3d-stage { aspect-ratio: 4 / 3; }
+}

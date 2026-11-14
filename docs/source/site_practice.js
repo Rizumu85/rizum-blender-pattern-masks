@@ -84,7 +84,7 @@
   function fresh() {
     nextId = 1;
     st = { layers: [], active: null, sel: new Set(), vsel: new Set(), corners: new Set(), showCorners: true,
-           flip: false, pick: false, menu: false, more: false, refmenu: false, pmenu: false, live: true, allMarks: true, step: 0,
+           flip: false, pick: false, menu: false, more: false, bgmenu: false, refmenu: false, pmenu: false, live: true, allMarks: true, step: 0,
            baked: false, view: "model", bg: "black", obj: "Skirt", mat: "Cloth",
            presets: [], star: null, pname: S.presetName || "", applied: false, usedDefault: false };
   }
@@ -680,9 +680,12 @@
     }
     if (ROWS.has("bake") && st.layers.length) {      // as in the add-on: nothing below the list until there is a layer
       const n = bakeCount();
+      const BGS = [["black", S.black], ["white", S.white], ["clear", S.transparent]];
       h += `<div class="bp-head bake">${esc(S.bakeHead)}</div>
-        <div class="bp-row"><span class="lb">${esc(S.background)}</span><div class="seg">
-          <button type="button" data-act="bg-black"${st.bg === "black" ? ' class="on"' : ""}>${esc(S.black)}</button><button type="button" data-act="bg-white"${st.bg === "white" ? ' class="on"' : ""}>${esc(S.white)}</button><button type="button" data-act="bg-clear"${st.bg === "clear" ? ' class="on"' : ""}>${esc(S.transparent)}</button></div></div>
+        <div class="bp-row"><span class="lb">${esc(S.background)}</span><div class="bp-dd">
+          <button type="button" data-act="bgmenu"${st.bgmenu ? ' class="on"' : ""}>${esc(BGS.find(([v]) => v === st.bg)[1])}<i class="dd"></i></button>
+          ${st.bgmenu ? `<div class="bp-menu bg">${BGS.map(([v, t]) =>
+            `<button type="button" data-act="bg-${v}"${v === st.bg ? ' class="on"' : ""}>${esc(t)}</button>`).join("")}</div>` : ""}</div></div>
         <button type="button" class="bp-bake" data-act="bake"${n ? "" : " disabled"}>${esc((n === 1 ? S.bake1 : S.bakeN).replace("{}", n))}</button>`;
     }
     panel.innerHTML = h;
@@ -737,7 +740,7 @@
     "e-clear": "[data-act=e-clear]", link: "[data-act=refmenu]", allmarks: "[data-act=allmarks]", more: "[data-act=more]",
     "c-add": "[data-act=c-add]", "c-remove": "[data-act=c-remove]", "c-select": "[data-act=c-select]",
     "c-auto": "[data-act=c-auto]", "c-marks": "[data-act=c-marks]", style: ".seg", bake: "[data-act=bake]",
-    background: "[data-act=bg-black]", "p-button": "[data-act=pmenu]", "p-default": "[data-act=p-default]",
+    background: "[data-act=bgmenu]", "p-button": "[data-act=pmenu]", "p-default": "[data-act=p-default]",
     "p-name": ".pre-add .bp-text", "p-save": "[data-act=p-save]", "p-star": "[data-act=p-star]", "p-del": "[data-act=p-del]",
     names: ".pr-names",
   };
@@ -832,6 +835,7 @@
     const A = activeL();
     if (a !== "menu") st.menu = false;
     if (a !== "more") st.more = false;
+    if (a !== "bgmenu") st.bgmenu = false;
     if (a !== "refmenu") st.refmenu = false;
     if (!a.startsWith("p")) st.pmenu = false;
     switch (a) {
@@ -865,6 +869,7 @@
       case "ref-clear": if (A) A.ref = null; break;
       case "flip": st.flip = !st.flip; break;
       case "bake": bake(); break;
+      case "bgmenu": st.bgmenu = !st.bgmenu; break;
       case "bg-black": st.bg = "black"; break;
       case "bg-clear": st.bg = "clear"; break;
       case "bg-white": st.bg = "white"; break;
@@ -959,12 +964,13 @@
     render();
   });
   document.addEventListener("keydown", (ev) => {
-    if (ev.key === "Escape" && (st.pick || st.menu || st.more || st.refmenu || st.pmenu)) { st.pick = st.menu = st.more = st.refmenu = st.pmenu = false; render(); }
+    if (ev.key === "Escape" && (st.pick || st.menu || st.more || st.bgmenu || st.refmenu || st.pmenu)) { st.pick = st.menu = st.more = st.bgmenu = st.refmenu = st.pmenu = false; render(); }
   });
   document.addEventListener("pointerdown", (ev) => {
     if ((st.menu || st.more) && !ev.target.closest(".bp-side")) { st.menu = st.more = false; render(); }
     if (st.refmenu && !ev.target.closest(".bp-menu.ref, [data-act=refmenu]")) { st.refmenu = false; render(); }
     if (st.pmenu && !ev.target.closest(".bp-menu.pre, [data-act=pmenu], ol.um-keys")) { st.pmenu = false; render(); }
+    if (st.bgmenu && !ev.target.closest(".bp-dd")) { st.bgmenu = false; render(); }
   });
 
   // -- the viewport: a click toggles a whole piece ---------------------------

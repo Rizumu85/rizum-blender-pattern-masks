@@ -24,14 +24,8 @@
     onclick="var n=this.parentNode;n.classList.toggle('open');this.setAttribute('aria-expanded',n.classList.contains('open'))">Overview</button><p class="grp">Start</p><ol><li><a class="here" href="index.html">Overview</a></li><li><a href="start.html">Install and first mask</a></li></ol><p class="grp">How it works</p><ol><li><a href="layers.html">Layers and edges</a></li><li><a href="stitches.html">Stitches</a></li><li><a href="line-art.html">Line art</a></li><li><a href="grid.html">Grid</a></li><li><a href="presets.html">Presets</a></li><li><a href="bake.html">Bake and use</a></li></ol><p class="grp">Reference</p><ol><li><a href="limits.html">Notes and limits</a></li></ol></nav>
   <main>
     <h1>Overview</h1>
-    <p class="lead">Mark edges on a mesh. Get stitches, lines and checks along them, baked to UV masks.</p>
-    <section id="what"><h2>What it does</h2>
-<p>Pick edges in Blender, and the add-on draws patterns along them. Each pattern bakes to a 16-bit mask PNG.</p>
-<p>Use the masks in painting apps such as Substance 3D Painter or Clip Studio Paint.</p>
-</section><section id="layers"><h2>Three kinds of layers</h2>
-<dl class="keys"><dt><strong>Stitches</strong></dt><dd>dashed or zigzag, a set distance in from the edge.</dd><dt><strong>Line Art</strong></dt><dd>solid lines of one real width.</dd><dt><strong>Grid</strong></dt><dd>a checkerboard laid from a marked edge.</dd></dl>
-<figure class="fig dark"><img src="../img/render.png" alt="" loading="lazy"></figure>
-</section><section id="workflow"><h2>Workflow</h2>
+    <p class="lead">Mark edges on a mesh in Blender, and the add-on draws procedural, adjustable stitches, line art and checks along them, then bakes them to masks for painting textures in your painting app.</p>
+    <section id="layers"><h2>Kinds of layers</h2><div class="l3d"><div class="l3d-stage"><img class="l3d-fallback" src="../img/render.png" alt=""><canvas aria-hidden="true"></canvas></div><ul class="l3d-list"><li tabindex="0" data-k="stitch"><i class="sw stitch"></i><strong>Stitches</strong><span>Dashed or zigzag. Set how far in from the edge they run: the distance is a real size on the model, whatever the UV density.</span></li><li tabindex="0" data-k="line"><i class="sw line"></i><strong>Line Art</strong><span>Lines on the marked edges, as the name says. Their width is a real size too, whatever the UV density.</span></li><li tabindex="0" data-k="grid"><i class="sw grid"></i><strong>Grid</strong><span>A seamless checkerboard.</span></li></ul></div></section><section id="workflow"><h2>Workflow</h2>
 
 <figure class="fig workflow"><ol><li><img src="../img/step1.svg" alt=""><span>1. Mark edges</span></li><li><img src="../img/step2.svg" alt=""><span>2. Tune</span></li><li><img src="../img/step3.svg" alt=""><span>3. Bake</span></li><li><img src="../img/step4.svg" alt=""><span>4. Paint</span></li></ol></figure>
 </section><section id="why"><h2>Why on the 3D surface</h2>
@@ -42,9 +36,10 @@
 </section>
     <nav class="pager"><span></span><a href="start.html"><small>Next</small>Install and first mask</a></nav>
   </main>
-  <aside class="toc"><p>On this page</p><ol><li><a href="#what">What it does</a></li><li><a href="#layers">Three kinds of layers</a></li><li><a href="#workflow">Workflow</a></li><li><a href="#why">Why on the 3D surface</a></li><li><a href="#requirements">Requirements</a></li></ol></aside>
+  <aside class="toc"><p>On this page</p><ol><li><a href="#layers">Kinds of layers</a></li><li><a href="#workflow">Workflow</a></li><li><a href="#why">Why on the 3D surface</a></li><li><a href="#requirements">Requirements</a></li></ol></aside>
 </div>
 
+<script type="module" src="../layers3d.js"></script>
 <script>(function(){var l=[].slice.call(document.querySelectorAll('.toc a'));if(!l.length)return;var s=l.map(function(a){return document.getElementById(decodeURIComponent(a.hash.slice(1)))});function u(){var n=0;for(var i=0;i<s.length;i++)if(s[i]&&s[i].getBoundingClientRect().top<=150)n=i;if(scrollY>0&&innerHeight+scrollY>=document.documentElement.scrollHeight-4)n=s.length-1;l.forEach(function(a,i){a.classList.toggle('now',i===n)})}addEventListener('scroll',u,{passive:true});addEventListener('resize',u);u()})()</script>
 </body>
 </html>

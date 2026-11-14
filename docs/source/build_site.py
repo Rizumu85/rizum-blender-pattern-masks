@@ -429,12 +429,12 @@ PRACTICE = {
         "material": "材质"
     },
     "ja": {
-        "stitches": "Stitches",
-        "lineArt": "Line Art",
-        "auto": "Auto",
-        "fromEdge": "Offset Inward",
-        "width": "Width",
-        "none": "None",
+        "stitches": "ステッチ",
+        "lineArt": "線画",
+        "auto": "自動",
+        "fromEdge": "内側オフセット",
+        "width": "幅",
+        "none": "なし",
         "add": "追加",
         "remove": "外す",
         "select": "選択",
@@ -444,20 +444,20 @@ PRACTICE = {
         "visible": "表示とベイク",
         "skip": "このステップを飛ばす",
         "restart": "最初から",
-        "edges": "Edges",
-        "reference": "Reference",
-        "corners": "Sharp Corners",
-        "flip": "Flip Side",
+        "edges": "辺",
+        "reference": "参照",
+        "corners": "尖った角",
+        "flip": "反対側",
         "demos": {
             "flow": {
                 "steps": [
-                    "リスト右の **+** を押して **Stitches** を選びます。",
-                    "裾のスカラップを 4 つクリックし、**Edges** 行の **+** を押します。",
-                    "**Offset Inward** を 6 mm までドラッグします。",
-                    "**Bake 1 Mask** を押します。"
+                    "リスト右の **+** を押して **ステッチ** を選びます。",
+                    "裾のスカラップを 4 つクリックし、**辺** 行の **+** を押します。",
+                    "**内側オフセット** を 6 mm までドラッグします。",
+                    "**マスクを 1 枚ベイク** を押します。"
                 ],
                 "results": [
-                    "リストに **Stitches** レイヤーができ、その下に設定が出ました。",
+                    "リストに **ステッチ** レイヤーができ、その下に設定が出ました。",
                     "裾がこのレイヤーの辺（緑）になり、ステッチがそれに沿います。",
                     "ステッチは裾から {from} 内側にあります。モデル上で測った距離です。",
                     "最初のマスクができました。黒地に白いステッチが、UV のとおりに並んでいます。"
@@ -466,7 +466,7 @@ PRACTICE = {
             },
             "list": {
                 "steps": [
-                    "**Stitches** の行の目のアイコンを押します。"
+                    "**ステッチ** の行の目のアイコンを押します。"
                 ],
                 "results": [
                     "ステッチが非表示になりました。ベイクでも飛ばされます。"
@@ -475,7 +475,7 @@ PRACTICE = {
             },
             "edges": {
                 "steps": [
-                    "スカラップを 4 つクリックし、**Edges** 行の **+** を押します。",
+                    "スカラップを 4 つクリックし、**辺** 行の **+** を押します。",
                     "スカラップを 1 つクリックして **−** を押します。"
                 ],
                 "results": [
@@ -486,19 +486,19 @@ PRACTICE = {
             },
             "reference": {
                 "steps": [
-                    "**Edges** 行の端のリンクアイコンを押し、**Stitches** を選びます。",
-                    "いちばん左のスカラップをクリックし、**Edges** 行の **−** を押します。"
+                    "**辺** 行の端のリンクアイコンを押し、**ステッチ** を選びます。",
+                    "いちばん左のスカラップをクリックし、**辺** 行の **−** を押します。"
                 ],
                 "results": [
-                    "**Line Art** が **Stitches** の辺をすべて使うようになり、裾はマークし直さなくても緑になりました。リンクのボタンが押された表示になり、ポイントすると参照先が出ます。",
-                    "いちばん左のスカラップが赤くなりました。**Line Art** では使いませんが、**Stitches** には残っています。"
+                    "**線画** が **ステッチ** の辺をすべて使うようになり、裾はマークし直さなくても緑になりました。リンクのボタンが押された表示になり、ポイントすると参照先が出ます。",
+                    "いちばん左のスカラップが赤くなりました。**線画** では使いませんが、**ステッチ** には残っています。"
                 ],
-                "done": "リストの **Stitches** を押してみてください。辺はそのままです。"
+                "done": "リストの **ステッチ** を押してみてください。辺はそのままです。"
             },
             "corners": {
                 "steps": [
-                    "**Sharp Corners** 行の **Auto** を押します。",
-                    "2 つ目のスカラップをクリックし、**Sharp Corners** 行の **−** を押します。"
+                    "**尖った角** 行の **自動** を押します。",
+                    "2 つ目のスカラップをクリックし、**尖った角** 行の **−** を押します。"
                 ],
                 "results": [
                     "すべてのスカラップの先がマークされ（黄色）、ステッチはそこで鋭く曲がります。",
@@ -508,7 +508,7 @@ PRACTICE = {
             },
             "flip": {
                 "steps": [
-                    "**Flip Side** にチェックを入れます。"
+                    "**反対側** にチェックを入れます。"
                 ],
                 "results": [
                     "腰の線が辺の上側に移りました。裾の線は布の外に出ています。縁の外側には何もないからです。"
@@ -517,104 +517,104 @@ PRACTICE = {
             },
             "lineart": {
                 "steps": [
-                    "**Offset Inward** を 3 mm までドラッグします。",
-                    "**Width** を 5 mm までドラッグします。"
+                    "**内側オフセット** を 3 mm までドラッグします。",
+                    "**幅** を 5 mm までドラッグします。"
                 ],
                 "results": [
-                    "線が裾から {from} 内側へ移りました。**Offset Inward** は線の外側までの距離です。",
+                    "線が裾から {from} 内側へ移りました。**内側オフセット** は線の外側までの距離です。",
                     "縁取りが幅 {width} の帯になりました。幅はどこも同じで、マークした先はシャープなままです。"
                 ],
-                "done": "**Offset Inward** を 0 に戻すと、帯が辺にぴったり付きます。"
+                "done": "**内側オフセット** を 0 に戻すと、帯が辺にぴったり付きます。"
             },
             "grid": {
                 "steps": [
-                    "**Angle** を 45° までドラッグします。",
-                    "**Offset Along** か **Offset Inward** をドラッグします。"
+                    "**角度** を 45° までドラッグします。",
+                    "**線方向オフセット** か **内側オフセット** をドラッグします。"
                 ],
                 "results": [
                     "チェックが {angle} 回りました。起点はマークしたウエストのままです。",
                     "チェックがウエストに沿って、または下へずれます。大きさは変わりません。"
                 ],
-                "done": "**Cell Size** も動かしてみてください。"
+                "done": "**マスの大きさ** も動かしてみてください。"
             },
             "style": {
                 "steps": [
-                    "**Style** を **Zigzag** に切り替えます。",
-                    "**Height** を 6 mm までドラッグします。",
-                    "**Offset Inward** を 5 mm までドラッグします。"
+                    "**スタイル** を **ジグザグ** に切り替えます。",
+                    "**高さ** を 6 mm までドラッグします。",
+                    "**内側オフセット** を 5 mm までドラッグします。"
                 ],
                 "results": [
-                    "1 本の糸が行き来するステッチになり、パネルの **Gap** が **Height** に変わりました。",
+                    "1 本の糸が行き来するステッチになり、パネルの **間隔** が **高さ** に変わりました。",
                     "ジグザグの振れ幅が {height} になり、山が裾に届きました。",
                     "線全体が {from} の位置まで内側に移り、山が布の上に戻りました。"
                 ],
-                "done": "**Dashed** に戻して比べてみてください。"
+                "done": "**破線** に戻して比べてみてください。"
             },
             "bakeall": {
                 "steps": [
-                    "**Bake 3 Masks** を押します。",
+                    "**マスクを 3 枚ベイク** を押します。",
                     "上のオブジェクト名かマテリアル名を変えてみます。"
                 ],
                 "results": [
                     "ファイルが 4 つできました。レイヤーごとに 1 枚、Grid は濃いマスと薄いマスの 2 枚です。左上のファイル名を押すと中身が見られます。",
                     "ファイル名も変わりました。もう一度ベイクすると、同じ名前のファイルは上書きされます。"
                 ],
-                "done": "**Background** を **Transparent** にしてみてください。黒地の代わりに、形が透明度として保存されます。"
+                "done": "**背景** を **透明** にしてみてください。黒地の代わりに、形が透明度として保存されます。"
             },
             "presets": {
                 "steps": [
-                    "**Stitches** の横のプリセットボタンを開き、**+** で保存します。",
-                    "**Offset Inward** を別の値にしてから、保存したプリセットを押します。",
-                    "プリセットに星を付けてから、**Default** を押します。"
+                    "**ステッチ** の横のプリセットボタンを開き、**+** で保存します。",
+                    "**内側オフセット** を別の値にしてから、保存したプリセットを押します。",
+                    "プリセットに星を付けてから、**デフォルト** を押します。"
                 ],
                 "results": [
                     "今の設定がその名前で保存されました。",
-                    "保存した設定に戻りました。**Offset Inward** も保存したときの値です。",
-                    "星付きのプリセットが初期値になりました。**Default** と新しいステッチレイヤーにこの設定が使われます。"
+                    "保存した設定に戻りました。**内側オフセット** も保存したときの値です。",
+                    "星付きのプリセットが初期値になりました。**デフォルト** と新しいステッチレイヤーにこの設定が使われます。"
                 ],
                 "done": "もう一度星を押すと、アドオン本来の初期値に戻ります。"
             }
         },
-        "grid": "Grid",
-        "along": "Offset Along",
-        "angle": "Angle",
-        "cell": "Cell Size",
-        "pickInList": "Pick in List",
-        "clickLayer": "Click a layer in the list",
+        "grid": "チェック柄",
+        "along": "線方向オフセット",
+        "angle": "角度",
+        "cell": "マスの大きさ",
+        "pickInList": "リストから選ぶ",
+        "clickLayer": "リストのレイヤーをクリックしてください",
         "stop": "参照をやめる",
-        "length": "Length",
-        "gap": "Gap",
-        "bake": "Bake Masks",
+        "length": "長さ",
+        "gap": "間隔",
+        "bake": "マスクをベイク",
         "model": "モデル",
-        "live": "Live Update",
-        "rebuild": "Update",
+        "live": "自動更新",
+        "rebuild": "更新",
         "keyEdges": "このレイヤーの辺",
         "keyOut": "外した辺",
         "keyCorners": "尖った角",
         "keySel": "選択中の辺",
         "presetName": "裾のステッチ",
-        "preDefault": "Default",
+        "preDefault": "デフォルト",
         "preStar": "初期値にする",
         "preName": "プリセット名",
-        "presets": "Stitch Presets",
-        "showCorners": "Show Corners",
-        "style": "Style",
-        "dashed": "Dashed",
-        "zigzag": "Zigzag",
-        "height": "Height",
-        "bakeHead": "Bake",
-        "background": "Background",
-        "black": "Black",
-        "transparent": "Transparent",
-        "white": "White",
-        "panelName": "Rizum Pattern Masks",
-        "allMarks": "Show Marks",
-        "more": "More",
-        "clearAll": "Clear All Layers",
-        "clearRef": "Clear Reference",
-        "refOf": "Also follows {}",
-        "bake1": "Bake 1 Mask",
-        "bakeN": "Bake {} Masks",
+        "presets": "ステッチのプリセット",
+        "showCorners": "角を表示",
+        "style": "スタイル",
+        "dashed": "破線",
+        "zigzag": "ジグザグ",
+        "height": "高さ",
+        "bakeHead": "ベイク",
+        "background": "背景",
+        "black": "黒",
+        "transparent": "透明",
+        "white": "白",
+        "panelName": "Rizum パターンマスク",
+        "allMarks": "マークを表示",
+        "more": "その他",
+        "clearAll": "すべてのレイヤーをクリア",
+        "clearRef": "参照を解除",
+        "refOf": "「{}」の辺にも沿っています",
+        "bake1": "マスクを 1 枚ベイク",
+        "bakeN": "マスクを {} 枚ベイク",
         "object": "オブジェクト",
         "material": "マテリアル"
     }
@@ -629,6 +629,13 @@ THEME_HEAD = ("(function(){var d=document.documentElement,t=null;try{t=localStor
               "m.addEventListener('change',s);window.pmToggleTheme=function(){"
               "var k=d.hasAttribute('data-dark');d.dataset.theme=k?'light':'dark';"
               "try{localStorage.setItem('pm-theme',d.dataset.theme)}catch(e){}s()}})()")
+
+# the add-on's sidebar shot per language (docs/source/panel_shot.py, run in a
+# scratch Blender config set to that interface language; the tab moves with the
+# language, so its click position does too), and where the tab sits: top and
+# height in %
+SIDEBAR_SHOT = {"en": ("sidebar.png", 36, 15), "zh-CN": ("sidebar.zh-CN.png", 29, 10),
+                "ja": ("sidebar.ja.png", 45, 16)}
 
 FIG_IMG = {
     "fig-hero-render": ("render.png", "dark", ""),
@@ -725,7 +732,7 @@ REF_ROWS = {
              ("angle", "num", "0°"), ("cell", "num", "8 mm"), ("wobble", "slider", "0.300"), None,
              ("layout", "enum", ["loops", "unrolled"])],
     "bake": [("size", "menu", "4096"), ("uv", "menu", "uv_active"), ("folder", "path", "//stitch_masks/"),
-             ("background", "enum", ["black", "white", "transparent"]), None, ("samples", "sub", "")],
+             ("background", "menu", "black"), None, ("samples", "sub", "")],
 }
 # values shown inside the replica (the add-on's own words; it has no Japanese)
 REF_VALUES = {
@@ -733,6 +740,8 @@ REF_VALUES = {
            "black": "Black", "white": "White", "transparent": "Transparent", "uv_active": "Active: UVMap"},
     "zh-CN": {"dash": "虚线", "zigzag": "锯齿", "loops": "顺布线", "unrolled": "展开",
               "black": "黑底", "white": "白底", "transparent": "透明", "uv_active": "当前：UVMap"},
+    "ja": {"dash": "破線", "zigzag": "ジグザグ", "loops": "ループに沿う", "unrolled": "展開",
+           "black": "黒", "white": "白", "transparent": "透明", "uv_active": "現在：UVMap"},
 }
 
 
@@ -790,10 +799,11 @@ def figure(fid, lang):
         words = {k: v for k, v in PRACTICE[lang].items() if k != "demos"}
         data = html.escape(json.dumps(dict(words, demo=demo, **PRACTICE[lang]["demos"][demo]), ensure_ascii=False), quote=True)
         return f'<figure class="fig practice mini" id="demo-{demo}" data-sandbox="{data}"></figure>'
-    if fid == "fig-install":           # the sidebar of the real add-on, its tab marked
+    if fid == "fig-install":           # the sidebar of the real add-on in the page's language, its tab marked
+        img, top, h = SIDEBAR_SHOT.get(lang, SIDEBAR_SHOT["en"])
         return ('<figure class="fig shot" id="shot-install"><div class="shot-box">'
-                '<img src="../img/sidebar.png" alt="" width="310" height="666" loading="lazy">'
-                '<span class="hs" data-hs="tab" style="left:91%;top:36%;width:9%;height:16%"></span>'
+                f'<img src="../img/{img}" alt="" width="310" height="666" loading="lazy">'
+                f'<span class="hs" data-hs="tab" style="left:91%;top:{top}%;width:9%;height:{h}%"></span>'
                 '<span class="hs" data-hs="panel" style="left:1%;top:0;width:90%;height:100%"></span>'
                 '</div></figure>')
     if fid.startswith("ref-"):
@@ -803,6 +813,20 @@ def figure(fid, lang):
                         for i, t in enumerate(ui["workflow"]))
         return f'<figure class="fig workflow"><ol>{steps}</ol></figure>'
     return ""
+
+
+def layers3d(body):
+    """The kinds of layers beside a 3D skirt that wears them all: hovering or
+    focusing one turns the camera to it (layers3d.js). The render stays as the
+    picture where WebGL or the script can't load."""
+    kinds = ("stitch", "line", "grid")
+    items = []
+    for k, line in zip(kinds, [x for x in body.split("\n") if x.startswith("- ")]):
+        m = re.match(r"- \*\*(.+?)\*\*\s*[：:]\s*(.+)", line)
+        items.append(f'<li tabindex="0" data-k="{k}"><i class="sw {k}"></i><strong>{inline(m.group(1))}</strong>'
+                     f'<span>{inline(m.group(2))}</span></li>')
+    return ('<div class="l3d"><div class="l3d-stage"><img class="l3d-fallback" src="../img/render.png" alt="">'
+            '<canvas aria-hidden="true"></canvas></div><ul class="l3d-list">' + "".join(items) + '</ul></div>')
 
 
 # -- pages ----------------------------------------------------------------------
@@ -851,6 +875,8 @@ def page_html(pages, i, lang):
 
     def section(s, fig_id):
         step = f' data-step="{s["step"]}"' if "step" in s else ""
+        if s.get("figure") == "fig-layers3d":
+            return f'<section id="{s["id"]}"><h2>{html.escape(s["heading"])}</h2>{layers3d(s["body"])}</section>'
         part = [f'<section id="{s["id"]}"{step}><h2>{html.escape(s["heading"])}</h2>',
                 markdown(s.get("body", ""))]
         if s.get("table"):
@@ -894,6 +920,8 @@ def page_html(pages, i, lang):
     extra_js = ('\n<script src="../practice.js"></script>'
                 if any(x.get("figure", "").startswith(("sb-", "ref-", "fig-install"))
                        for x in p["sections"]) else "")
+    if any(x.get("figure") == "fig-layers3d" for x in p["sections"]):
+        extra_js += '\n<script type="module" src="../layers3d.js"></script>'
     title = "Pattern Masks" if p["slug"] == "index" else f'{p["title"]} · Pattern Masks'
     return f'''<!doctype html>
 <html lang="{lang}">
@@ -959,6 +987,7 @@ location.replace(l.startsWith("zh") ? "zh-CN/" : l.startsWith("ja") ? "ja/" : "e
 """)
     shutil.copy(os.path.join(HERE, "site_style.css"), os.path.join(SITE, "style.css"))
     shutil.copy(os.path.join(HERE, "site_practice.js"), os.path.join(SITE, "practice.js"))
+    shutil.copy(os.path.join(HERE, "site_layers3d.js"), os.path.join(SITE, "layers3d.js"))
     open(os.path.join(SITE, ".nojekyll"), "w").close()
 
 

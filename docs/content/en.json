@@ -4,21 +4,14 @@
   {
    "slug": "index",
    "title": "Overview",
-   "lead": "Mark edges on a mesh. Get stitches, lines and checks along them, baked to UV masks.",
+   "lead": "Mark edges on a mesh in Blender, and the add-on draws procedural, adjustable stitches, line art and checks along them, then bakes them to masks for painting textures in your painting app.",
    "sections": [
     {
-     "id": "what",
-     "heading": "What it does",
-     "body": "Pick edges in Blender, and the add-on draws patterns along them. Each pattern bakes to a 16-bit mask PNG.\n\nUse the masks in painting apps such as Substance 3D Painter or Clip Studio Paint.",
-     "table": [],
-     "figure": ""
-    },
-    {
      "id": "layers",
-     "heading": "Three kinds of layers",
-     "body": "- **Stitches**: dashed or zigzag, a set distance in from the edge.\n- **Line Art**: solid lines of one real width.\n- **Grid**: a checkerboard laid from a marked edge.",
+     "heading": "Kinds of layers",
+     "body": "- **Stitches**: Dashed or zigzag. Set how far in from the edge they run: the distance is a real size on the model, whatever the UV density.\n- **Line Art**: Lines on the marked edges, as the name says. Their width is a real size too, whatever the UV density.\n- **Grid**: A seamless checkerboard.",
      "table": [],
-     "figure": "fig-hero-render"
+     "figure": "fig-layers3d"
     },
     {
      "id": "workflow",
