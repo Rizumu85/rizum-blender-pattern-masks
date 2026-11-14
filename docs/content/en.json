@@ -63,7 +63,7 @@
       [
        "panel",
        "The panel",
-       "The layer list on top, the selected layer's settings below it, and the bake further down."
+       "The layer list on top, then marking edges and corners, the selected layer's settings, and the bake."
       ]
      ]
     },
@@ -92,7 +92,7 @@
      "keys": [
       [
        "from",
-       "**From Edge**",
+       "**Offset Inward**",
        "How far the stitches sit from the edge."
       ],
       [
@@ -175,14 +175,24 @@
        "Removes the selected layer."
       ],
       [
+       "allmarks",
+       "**Marks switch**",
+       "In the panel header: hides or shows every layer's marked edges and corners at once. Each layer keeps its own toggle."
+      ],
+      [
        "play",
        "**Play**",
-       "Turns live updates on and off."
+       "In the panel header: turns live updates on and off."
       ],
       [
        "refresh",
        "**Refresh**",
-       "Rebuilds once."
+       "Shows while live updates are off: rebuilds once."
+      ],
+      [
+       "more",
+       "**⌄**",
+       "**Clear All Layers**: removes every object's layers, marked edges and previews from the scene."
       ]
      ]
     },
@@ -216,19 +226,14 @@
       [
        "link",
        "**Link**",
-       "Follows another layer's edges: see [Reference](#reference)."
-      ],
-      [
-       "e-marks",
-       "**Show Edges**",
-       "Shows this layer's marked edges in the view, like the toggle in the list."
+       "Follows another layer's edges: see [Reference](#reference). It shows pressed while the layer follows one."
       ]
      ]
     },
     {
      "id": "reference",
      "heading": "Reference",
-     "body": "A layer can use the edges of another one, and follows when those change.\n\n> To leave a few of them out, select them and press **−**: they turn red here, and the other layer keeps them.",
+     "body": "A layer can use the edges of another one, and follows when those change.\n\n> To leave a few of them out, select them and press **−**: they turn red here, and the other layer keeps them.\n\nIn the link menu the layer being followed is ticked; **Clear Reference** stops following it.",
      "table": [],
      "figure": "sb-reference"
     },
@@ -296,12 +301,12 @@
      "keys": [
       [
        "from",
-       "**From Edge**",
+       "**Offset Inward**",
        "Distance from the edge, measured along the cloth."
       ],
       [
        "corner_inset",
-       "**Corner Inset**",
+       "**Corner Depth**",
        "Extra inset at marked corners."
       ],
       [
@@ -332,12 +337,12 @@
       [
        "round",
        "**Round Ends**",
-       "How round the stitch ends are (1 is fully round)."
+       "How round the stitch ends are (100% is fully round)."
       ],
       [
        "height",
        "**Height**",
-       "How far a zigzag swings. Raise **From Edge** with it."
+       "How far a zigzag swings. Raise **Offset Inward** with it."
       ],
       [
        "even",
@@ -369,12 +374,12 @@
      "keys": [
       [
        "from",
-       "**From Edge**",
+       "**Offset Inward**",
        "Distance from the edge to the line's outer side (0 = an outline)."
       ],
       [
        "corner_inset",
-       "**Corner Inset**",
+       "**Corner Depth**",
        "Extra inset at marked corners."
       ],
       [
@@ -426,12 +431,12 @@
      "keys": [
       [
        "from",
-       "**From Edge**",
+       "**Offset Inward**",
        "Slides the squares away from the edge."
       ],
       [
        "along",
-       "**Along Edge**",
+       "**Offset Along**",
        "Slides them along the edge."
       ],
       [
@@ -512,14 +517,14 @@
     {
      "id": "files",
      "heading": "Files",
-     "body": "One PNG per layer and material, named from the object, the material and the layer.\n\n> The bake runs in the background, so you can keep working.",
+     "body": "One PNG per layer and material, named from the object, the material and the layer.\n\n- With several objects selected, one press bakes them all, each with its own settings.\n- Fold the **Bake** section and its button stays in the title row.\n\n> The bake runs in the background, so you can keep working.",
      "table": [],
      "figure": "sb-bakeall"
     },
     {
      "id": "painter",
      "heading": "Using the masks",
-     "body": "- Substance 3D Painter: import the PNG and use it as a mask on a fill layer. Re-import it after each new bake.\n- Clip Studio Paint: set **Background** to **Transparent**, bake, then use it as a layer or a mask.",
+     "body": "- Substance 3D Painter: import the PNG and use it as a mask on a fill layer. Re-import it after each new bake.\n- Clip Studio Paint: set **Background** to **White**, bake, open the PNG and use **Edit › Convert brightness to opacity**: the white turns clear and the marks stay. (It can't open a transparent PNG that holds very little.)\n- Photoshop and other 2D apps: **Transparent** puts the mask in the alpha channel.",
      "table": [],
      "figure": ""
     },
@@ -548,7 +553,7 @@
       [
        "background",
        "**Background**",
-       "**Black** for Painter, **Transparent** for 2D apps."
+       "**Black** for Painter, **White** for Clip Studio Paint, **Transparent** for Photoshop and other 2D apps."
       ],
       [
        "samples",

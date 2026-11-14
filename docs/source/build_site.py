@@ -25,22 +25,22 @@ LANGS = [("en", "English"), ("zh-CN", "简体中文"), ("ja", "日本語")]
 UI = {
     "en": {"g_start": "Start", "g_ideas": "How it works", "g_ref": "Reference", "docs": "Documentation", "theme": "Light or dark theme", "repo": "GitHub", "prev": "Previous", "next": "Next",
            "on_page": "On this page", "lang": "Language", "menu": "Pages",
-           "style": "Style", "dashed": "Dashed", "zigzag": "Zigzag", "from_edge": "From Edge",
-           "width": "Width", "length": "Length", "gap": "Gap", "height": "Height", "corner": "Corner Inset",
+           "style": "Style", "dashed": "Dashed", "zigzag": "Zigzag", "from_edge": "Offset Inward",
+           "width": "Width", "length": "Length", "gap": "Gap", "height": "Height", "corner": "Corner Depth",
            "loops": "Follow Loops", "unrolled": "Unrolled", "loops_note": "Squares follow the mesh's loops and keep one size. Small forks appear where the piece widens.", "unrolled_note": "The piece is laid flat with the marked edge straight. No forks, but the squares grow toward the hem. For open panels, not closed tubes.",
            "workflow": ["Mark edges", "Tune", "Bake", "Paint"],
            "reference_note": "Green: the line art's own edges. Red: edges the stitches leave out."},
     "zh-CN": {"g_start": "入门", "g_ideas": "功能讲解", "g_ref": "参考", "docs": "文档", "theme": "切换浅色或深色主题", "repo": "GitHub", "prev": "上一页", "next": "下一页",
               "on_page": "本页内容", "lang": "语言", "menu": "页面",
-              "style": "样式", "dashed": "虚线", "zigzag": "锯齿", "from_edge": "离边距离",
-              "width": "宽度", "length": "长度", "gap": "间隔", "height": "高度", "corner": "尖角内缩",
+              "style": "样式", "dashed": "虚线", "zigzag": "锯齿", "from_edge": "向内偏移",
+              "width": "宽度", "length": "长度", "gap": "间隔", "height": "高度", "corner": "尖角加深",
               "loops": "顺布线", "unrolled": "展开", "loops_note": "方格顺着网格布线走，大小始终一致。衣片变宽的地方会出现小分叉。", "unrolled_note": "把衣片摊平、标记的边拉直再铺。不会分叉，但方格越往下摆越大。适合开口的衣片，不适合闭合的筒形。",
               "workflow": ["标边", "调参数", "烘焙", "绘制"],
               "reference_note": "绿色：线稿自己的边。红色：缝线去掉的边。"},
     "ja": {"g_start": "はじめに", "g_ideas": "しくみ", "g_ref": "リファレンス", "docs": "ドキュメント", "theme": "ライトまたはダークテーマ", "repo": "GitHub", "prev": "前へ", "next": "次へ",
            "on_page": "このページの内容", "lang": "言語", "menu": "ページ",
-           "style": "Style", "dashed": "Dashed", "zigzag": "Zigzag", "from_edge": "From Edge",
-           "width": "Width", "length": "Length", "gap": "Gap", "height": "Height", "corner": "Corner Inset",
+           "style": "Style", "dashed": "Dashed", "zigzag": "Zigzag", "from_edge": "Offset Inward",
+           "width": "Width", "length": "Length", "gap": "Gap", "height": "Height", "corner": "Corner Depth",
            "loops": "Follow Loops", "unrolled": "Unrolled", "loops_note": "マスはメッシュのループに沿い、大きさは一定です。パーツが広がる所に小さな分かれ目ができます。", "unrolled_note": "パーツを平らに広げ、マークした辺をまっすぐにして敷きます。分かれ目はできませんが、裾に向かうほどマスが大きくなります。開いたパーツ向きで、閉じた筒には向きません。",
            "workflow": ["辺をマーク", "調整", "ベイク", "ペイント"],
            "reference_note": "緑：線画レイヤー自身の辺。赤：ステッチが外した辺。"},
@@ -52,7 +52,7 @@ PRACTICE = {
         "stitches": "Stitches",
         "lineArt": "Line Art",
         "auto": "Auto",
-        "fromEdge": "From Edge",
+        "fromEdge": "Offset Inward",
         "width": "Width",
         "none": "None",
         "add": "Add",
@@ -73,7 +73,7 @@ PRACTICE = {
                 "steps": [
                     "Press **+** next to the list and choose **Stitches**.",
                     "Click the four scallops of the hem, then **+** on the **Edges** row.",
-                    "Drag **From Edge** to 6 mm.",
+                    "Drag **Offset Inward** to 6 mm.",
                     "Press **Bake 1 Mask**."
                 ],
                 "results": [
@@ -110,7 +110,7 @@ PRACTICE = {
                     "Click the leftmost scallop, then **−** on the **Edges** row."
                 ],
                 "results": [
-                    "**Line Art** now uses every edge of **Stitches**: the hem turned green without marking it again. The new **Reference** row shows which layer it follows.",
+                    "**Line Art** now uses every edge of **Stitches**: the hem turned green without marking it again. The link button is now pressed: point at it to see which layer it follows.",
                     "The leftmost scallop turned red: **Line Art** leaves it out, **Stitches** keeps it."
                 ],
                 "done": "Click **Stitches** in the list: its edges are unchanged."
@@ -137,19 +137,19 @@ PRACTICE = {
             },
             "lineart": {
                 "steps": [
-                    "Drag **From Edge** to 3 mm.",
+                    "Drag **Offset Inward** to 3 mm.",
                     "Drag **Width** to 5 mm."
                 ],
                 "results": [
-                    "The line moved {from} in from the hem; **From Edge** is measured to its outer side.",
+                    "The line moved {from} in from the hem; **Offset Inward** is measured to its outer side.",
                     "The outline became a {width} band: the same width everywhere, still sharp at the marked tips."
                 ],
-                "done": "Drag **From Edge** back to 0 and the band sits right on the edge."
+                "done": "Drag **Offset Inward** back to 0 and the band sits right on the edge."
             },
             "grid": {
                 "steps": [
                     "Drag **Angle** to 45°.",
-                    "Drag **Along Edge** or **From Edge**."
+                    "Drag **Offset Along** or **Offset Inward**."
                 ],
                 "results": [
                     "The checks turned {angle}, still laid from the marked waist.",
@@ -161,7 +161,7 @@ PRACTICE = {
                 "steps": [
                     "Switch **Style** to **Zigzag**.",
                     "Drag **Height** to 6 mm.",
-                    "Drag **From Edge** to 5 mm."
+                    "Drag **Offset Inward** to 5 mm."
                 ],
                 "results": [
                     "One thread now goes back and forth, and **Height** took the place of **Gap**.",
@@ -184,19 +184,19 @@ PRACTICE = {
             "presets": {
                 "steps": [
                     "Open the preset button next to **Stitches**, then press **+** to save.",
-                    "Drag **From Edge** somewhere else, then click the saved preset.",
+                    "Drag **Offset Inward** somewhere else, then click the saved preset.",
                     "Star the preset, then click **Default**."
                 ],
                 "results": [
                     "The current settings are saved under that name.",
-                    "The saved settings came back: **From Edge** is where it was when you saved.",
+                    "The saved settings came back: **Offset Inward** is where it was when you saved.",
                     "The starred preset is now the default: **Default** and new stitch layers use it."
                 ],
                 "done": "Click the star again to go back to the add-on's own defaults."
             }
         },
         "grid": "Grid",
-        "along": "Along Edge",
+        "along": "Offset Along",
         "angle": "Angle",
         "cell": "Cell Size",
         "pickInList": "Pick in List",
@@ -226,6 +226,13 @@ PRACTICE = {
         "background": "Background",
         "black": "Black",
         "transparent": "Transparent",
+        "white": "White",
+        "panelName": "Rizum Pattern Masks",
+        "allMarks": "Show Marks",
+        "more": "More",
+        "clearAll": "Clear All Layers",
+        "clearRef": "Clear Reference",
+        "refOf": "Also follows {}",
         "bake1": "Bake 1 Mask",
         "bakeN": "Bake {} Masks",
         "object": "Object",
@@ -235,7 +242,7 @@ PRACTICE = {
         "stitches": "缝线",
         "lineArt": "线稿",
         "auto": "自动",
-        "fromEdge": "离边距离",
+        "fromEdge": "向内偏移",
         "width": "宽度",
         "none": "无",
         "add": "添加",
@@ -256,7 +263,7 @@ PRACTICE = {
                 "steps": [
                     "点列表右边的 **+**，选 **缝线**。",
                     "点下摆的四个扇形，再点 **边** 那一行的 **+**。",
-                    "把 **离边距离** 拖到 6 mm。",
+                    "把 **向内偏移** 拖到 6 mm。",
                     "点 **烘焙 1 层遮罩**。"
                 ],
                 "results": [
@@ -293,7 +300,7 @@ PRACTICE = {
                     "点最左边的扇形，再点 **边** 那一行的 **−**。"
                 ],
                 "results": [
-                    "**线稿** 用上了 **缝线** 的全部边：下摆没重新标就变绿了。新出现的 **引用** 一行写着它跟随哪一层。",
+                    "**线稿** 用上了 **缝线** 的全部边：下摆没重新标就变绿了。链接按钮变成按下的样子，鼠标停在上面能看到它跟随哪一层。",
                     "最左边的扇形变红了：**线稿** 不用它，**缝线** 照样保留。"
                 ],
                 "done": "点列表里的 **缝线** 看看：它的边一条没少。"
@@ -320,19 +327,19 @@ PRACTICE = {
             },
             "lineart": {
                 "steps": [
-                    "把 **离边距离** 拖到 3 mm。",
+                    "把 **向内偏移** 拖到 3 mm。",
                     "把 **宽度** 拖到 5 mm。"
                 ],
                 "results": [
-                    "线离开下摆往里移了 {from}。**离边距离** 量的是到线外侧的距离。",
+                    "线离开下摆往里移了 {from}。**向内偏移** 量的是到线外侧的距离。",
                     "描边变成了 {width} 宽的色带：处处一样宽，标记的尖处还是尖的。"
                 ],
-                "done": "把 **离边距离** 拖回 0，色带就贴着边。"
+                "done": "把 **向内偏移** 拖回 0，色带就贴着边。"
             },
             "grid": {
                 "steps": [
                     "把 **角度** 拖到 45°。",
-                    "拖动 **沿边偏移** 或 **离边距离**。"
+                    "拖动 **沿边偏移** 或 **向内偏移**。"
                 ],
                 "results": [
                     "格子转了 {angle}，仍然从标记的腰线铺起。",
@@ -344,7 +351,7 @@ PRACTICE = {
                 "steps": [
                     "把 **样式** 换成 **锯齿**。",
                     "把 **高度** 拖到 6 mm。",
-                    "把 **离边距离** 拖到 5 mm。"
+                    "把 **向内偏移** 拖到 5 mm。"
                 ],
                 "results": [
                     "现在是一根线来回走，面板里的 **间隔** 换成了 **高度**。",
@@ -367,12 +374,12 @@ PRACTICE = {
             "presets": {
                 "steps": [
                     "点 **缝线** 旁边的预设按钮，再点 **+** 保存。",
-                    "把 **离边距离** 拖到别的值，再点刚存的预设。",
+                    "把 **向内偏移** 拖到别的值，再点刚存的预设。",
                     "给预设点上星标，再点 **默认值**。"
                 ],
                 "results": [
                     "当前的参数用这个名字存下来了。",
-                    "存下的参数回来了：**离边距离** 回到了保存时的值。",
+                    "存下的参数回来了：**向内偏移** 回到了保存时的值。",
                     "带星标的预设成了默认参数：**默认值** 和新建的缝线层都会用它。"
                 ],
                 "done": "再点一次星标，默认值就恢复成插件自带的。"
@@ -409,6 +416,13 @@ PRACTICE = {
         "background": "背景",
         "black": "黑底",
         "transparent": "透明",
+        "white": "白底",
+        "panelName": "Rizum 图案遮罩",
+        "allMarks": "显示标记",
+        "more": "更多",
+        "clearAll": "清空所有图层",
+        "clearRef": "取消引用",
+        "refOf": "也沿「{}」的边走",
         "bake1": "烘焙 1 层遮罩",
         "bakeN": "烘焙 {} 层遮罩",
         "object": "物体",
@@ -418,7 +432,7 @@ PRACTICE = {
         "stitches": "Stitches",
         "lineArt": "Line Art",
         "auto": "Auto",
-        "fromEdge": "From Edge",
+        "fromEdge": "Offset Inward",
         "width": "Width",
         "none": "None",
         "add": "追加",
@@ -439,7 +453,7 @@ PRACTICE = {
                 "steps": [
                     "リスト右の **+** を押して **Stitches** を選びます。",
                     "裾のスカラップを 4 つクリックし、**Edges** 行の **+** を押します。",
-                    "**From Edge** を 6 mm までドラッグします。",
+                    "**Offset Inward** を 6 mm までドラッグします。",
                     "**Bake 1 Mask** を押します。"
                 ],
                 "results": [
@@ -476,7 +490,7 @@ PRACTICE = {
                     "いちばん左のスカラップをクリックし、**Edges** 行の **−** を押します。"
                 ],
                 "results": [
-                    "**Line Art** が **Stitches** の辺をすべて使うようになり、裾はマークし直さなくても緑になりました。新しい **Reference** 行に参照先が表示されます。",
+                    "**Line Art** が **Stitches** の辺をすべて使うようになり、裾はマークし直さなくても緑になりました。リンクのボタンが押された表示になり、ポイントすると参照先が出ます。",
                     "いちばん左のスカラップが赤くなりました。**Line Art** では使いませんが、**Stitches** には残っています。"
                 ],
                 "done": "リストの **Stitches** を押してみてください。辺はそのままです。"
@@ -503,19 +517,19 @@ PRACTICE = {
             },
             "lineart": {
                 "steps": [
-                    "**From Edge** を 3 mm までドラッグします。",
+                    "**Offset Inward** を 3 mm までドラッグします。",
                     "**Width** を 5 mm までドラッグします。"
                 ],
                 "results": [
-                    "線が裾から {from} 内側へ移りました。**From Edge** は線の外側までの距離です。",
+                    "線が裾から {from} 内側へ移りました。**Offset Inward** は線の外側までの距離です。",
                     "縁取りが幅 {width} の帯になりました。幅はどこも同じで、マークした先はシャープなままです。"
                 ],
-                "done": "**From Edge** を 0 に戻すと、帯が辺にぴったり付きます。"
+                "done": "**Offset Inward** を 0 に戻すと、帯が辺にぴったり付きます。"
             },
             "grid": {
                 "steps": [
                     "**Angle** を 45° までドラッグします。",
-                    "**Along Edge** か **From Edge** をドラッグします。"
+                    "**Offset Along** か **Offset Inward** をドラッグします。"
                 ],
                 "results": [
                     "チェックが {angle} 回りました。起点はマークしたウエストのままです。",
@@ -527,7 +541,7 @@ PRACTICE = {
                 "steps": [
                     "**Style** を **Zigzag** に切り替えます。",
                     "**Height** を 6 mm までドラッグします。",
-                    "**From Edge** を 5 mm までドラッグします。"
+                    "**Offset Inward** を 5 mm までドラッグします。"
                 ],
                 "results": [
                     "1 本の糸が行き来するステッチになり、パネルの **Gap** が **Height** に変わりました。",
@@ -550,19 +564,19 @@ PRACTICE = {
             "presets": {
                 "steps": [
                     "**Stitches** の横のプリセットボタンを開き、**+** で保存します。",
-                    "**From Edge** を別の値にしてから、保存したプリセットを押します。",
+                    "**Offset Inward** を別の値にしてから、保存したプリセットを押します。",
                     "プリセットに星を付けてから、**Default** を押します。"
                 ],
                 "results": [
                     "今の設定がその名前で保存されました。",
-                    "保存した設定に戻りました。**From Edge** も保存したときの値です。",
+                    "保存した設定に戻りました。**Offset Inward** も保存したときの値です。",
                     "星付きのプリセットが初期値になりました。**Default** と新しいステッチレイヤーにこの設定が使われます。"
                 ],
                 "done": "もう一度星を押すと、アドオン本来の初期値に戻ります。"
             }
         },
         "grid": "Grid",
-        "along": "Along Edge",
+        "along": "Offset Along",
         "angle": "Angle",
         "cell": "Cell Size",
         "pickInList": "Pick in List",
@@ -592,6 +606,13 @@ PRACTICE = {
         "background": "Background",
         "black": "Black",
         "transparent": "Transparent",
+        "white": "White",
+        "panelName": "Rizum Pattern Masks",
+        "allMarks": "Show Marks",
+        "more": "More",
+        "clearAll": "Clear All Layers",
+        "clearRef": "Clear Reference",
+        "refOf": "Also follows {}",
         "bake1": "Bake 1 Mask",
         "bakeN": "Bake {} Masks",
         "object": "オブジェクト",
@@ -696,7 +717,7 @@ REF_ROWS = {
     "stitch": [("from", "num", "3 mm"), ("corner_inset", "num", "0 mm"), ("smooth", "num", "2 mm"), None,
                ("style", "enum", ["dash", "zigzag"]), None,
                ("width", "num", "1.2 mm"), ("length", "num", "4 mm"), ("gap", "num", "2 mm", "dash"),
-               ("round", "slider", "1.000", "dash"), ("height", "num", "3 mm", "zigzag"), None,
+               ("round", "slider", "100%", "dash"), ("height", "num", "3 mm", "zigzag"), None,
                ("even", "check", True, "dash")],
     "line": [("from", "num", "0 mm"), ("corner_inset", "num", "0 mm"), ("smooth", "num", "0 mm"), None,
              ("width", "num", "0.5 mm")],
@@ -704,14 +725,14 @@ REF_ROWS = {
              ("angle", "num", "0°"), ("cell", "num", "8 mm"), ("wobble", "slider", "0.300"), None,
              ("layout", "enum", ["loops", "unrolled"])],
     "bake": [("size", "menu", "4096"), ("uv", "menu", "uv_active"), ("folder", "path", "//stitch_masks/"),
-             ("background", "enum", ["black", "transparent"]), None, ("samples", "sub", "")],
+             ("background", "enum", ["black", "white", "transparent"]), None, ("samples", "sub", "")],
 }
 # values shown inside the replica (the add-on's own words; it has no Japanese)
 REF_VALUES = {
     "en": {"dash": "Dashed", "zigzag": "Zigzag", "loops": "Follow Loops", "unrolled": "Unrolled",
-           "black": "Black", "transparent": "Transparent", "uv_active": "Active: UVMap"},
+           "black": "Black", "white": "White", "transparent": "Transparent", "uv_active": "Active: UVMap"},
     "zh-CN": {"dash": "虚线", "zigzag": "锯齿", "loops": "顺布线", "unrolled": "展开",
-              "black": "黑底", "transparent": "透明", "uv_active": "当前：UVMap"},
+              "black": "黑底", "white": "白底", "transparent": "透明", "uv_active": "当前：UVMap"},
 }
 
 
@@ -734,7 +755,8 @@ def refpanel(kind, lang, keys=None):
             arrow = '<i class="dd"></i>' if typ == "menu" else ""
             ctl = f'<span class="rp-field{" path" if typ == "path" else ""}">{html.escape(v)}{arrow}</span>'
         elif typ == "slider":
-            ctl = f'<span class="rp-field slider" style="--f:{float(val) * 100:.0f}%">{html.escape(val)}</span>'
+            f = float(val[:-1]) if val.endswith("%") else float(val) * 100
+            ctl = f'<span class="rp-field slider" style="--f:{f:.0f}%">{html.escape(val)}</span>'
         elif typ == "enum":
             ctl = ('<span class="rp-seg">' + "".join(
                 f'<button type="button" data-v="{o}"{" class=on" if i == 0 else ""}>{html.escape(vals[o])}</button>'
@@ -770,8 +792,8 @@ def figure(fid, lang):
         return f'<figure class="fig practice mini" id="demo-{demo}" data-sandbox="{data}"></figure>'
     if fid == "fig-install":           # the sidebar of the real add-on, its tab marked
         return ('<figure class="fig shot" id="shot-install"><div class="shot-box">'
-                '<img src="../img/sidebar.png" alt="" width="310" height="390" loading="lazy">'
-                '<span class="hs" data-hs="tab" style="left:92%;top:61%;width:8%;height:25%"></span>'
+                '<img src="../img/sidebar.png" alt="" width="310" height="666" loading="lazy">'
+                '<span class="hs" data-hs="tab" style="left:91%;top:36%;width:9%;height:16%"></span>'
                 '<span class="hs" data-hs="panel" style="left:1%;top:0;width:90%;height:100%"></span>'
                 '</div></figure>')
     if fid.startswith("ref-"):

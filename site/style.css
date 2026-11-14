@@ -557,3 +557,19 @@ section:has(> .fig.shot) > ol.um-keys { grid-template-columns: 22px minmax(0, 1f
   .pager a { padding: 12px 14px; font-size: 16px; }
 }
 @media (max-width: 480px) { .langs { gap: 0; } .langs a { padding: 2px 7px; } }
+
+/* -- the replica, as the add-on's panel is now ----------------------------------- */
+/* the panel header: every layer's marks, Live (Update while it is off) */
+.bp-title { display: flex; align-items: center; gap: 6px; margin: 0 0 8px; padding: 0 2px 7px;
+            border-bottom: 1px solid #3C3C3C; font-weight: 600; }
+.bp-title > span:first-child { flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.bp-title .tail { display: flex; gap: 2px; font-weight: 400; }
+/* a toggle drawn as a button: grey when off, blue when on (also the link while a layer is followed) */
+.bp button.tg { min-width: 22px; padding: 0; }
+/* while picking a reference, the hint sits over the list: nothing below moves */
+.bp-list { position: relative; }
+.bp-picknote { position: absolute; left: 4px; right: 4px; bottom: 3px; display: flex; align-items: center;
+               justify-content: center; gap: 6px; padding: 3px 6px; border-radius: 4px; background: #1A1A1AD9;
+               color: #C9C9C9; font-size: 11px; pointer-events: none; }
+.bp-picknote svg { width: 12px; height: 12px; }
+.bp-menu.more { top: 72px; right: 0; min-width: 150px; }

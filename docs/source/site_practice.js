@@ -84,7 +84,7 @@
   function fresh() {
     nextId = 1;
     st = { layers: [], active: null, sel: new Set(), vsel: new Set(), corners: new Set(), showCorners: true,
-           flip: false, pick: false, menu: false, refmenu: false, pmenu: false, live: true, step: 0,
+           flip: false, pick: false, menu: false, more: false, refmenu: false, pmenu: false, live: true, allMarks: true, step: 0,
            baked: false, view: "model", bg: "black", obj: "Skirt", mat: "Cloth",
            presets: [], star: null, pname: S.presetName || "", applied: false, usedDefault: false };
   }
@@ -529,19 +529,20 @@
   function drawView() {
     const file = st.view === "model" ? null : files().find((f) => f.id === st.view);
     if (!file && st.view !== "model") st.view = "model";
-    const clear = file && st.bg === "clear";
-    bg.setAttribute("fill", !file ? "none" : clear ? `url(#pr-chk-${inst})` : "#000");
-    cloth.setAttribute("fill", !file ? FABRIC : clear ? "none" : "#000");
+    const clear = file && st.bg === "clear", white = file && st.bg === "white";
+    bg.setAttribute("fill", !file ? "none" : clear ? `url(#pr-chk-${inst})` : white ? "#fff" : "#000");
+    cloth.setAttribute("fill", !file ? FABRIC : clear ? "none" : white ? "#fff" : "#000");
     for (const g of [gWire, gMarks, gHint, gSel, gVerts, gHover]) g.style.display = file ? "none" : "";
     gPat.innerHTML = "";
-    if (file) drawLayer(file.L, "#fff", file.part);
+    if (file) drawLayer(file.L, white ? "#000" : "#fff", file.part);
     else {
       const order = { grid: 0, line: 1, stitch: 2 };
       [...st.layers].sort((a, b) => order[a.kind] - order[b.kind]).forEach((L) => { if (L.visible) drawLayer(L, L.color); });
     }
     gMarks.innerHTML = "";
     const A = activeL();
-    const mine = A && A.marks ? [...finalEdges(A)] : [], out = A && A.marks ? [...A.own].filter(([, v]) => v < 0) : [];
+    const showA = A && A.marks && st.allMarks;
+    const mine = showA ? [...finalEdges(A)] : [], out = showA ? [...A.own].filter(([, v]) => v < 0) : [];
     mine.forEach((k) => el("path", { d: segD(k), class: "pr-mine" }, gMarks));
     out.forEach(([k]) => el("path", { d: segD(k), class: "pr-out" }, gMarks));
     gHint.innerHTML = "";
@@ -553,7 +554,7 @@
     const sv = selVerts();
     V.forEach((p, v) => el("circle", { cx: p[0], cy: p[1], r: sv.has(v) ? 3 : 2,
       fill: sv.has(v) ? "#FFE2A8" : "#5F5848" }, gVerts));
-    if (st.showCorners) for (const v of st.corners) el("rect", { x: V[v][0] - 5, y: V[v][1] - 5, width: 10, height: 10,
+    if (st.showCorners && st.allMarks) for (const v of st.corners) el("rect", { x: V[v][0] - 5, y: V[v][1] - 5, width: 10, height: 10,
       class: "pr-corner", fill: "#F2C230", stroke: "#3a2a05", "stroke-width": 1.5 }, gVerts);
     gHover.innerHTML = "";
     if (hover != null) for (const k of PIECES[hover]) el("path", { d: segD(k), class: "pr-hover" }, gHover);
@@ -561,7 +562,7 @@
     const drawn = file ? [] : st.layers.filter((L) => L.visible && finalEdges(L).size);
     const keys = file ? [] : drawn.map((L) => [`L${L.id}`, L.kind === "stitch" ? S.stitches : L.name, L.color, L.kind]).concat([
       mine.length && ["mine", S.keyEdges], out.length && ["out", S.keyOut],
-      st.showCorners && st.corners.size && ["corner", S.keyCorners], st.sel.size && ["sel", S.keySel]]).filter(Boolean);
+      st.showCorners && st.allMarks && st.corners.size && ["corner", S.keyCorners], st.sel.size && ["sel", S.keySel]]).filter(Boolean);
     const sig = keys.map((k) => k[0]).join();
     if (keyBox.dataset.sig !== sig) {
       keyBox.dataset.sig = sig;
@@ -581,14 +582,17 @@
     stitch: '<path d="M2 13l2-2M6 9l2-2M10 5l2-2"/>',
     line: '<path d="M2.5 13.5l11-11"/>',
     grid: '<path d="M2.5 2.5h11v11h-11zM2.5 8h11M8 2.5v11"/>',
-    link: '<path d="M6.8 9.2l2.4-2.4M7.6 4.6l1.2-1.2a2.6 2.6 0 0 1 3.7 3.7l-1.2 1.2M8.4 11.4l-1.2 1.2a2.6 2.6 0 0 1-3.7-3.7l1.2-1.2"/>',
-    marks: '<path d="M4 12L12 4"/><rect x="2" y="10.5" width="3.5" height="3.5" fill="currentColor"/><rect x="10.5" y="2" width="3.5" height="3.5" fill="currentColor"/>',
+    link: '<path d="M6 11H5.2a3 3 0 0 1 0-6H6M10 5h.8a3 3 0 0 1 0 6H10M5.6 8h4.8" stroke-width="1.8"/>',
+    marks: '<g fill="currentColor" stroke="none"><rect x="7.4" y="1.2" width="4.6" height="7.6" rx="1.1" transform="rotate(45 9.7 5)"/><path d="M5.3 8.2l2.5 2.5-1.2 1-2.6.3.3-2.6z"/><rect x="2.4" y="13" width="5.2" height="1.8" rx=".9"/></g>',
+    corner: '<path d="M2.8 11.4L8 6.2l5.2 5.2"/><circle cx="8" cy="6.2" r="1.9" fill="currentColor" stroke="none"/>',
+    check: '<path d="M3.2 8.6l3 3 6.6-6.8"/>',
+    down: '<path d="M4.5 6.5L8 10l3.5-3.5"/>',
     eye: '<path d="M1.5 8s2.4-4.3 6.5-4.3S14.5 8 14.5 8s-2.4 4.3-6.5 4.3S1.5 8 1.5 8z"/><circle cx="8" cy="8" r="1.8"/>',
     shut: '<path d="M1.5 7s2.4 3.3 6.5 3.3S14.5 7 14.5 7M4 9.8l-1 1.6M8 10.3v1.9M12 9.8l1 1.6"/>',
     skip: '<path d="M2.5 4l5 4-5 4zM8.5 4l5 4-5 4z"/>',
     play: '<path d="M5 3.5l7 4.5-7 4.5z"/>',
     refresh: '<path d="M12.5 8a4.5 4.5 0 1 1-1.3-3.2M12.5 2.5v3h-3"/>',
-    preset: '<path d="M3 4.5h10M3 8h10M3 11.5h6"/><circle cx="12" cy="11.5" r="1.6"/>',
+    preset: '<path d="M4.8 2.2h6.4a1 1 0 0 1 1 1v10.6L8 11.2l-4.2 2.6V3.2a1 1 0 0 1 1-1z" fill="currentColor" stroke="none"/>',
     star: '<path d="M8 2.2l1.8 3.7 4 .6-2.9 2.8.7 4L8 11.4l-3.6 1.9.7-4L2.2 6.5l4-.6z"/>',
     starOn: '<path d="M8 2.2l1.8 3.7 4 .6-2.9 2.8.7 4L8 11.4l-3.6 1.9.7-4L2.2 6.5l4-.6z" fill="currentColor"/>',
     vert: '<rect x="5" y="5" width="6" height="6" fill="currentColor" stroke="none"/><path d="M2 8h3M11 8h3M8 2v3M8 11v3"/>',
@@ -612,10 +616,16 @@
         ${btn("marks", icon("marks"), S.showEdges, `data-id="${L.id}" class="t${L.marks ? "" : " off"}"`)}
         ${btn("vis", icon(L.visible ? "eye" : "shut"), S.visible, `data-id="${L.id}" class="t${L.visible ? "" : " off"}"`)}
       </div>`).join("");
-    let h = `<div class="bp-top"><div class="bp-list${st.pick ? " picking" : ""}">${items}</div>
+    const title = ROWS.has("add") ? `<div class="bp-title"><span>${esc(S.panelName)}</span><span class="tail">
+        ${btn("allmarks", icon("marks"), S.allMarks, `class="tg${st.allMarks ? " on" : ""}"`)}
+        ${st.layers.length ? (st.live ? "" : btn("rebuild", icon("refresh"), S.rebuild, 'class="tg"'))
+          + btn("live", icon("play"), S.live, `class="tg${st.live ? " on" : ""}"`) : ""}</span></div>` : "";
+    const pickNote = st.pick ? `<div class="bp-picknote">${icon("pick")}${esc(S.clickLayer)}</div>` : "";
+    let h = `${title}<div class="bp-top"><div class="bp-list${st.pick ? " picking" : ""}">${items}${pickNote}</div>
       ${ROWS.has("add") ? `<div class="bp-side">${btn("menu", icon("add"), S.add, st.menu ? 'class="on"' : "")}
         ${btn("remove-layer", icon("remove"), S.remove, A && A.kind !== "stitch" ? "" : "disabled")}
-        ${st.layers.length ? `<span class="gap"></span>${btn("live", icon("play"), S.live, st.live ? 'class="on"' : "")}${btn("rebuild", icon("refresh"), S.rebuild)}` : ""}
+        ${btn("more", icon("down"), S.more, st.more ? 'class="on"' : "")}
+        ${st.more ? `<div class="bp-menu more"><button type="button" data-act="clear-all"${st.layers.length ? "" : " disabled"}>${icon("clear")}${esc(S.clearAll)}</button></div>` : ""}
         ${st.menu ? `<div class="bp-menu">
           <button type="button" data-act="add-stitch"${stitchL() ? " disabled" : ""}>${icon("stitch")}${esc(S.stitches)}</button>
           <button type="button" data-act="add-line">${icon("line")}${esc(S.lineArt)}</button>
@@ -624,26 +634,25 @@
     const NUMS = new Set(["from", "along", "angle", "cell", "width", "length", "gap", "height"]);
     const LAYER_ROWS = ["edges", "corners", "flip", "from", "along", "angle", "cell", "style", "width", "length", "gap", "height"];
     if (A && LAYER_ROWS.some((k) => ROWS.has(k))) {
-      // Reference: a link menu at the end of the Edges row; a row of its own
-      // only while picking in the list, or once a layer is followed
-      const refItems = st.layers.filter((L) => L !== A).map((L) =>
-        `<button type="button" data-act="ref-set" data-id="${L.id}"${refersTo(L, A.id) ? " disabled" : ""}>${icon(L.kind)}${esc(L.name)}</button>`).join("");
-      const refMenu = st.refmenu ? `<div class="bp-menu ref">
-          <button type="button" data-act="pick">${icon("pick")}${esc(S.pickInList)}</button><hr>${refItems}</div>` : "";
+      // Reference: a link menu at the end of the Edges row, pressed while a
+      // layer is followed; no rows come and go, so the rows below stay put
       const R0 = byId(A.ref);
-      const refRow = st.pick ? `<div class="bp-row wide"><span class="bp-note">${icon("pick")}${esc(S.clickLayer)}</span></div>`
-        : R0 ? `<div class="bp-row"><span class="lb">${esc(S.reference)}</span><div class="bp-ref">${icon(R0.kind)}<span>${esc(R0.name)}</span>
-          ${btn("ref-clear", icon("clear"), S.stop, 'class="t"')}</div></div>` : "";
+      const refItems = st.layers.filter((L) => L !== A).map((L) =>
+        `<button type="button" data-act="ref-set" data-id="${L.id}"${refersTo(L, A.id) ? " disabled" : ""}>${icon(L === R0 ? "check" : L.kind)}${esc(L.name)}</button>`).join("");
+      const refMenu = st.refmenu ? `<div class="bp-menu ref">
+          <button type="button" data-act="pick">${icon("pick")}${esc(S.pickInList)}</button><hr>${refItems}
+          ${R0 ? `<hr><button type="button" data-act="ref-clear">${icon("clear")}${esc(S.clearRef)}</button>` : ""}</div>` : "";
+      const refTitle = R0 ? S.refOf.replace("{}", R0.name) : S.reference;
       const zig = A.style === "zigzag";
       const R = {
         edges: `<div class="bp-row"><span class="lb">${esc(S.edges)}</span><div class="grp">
           ${btn("e-add", icon("add"), S.add)}${btn("e-remove", icon("remove"), S.remove)}
           ${btn("e-select", icon("select"), S.select)}${btn("e-clear", icon("clear"), S.clear)}</div>
-          <div class="tail">${btn("refmenu", icon("link"), S.reference, `class="t${st.refmenu ? " on" : ""}"`)}${btn("e-marks", icon("marks"), S.showEdges, `class="t${A.marks ? "" : " off"}"`)}</div>${refMenu}</div>${refRow}`,
+          <div class="tail">${btn("refmenu", icon("link"), refTitle, `class="${R0 ? "tg on" : "t" + (st.refmenu ? " on" : "")}"`)}</div>${refMenu}</div>`,
         corners: `<div class="bp-row"><span class="lb">${esc(S.corners)}</span><div class="grp">
           ${btn("c-add", icon("add"), S.add)}${btn("c-remove", icon("remove"), S.remove)}
           ${btn("c-select", icon("select"), S.select)}<button type="button" data-act="c-auto" class="txt">${esc(S.auto)}</button></div>
-          <div class="tail">${btn("c-marks", icon("vert"), S.showCorners, `class="t${st.showCorners ? "" : " off"}"`)}</div></div>`,
+          <div class="tail">${btn("c-marks", icon("corner"), S.showCorners, `class="t${st.showCorners ? "" : " off"}"`)}</div></div>`,
         flip: `<div class="bp-row"><span></span><label class="chk" data-act="flip"><input type="checkbox"${st.flip ? " checked" : ""}>${esc(S.flip)}</label></div>`,
         from: `<div class="bp-row"><span class="lb">${esc(S.fromEdge)}</span>${num("from", A, 0, 10, 0.5)}</div>`,
         along: `<div class="bp-row"><span class="lb">${esc(S.along)}</span>${num("along", A, -10, 10, 0.5)}</div>`,
@@ -673,7 +682,7 @@
       const n = bakeCount();
       h += `<div class="bp-head bake">${esc(S.bakeHead)}</div>
         <div class="bp-row"><span class="lb">${esc(S.background)}</span><div class="seg">
-          <button type="button" data-act="bg-black"${st.bg === "black" ? ' class="on"' : ""}>${esc(S.black)}</button><button type="button" data-act="bg-clear"${st.bg === "clear" ? ' class="on"' : ""}>${esc(S.transparent)}</button></div></div>
+          <button type="button" data-act="bg-black"${st.bg === "black" ? ' class="on"' : ""}>${esc(S.black)}</button><button type="button" data-act="bg-white"${st.bg === "white" ? ' class="on"' : ""}>${esc(S.white)}</button><button type="button" data-act="bg-clear"${st.bg === "clear" ? ' class="on"' : ""}>${esc(S.transparent)}</button></div></div>
         <button type="button" class="bp-bake" data-act="bake"${n ? "" : " disabled"}>${esc((n === 1 ? S.bake1 : S.bakeN).replace("{}", n))}</button>`;
     }
     panel.innerHTML = h;
@@ -725,7 +734,7 @@
     add: "[data-act=menu]", remove: "[data-act=remove-layer]", play: "[data-act=live]", refresh: "[data-act=rebuild]",
     name: ".bp-item.on .nm", color: ".bp-item.on .sw", marks: ".bp-item.on [data-act=marks]", eye: ".bp-item.on [data-act=vis]",
     "e-add": "[data-act=e-add]", "e-remove": "[data-act=e-remove]", "e-select": "[data-act=e-select]",
-    "e-clear": "[data-act=e-clear]", link: "[data-act=refmenu]", "e-marks": "[data-act=e-marks]",
+    "e-clear": "[data-act=e-clear]", link: "[data-act=refmenu]", allmarks: "[data-act=allmarks]", more: "[data-act=more]",
     "c-add": "[data-act=c-add]", "c-remove": "[data-act=c-remove]", "c-select": "[data-act=c-select]",
     "c-auto": "[data-act=c-auto]", "c-marks": "[data-act=c-marks]", style: ".seg", bake: "[data-act=bake]",
     background: "[data-act=bg-black]", "p-button": "[data-act=pmenu]", "p-default": "[data-act=p-default]",
@@ -822,10 +831,14 @@
   function act(a, id) {
     const A = activeL();
     if (a !== "menu") st.menu = false;
+    if (a !== "more") st.more = false;
     if (a !== "refmenu") st.refmenu = false;
     if (!a.startsWith("p")) st.pmenu = false;
     switch (a) {
       case "menu": st.menu = !st.menu; break;
+      case "more": st.more = !st.more; break;
+      case "clear-all": st.layers = []; st.active = null; st.corners = new Set(); break;
+      case "allmarks": st.allMarks = !st.allMarks; break;
       case "add-stitch": addLayer("stitch"); break;
       case "add-line": addLayer("line"); break;
       case "add-grid": addLayer("grid"); break;
@@ -854,6 +867,7 @@
       case "bake": bake(); break;
       case "bg-black": st.bg = "black"; break;
       case "bg-clear": st.bg = "clear"; break;
+      case "bg-white": st.bg = "white"; break;
       case "c-marks": st.showCorners = !st.showCorners; break;
       case "pmenu": st.pmenu = !st.pmenu; break;
       case "p-save": if (st.pname.trim()) savePreset(st.pname.trim()); break;
@@ -879,7 +893,7 @@
         break;
     }
     if (A) switch (a) {
-      case "e-add": st.sel.forEach((e) => A.own.set(e, 1)); st.sel = new Set(); break;
+      case "e-add": st.sel.forEach((e) => A.own.set(e, 1)); st.sel = new Set(); st.allMarks = true; break;
       case "e-remove": {
         const fromRef = finalEdges(byId(A.ref));
         st.sel.forEach((e) => fromRef.has(e) ? A.own.set(e, -1) : A.own.delete(e));
@@ -888,7 +902,6 @@
       }
       case "e-select": st.sel = finalEdges(A); st.vsel = new Set(); break;
       case "e-clear": A.own.clear(); break;
-      case "e-marks": A.marks = !A.marks; break;
       case "style-dash": A.style = "dash"; break;
       case "style-zigzag": A.style = "zigzag"; break;
     }
@@ -946,10 +959,10 @@
     render();
   });
   document.addEventListener("keydown", (ev) => {
-    if (ev.key === "Escape" && (st.pick || st.menu || st.refmenu || st.pmenu)) { st.pick = st.menu = st.refmenu = st.pmenu = false; render(); }
+    if (ev.key === "Escape" && (st.pick || st.menu || st.more || st.refmenu || st.pmenu)) { st.pick = st.menu = st.more = st.refmenu = st.pmenu = false; render(); }
   });
   document.addEventListener("pointerdown", (ev) => {
-    if (st.menu && !ev.target.closest(".bp-side")) { st.menu = false; render(); }
+    if ((st.menu || st.more) && !ev.target.closest(".bp-side")) { st.menu = st.more = false; render(); }
     if (st.refmenu && !ev.target.closest(".bp-menu.ref, [data-act=refmenu]")) { st.refmenu = false; render(); }
     if (st.pmenu && !ev.target.closest(".bp-menu.pre, [data-act=pmenu], ol.um-keys")) { st.pmenu = false; render(); }
   });
