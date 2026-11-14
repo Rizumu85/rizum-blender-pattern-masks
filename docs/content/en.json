@@ -226,7 +226,7 @@
     {
      "id": "reference",
      "heading": "Reference",
-     "body": "A layer can use the edges of another one, and follows when those change.\n\n> To leave a few of them out, select them and press **−**: they turn red here, and the other layer keeps them.\n\nIn the link menu the layer being followed is ticked; **Clear Reference** stops following it.",
+     "body": "With a reference, a new layer uses the edges you already marked on another layer, and changes along with them.",
      "table": [],
      "figure": "sb-reference"
     },

@@ -238,7 +238,7 @@ function placeBadge(hole, x, y) {
           hint: () => fullScallop() ? ["[data-act=e-remove]"] : { edges: hem },
           skip: () => { scallops[3].forEach((e) => stitchL().own.delete(e)); st.sel = new Set(scallops[3]); } },
       ] },
-    // Reference: take another layer's edges, then leave some out
+    // Reference: take another layer's edges, leave some out, then let go of them
     reference: { rows: ["edges"], view: "40 250 440 230",
       preset: () => { const T = addLayer("stitch"); hem.forEach((e) => T.own.set(e, 1)); addLayer("line"); },
       steps: [
@@ -252,6 +252,10 @@ function placeBadge(hole, x, y) {
             : edgeStep(lineL(), scallops[0], "[data-act=e-remove]"),
           skip: () => { overRemoved().forEach((e) => lineL().own.delete(e));
                         scallops[0].forEach((e) => lineL().own.set(e, -1)); st.sel = new Set(scallops[0]); } },
+        // the menu ticks the layer it follows; Clear Reference lets it go
+        { goal: () => lineL().ref == null,
+          hint: () => activeL() !== lineL() ? [rowSel(lineL())] : st.refmenu ? ["[data-act=ref-clear]"] : ["[data-act=refmenu]"],
+          skip: () => { lineL().ref = null; st.active = lineL().id; } },
       ] },
     // Sharp Corners: mark the tips, then clear two of them
     corners: { rows: ["corners"], view: "40 250 440 230",

@@ -108,11 +108,11 @@ PRACTICE = {
             "reference": {
                 "steps": [
                     "Click the link icon at the end of the **Edges** row, then **Stitches**.",
-                    "Click the leftmost scallop, then **−** on the **Edges** row."
+                    "Click the leftmost scallop, then **−** on the **Edges** row.", "Click the link icon again: **Stitches** is ticked. Choose **Clear Reference**."
                 ],
                 "results": [
-                    "**Line Art** now uses every edge of **Stitches**: the hem turned green without marking it again. The link button is now pressed: point at it to see which layer it follows.",
-                    "The leftmost scallop turned red: **Line Art** leaves it out, **Stitches** keeps it."
+                    "Now **Line Art** uses every edge of **Stitches**: the hem turned green without marking it again. Point at the link button to see the layer it references.",
+                    "The leftmost scallop turned red: **Line Art** leaves it out, **Stitches** keeps it.", "**Line Art** no longer references **Stitches**: the green hem is gone."
                 ],
                 "done": "Click **Stitches** in the list: its edges are unchanged."
             },
@@ -298,11 +298,11 @@ PRACTICE = {
             "reference": {
                 "steps": [
                     "点 **边** 那一行末尾的链接图标，再选 **缝线**。",
-                    "点最左边的扇形，再点 **边** 那一行的 **−**。"
+                    "点最左边的扇形，再点 **边** 那一行的 **−**。", "再点链接图标：**缝线** 前面打了勾。选 **取消引用**。"
                 ],
                 "results": [
-                    "**线稿** 用上了 **缝线** 的全部边：下摆没重新标就变绿了。链接按钮变成按下的样子，鼠标停在上面能看到它跟随哪一层。",
-                    "最左边的扇形变红了：**线稿** 不用它，**缝线** 照样保留。"
+                    "这下 **线稿** 用上了 **缝线** 的全部边：下摆没重新标就变绿了。链接按钮把鼠标停在上面能看到它引用的图层。",
+                    "最左边的扇形变红了：**线稿** 不用它，**缝线** 照样保留。", "**线稿** 不再引用 **缝线**：下摆的绿色没了。"
                 ],
                 "done": "点列表里的 **缝线** 看看：它的边一条没少。"
             },
@@ -488,11 +488,11 @@ PRACTICE = {
             "reference": {
                 "steps": [
                     "**辺** 行の端のリンクアイコンを押し、**ステッチ** を選びます。",
-                    "いちばん左のスカラップをクリックし、**辺** 行の **−** を押します。"
+                    "いちばん左のスカラップをクリックし、**辺** 行の **−** を押します。", "もう一度リンクアイコンを押すと、**ステッチ** にチェックが付いています。**参照を解除** を選びます。"
                 ],
                 "results": [
-                    "**線画** が **ステッチ** の辺をすべて使うようになり、裾はマークし直さなくても緑になりました。リンクのボタンが押された表示になり、ポイントすると参照先が出ます。",
-                    "いちばん左のスカラップが赤くなりました。**線画** では使いませんが、**ステッチ** には残っています。"
+                    "これで **線画** が **ステッチ** の辺をすべて使うようになり、裾はマークし直さなくても緑になりました。リンクのボタンにポイントすると、参照しているレイヤーが出ます。",
+                    "いちばん左のスカラップが赤くなりました。**線画** では使いませんが、**ステッチ** には残っています。", "**線画** は **ステッチ** を参照しなくなり、裾の緑が消えました。"
                 ],
                 "done": "リストの **ステッチ** を押してみてください。辺はそのままです。"
             },
@@ -648,6 +648,13 @@ FIG_IMG = {
 
 
 # -- a small Markdown subset: paragraphs, lists, bold, italics, code, links -----
+# the chevron of the panel's More button, as the replica draws it (a font's ⌄
+# sits small and low)
+CHEVRON = ('<strong class="ico" aria-label="⌄"><svg viewBox="0 0 16 16" aria-hidden="true" fill="none" '
+           'stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">'
+           '<path d="M4.5 6.5L8 10l3.5-3.5"/></svg></strong>')
+
+
 def inline(text):
     out = []
     for i, part in enumerate(re.split(r"(`[^`]+`)", text)):
@@ -657,6 +664,7 @@ def inline(text):
         t = html.escape(part, quote=False)
         t = re.sub(r"\[([^\]]+)\]\(([^)\s]+)\)", r'<a href="\2">\1</a>', t)
         t = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", t)
+        t = t.replace("<strong>⌄</strong>", CHEVRON)       # the panel's More button: its icon, not a glyph
         t = re.sub(r"(?<![\w*])\*([^*\s][^*]*?)\*(?![\w*])", r"<em>\1</em>", t)
         out.append(t)
     return "".join(out)
