@@ -132,7 +132,7 @@ PRACTICE = {
                     "Tick **Flip Side**."
                 ],
                 "results": [
-                    "The hip line moved above its edge. The hem lines left the cloth: a border has nothing on its other side."
+                    "The middle line moved above its edge. The hem lines left the cloth: a border has nothing on its other side."
                 ],
                 "done": "Untick it and the lines come back."
             },
@@ -322,7 +322,7 @@ PRACTICE = {
                     "勾上 **翻到另一侧**。"
                 ],
                 "results": [
-                    "臀部那条线移到了边的上方。下摆的线跑到了布外：边缘的另一侧什么都没有。"
+                    "中间那条线移到了边的上方。下摆的线跑到了布外：边缘的另一侧什么都没有。"
                 ],
                 "done": "取消勾选，线就回来了。"
             },
@@ -512,7 +512,7 @@ PRACTICE = {
                     "**反対側** にチェックを入れます。"
                 ],
                 "results": [
-                    "腰の線が辺の上側に移りました。裾の線は布の外に出ています。縁の外側には何もないからです。"
+                    "真ん中の線が辺の上側に移りました。裾の線は布の外に出ています。縁の外側には何もないからです。"
                 ],
                 "done": "チェックを外すと線が戻ります。"
             },
