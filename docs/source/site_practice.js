@@ -26,8 +26,10 @@ function placeBadge(hole, x, y) {
   // the palette of the overview's 3D skirt
   const THREAD = "#E07A2B", NAVY = "#22304A", CHECK = "#7383A3", FABRIC = "#F7EFE1", PICK = "#2F6FD6";
 
-  // -- the mesh: a 5 x 5 grid of vertices, four scallops along the hem -------
-  const ROWS = [40, 150, 260, 350, 430];
+  // -- the mesh: 4 rows of 5 vertices, four scallops along the hem ----------
+  // (the taper is that of a piece that would reach up to y 40; it starts lower,
+  // so the demos are wider than tall)
+  const ROWS = [150, 260, 350, 430], LAST = ROWS.length - 1;
   const topX = (c) => 175 + 42.5 * c, botX = (c) => 60 + 100 * c;
   const V = [];
   const grid = ROWS.map((y) => [0, 1, 2, 3, 4].map((c) => {
@@ -44,10 +46,10 @@ function placeBadge(hole, x, y) {
     E.push({ a, b, ux, uy, len, nx, ny, border });
     return E.length - 1;
   }
-  const waist = [], hem = [], scallops = [], rows = {}, hemPts = [grid[4][0]];
+  const waist = [], hem = [], scallops = [], rows = {}, hemPts = [grid[LAST][0]];
   for (let c = 0; c < 4; c++) waist.push(edge(grid[0][c], grid[0][c + 1], [0, 1], true));
   const left = [], right = [];
-  for (let r = 0; r < 4; r++) {
+  for (let r = 0; r < LAST; r++) {
     left.push(edge(grid[r][0], grid[r + 1][0], [1, 0], true));
     right.push(edge(grid[r][4], grid[r + 1][4], [-1, 0], true));
   }
@@ -55,13 +57,13 @@ function placeBadge(hole, x, y) {
     const half = 50, sag = 24, R = (half * half + sag * sag) / (2 * sag);
     const mx = (botX(c) + botX(c + 1)) / 2, cy = 430 + sag - R;
     const a0 = Math.atan2(430 - cy, -half), a1 = Math.atan2(430 - cy, half);
-    const ids = [grid[4][c]];
+    const ids = [grid[LAST][c]];
     for (let k = 1; k < 8; k++) {
       const a = a0 + (a1 - a0) * k / 8;
       V.push([mx + R * Math.cos(a), cy + R * Math.sin(a)]);
       ids.push(V.length - 1);
     }
-    ids.push(grid[4][c + 1]);
+    ids.push(grid[LAST][c + 1]);
     const run = [];
     for (let k = 0; k < 8; k++) {
       const p = V[ids[k]], q = V[ids[k + 1]];
@@ -71,19 +73,20 @@ function placeBadge(hole, x, y) {
     hem.push(...run);
     hemPts.push(...ids.slice(1));
   }
-  for (let r = 1; r < 4; r++) {
+  for (let r = 1; r < LAST; r++) {
     rows[r] = [];
     for (let c = 0; c < 4; c++) rows[r].push(edge(grid[r][c], grid[r][c + 1], [0, 1], false));
   }
-  const cols = [1, 2, 3].map((c) => [0, 1, 2, 3].map((r) => edge(grid[r][c], grid[r + 1][c], [1, 0], false)));
+  const cols = [1, 2, 3].map((c) => [...Array(LAST).keys()].map((r) => edge(grid[r][c], grid[r + 1][c], [1, 0], false)));
   // what one click selects: a scallop, the waist, a side, or a whole line inside
-  const PIECES = [waist, left, right, ...scallops, rows[1], rows[2], rows[3], ...cols];
+  const PIECES = [waist, left, right, ...scallops, ...Object.values(rows), ...cols];
   const pieceOf = [];
   PIECES.forEach((list, i) => list.forEach((e) => { pieceOf[e] = i; }));
   const hips = rows[1];
-  const cusps = [grid[4][1], grid[4][2], grid[4][3]];
-  const outline = [...grid[0], ...[1, 2, 3, 4].map((r) => grid[r][4]), ...hemPts.slice().reverse().slice(1),
-                   ...[3, 2, 1].map((r) => grid[r][0])];
+  const cusps = [grid[LAST][1], grid[LAST][2], grid[LAST][3]];
+  const down = [...Array(LAST).keys()].map((r) => r + 1);           // 1 .. LAST
+  const outline = [...grid[0], ...down.map((r) => grid[r][4]), ...hemPts.slice().reverse().slice(1),
+                   ...down.slice(0, -1).reverse().map((r) => grid[r][0])];
 
   figs.forEach((fig, inst) => mount(fig, inst));
 
@@ -162,7 +165,7 @@ function placeBadge(hole, x, y) {
   const hemStitches = () => { const T = addLayer("stitch"); hem.forEach((e) => T.own.set(e, 1)); cusps.forEach((v) => st.corners.add(v)); return T; };
   const DEMOS = {
     // Start: one demo for the whole first mask, beside the four steps
-    flow: { rows: ["add", "edges", "from", "length", "gap", "bake"], view: "40 105 440 370",
+    flow: { rows: ["add", "edges", "from", "length", "gap", "bake"], view: "40 128 440 346",
       steps: [
         { goal: () => !!stitchL(), hint: () => [st.menu ? "[data-act=add-stitch]" : "[data-act=menu]"],
           skip: () => { addLayer("stitch"); } },
@@ -183,7 +186,7 @@ function placeBadge(hole, x, y) {
         { goal: () => stitchL().from >= 4.5, hint: () => ["[data-k=from]"], skip: () => { stitchL().from = 5; } },
       ] },
     // Bake and use: every file a bake writes, named from the object, material and layer
-    bakeall: { rows: ["names", "bake"], view: "40 105 440 370",
+    bakeall: { rows: ["names", "bake"], view: "40 128 440 346",
       preset: () => {
         hemStitches().marks = false;
         const L = addLayer("line", "trim"); L.marks = false; L.width = 1.5; L.color = "#8A3A2E"; hem.forEach((e) => L.own.set(e, 1));
@@ -212,7 +215,7 @@ function placeBadge(hole, x, y) {
           skip: () => { st.star = 0; useDefault(); } },
       ] },
     // Layers: the list and what each part of a row does
-    list: { rows: ["add"], view: "40 105 440 370",
+    list: { rows: ["add"], view: "40 128 440 346",
       preset: () => {
         const T = hemStitches(); T.marks = false;
         const L = addLayer("line"); L.marks = false; L.width = 1.5; hips.forEach((e) => L.own.set(e, 1));
@@ -263,7 +266,7 @@ function placeBadge(hole, x, y) {
           skip: () => { st.corners.delete(cusps[0]); st.corners.delete(cusps[1]); st.corners.add(cusps[2]); } },
       ] },
     // Flip Side: the hip line changes side, the hem lines leave the cloth
-    flip: { rows: ["flip"], view: "40 105 440 370",
+    flip: { rows: ["flip"], view: "40 128 440 346",
       preset: () => {
         const T = addLayer("stitch"); hem.forEach((e) => T.own.set(e, 1));
         cusps.forEach((v) => st.corners.add(v));
@@ -281,7 +284,7 @@ function placeBadge(hole, x, y) {
       { goal: () => lineL().width >= 4, hint: () => ["[data-k=width]"], skip: () => { lineL().width = 5; } },
     ] };
   // Grid: checks laid from the marked waist
-  DEMOS.grid = { rows: ["from", "along", "angle", "cell"],
+  DEMOS.grid = { rows: ["from", "along", "angle", "cell"], view: "40 128 440 346",
     preset: () => { const G = addLayer("grid"); waist.forEach((e) => G.own.set(e, 1)); },   // the green waist shows where the checks start
     steps: [
       { goal: () => Math.abs(gridL().angle - 45) <= 10, hint: () => ["[data-k=angle]"], skip: () => { gridL().angle = 45; } },
