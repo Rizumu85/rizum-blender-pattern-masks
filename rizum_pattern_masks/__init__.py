@@ -2925,6 +2925,14 @@ def _tool_row(layout, label, ctxt=None, tail=False):
     return row, end
 
 
+def _icon_group(row, n):
+    """n icon buttons of one fixed width, so the + - select columns of the
+    Edges and Sharp Corners rows line up whatever follows them."""
+    sub = row.row(align=True)
+    sub.ui_units_x = 1.2 * n
+    return sub
+
+
 class VIEW3D_PT_stitch_gen(bpy.types.Panel):
     bl_label = "Rizum Pattern Masks"
     bl_space_type = 'VIEW_3D'
@@ -2942,13 +2950,13 @@ class VIEW3D_PT_stitch_gen(bpy.types.Panel):
         row = self.layout.row(align=True)
         row.prop(context.scene, "stitch_gen_marks", text="",
                  **_icon("marks", "wcol_toggle", context.scene.stitch_gen_marks))
-        if ob is None or not len(ob.stitch_gen.lines):
-            return
-        s = ob.stitch_gen
-        row.separator()
-        if not s.live:
-            row.operator("stitch_gen.update", text="", icon='FILE_REFRESH')
-        row.prop(s, "live", text="", icon='PLAY')
+        if ob is not None and len(ob.stitch_gen.lines):
+            s = ob.stitch_gen
+            row.separator()
+            if not s.live:
+                row.operator("stitch_gen.update", text="", icon='FILE_REFRESH')
+            row.prop(s, "live", text="", icon='PLAY')
+        self.layout.separator(factor=0.6)        # clear of the panel's drag handle
 
     def draw(self, context):
         ob = _source_object(context)
@@ -2978,6 +2986,7 @@ class VIEW3D_PT_stitch_gen(bpy.types.Panel):
         # corners and side, which all layers share (a corner is a vertex)
         mark = lay.column()
         r, end = _tool_row(mark, "Edges", tail=True)
+        r = _icon_group(r, 4)
         r.operator("stitch_gen.path_add", text="", icon='ADD')
         r.operator("stitch_gen.path_remove", text="", icon='REMOVE')
         r.operator("stitch_gen.path_select", text="", icon='RESTRICT_SELECT_OFF')
@@ -2997,9 +3006,10 @@ class VIEW3D_PT_stitch_gen(bpy.types.Panel):
             end.operator("stitch_gen.reference_menu", text="", **_icon("link"))
         if not is_grid:
             r, end = _tool_row(mark, "Sharp Corners", tail=True)
-            r.operator("stitch_gen.corner_mark", text="", icon='ADD')
-            r.operator("stitch_gen.corner_clear", text="", icon='REMOVE')
-            r.operator("stitch_gen.corner_select", text="", icon='RESTRICT_SELECT_OFF')
+            icons = _icon_group(r, 3)
+            icons.operator("stitch_gen.corner_mark", text="", icon='ADD')
+            icons.operator("stitch_gen.corner_clear", text="", icon='REMOVE')
+            icons.operator("stitch_gen.corner_select", text="", icon='RESTRICT_SELECT_OFF')
             r.operator("stitch_gen.corner_detect", text="Auto")
             _marks_toggle(end, s, "show_corners", "corners")
             mark.prop(s, "flip")
