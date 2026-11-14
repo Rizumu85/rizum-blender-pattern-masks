@@ -32,6 +32,9 @@ function start(root) {
     return;                                              // the render stays
   }
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  // placed here too, not only in the stylesheet: a canvas left in the flow
+  // would make the stage grow with every resize
+  canvas.style.cssText = "position:absolute;inset:0;width:100%;height:100%";
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(28, 1, 0.1, 50);
   const LIGHT = new THREE.Vector3(0.45, 0.6, 0.66).normalize();
@@ -242,9 +245,9 @@ function start(root) {
   // -- focus: where the camera goes, and what stays bright
   const VIEWS = {
     all: { pos: [0, 0.85, 4.75], look: [0, -0.02, 0] },
-    stitch: { pos: [0.42, -0.3, 1.95], look: [0.05, -0.52, 0.72] },
-    line: { pos: [-0.35, 0.5, 3.0], look: [0, 0.0, 0.25] },
-    grid: { pos: [0, 0.55, 3.4], look: [0, -0.04, 0] },
+    stitch: { pos: [0.55, -0.12, 2.75], look: [0.05, -0.46, 0.45] },
+    line: { pos: [-0.4, 0.5, 4.0], look: [0, -0.06, 0.1] },
+    grid: { pos: [0, 0.6, 4.05], look: [0, -0.06, 0] },
   };
   const camPos = new THREE.Vector3(...VIEWS.all.pos), camLook = new THREE.Vector3(...VIEWS.all.look);
   const goPos = camPos.clone(), goLook = camLook.clone();

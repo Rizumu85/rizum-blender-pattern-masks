@@ -7,6 +7,7 @@ Text: docs/content/<lang>.json (drafted with Gemini from the manual, then
 checked against the manual and the code). Images: site/img/ (made by the
 scripts next to this one). Nothing here needs a package beyond Python.
 """
+import hashlib
 import html
 import json
 import os
@@ -830,7 +831,15 @@ def layers3d(body):
 
 
 # -- pages ----------------------------------------------------------------------
-CSS = "../style.css"
+def asset(src, name):
+    """The page's link to a shared file, with a hash of its content: a browser
+    that kept an older copy fetches the new one, so the page's styles and
+    scripts always come from the same build."""
+    with open(os.path.join(HERE, src), "rb") as f:
+        return f"../{name}?v={hashlib.sha1(f.read()).hexdigest()[:10]}"
+
+
+CSS = asset("site_style.css", "style.css")
 
 
 GROUPS = [("g_start", ["index", "start"]),
@@ -917,11 +926,11 @@ def page_html(pages, i, lang):
         href = "index.html" if q["slug"] == "index" else f'{q["slug"]}.html'
         return f'<a href="{href}"><small>{label}</small>{html.escape(q["title"])}</a>'
 
-    extra_js = ('\n<script src="../practice.js"></script>'
+    extra_js = (f'\n<script src="{asset("site_practice.js", "practice.js")}"></script>'
                 if any(x.get("figure", "").startswith(("sb-", "ref-", "fig-install"))
                        for x in p["sections"]) else "")
     if any(x.get("figure") == "fig-layers3d" for x in p["sections"]):
-        extra_js += '\n<script type="module" src="../layers3d.js"></script>'
+        extra_js += f'\n<script type="module" src="{asset("site_layers3d.js", "layers3d.js")}"></script>'
     title = "Pattern Masks" if p["slug"] == "index" else f'{p["title"]} · Pattern Masks'
     return f'''<!doctype html>
 <html lang="{lang}">
