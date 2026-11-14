@@ -23,7 +23,7 @@
     {
      "id": "why",
      "heading": "Why on the 3D surface",
-     "body": "Sizes are real millimetres on the model, so stretched UVs don't change them.\n\nLines keep their distance along the cloth and stay sharp at marked corners.",
+     "body": "Sizes are real millimetres on the model, so stretched UVs don't change them.",
      "table": [],
      "figure": ""
     },

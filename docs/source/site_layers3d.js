@@ -203,7 +203,7 @@ function start(root) {
 
   // line art: a trim along the hem and a line a little below the waistband
   const lineMat = toon(C.line);
-  for (const c of [curve(near(0.022), 0.01), curve(() => 0.14, 0.01)]) {
+  for (const c of [curve(() => 1, 0.004), curve(() => 0.14, 0.01)]) {   // the hem line on the edge itself
     const path = new THREE.CatmullRomCurve3(c.pts, true, "centripetal");
     skirt.add(new THREE.Mesh(new THREE.TubeGeometry(path, 1600, 0.014, 6, true), lineMat));
   }
