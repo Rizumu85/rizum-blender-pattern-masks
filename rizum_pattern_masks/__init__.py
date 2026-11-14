@@ -3212,8 +3212,13 @@ class VIEW3D_PT_stitch_gen(bpy.types.Panel):
 
         header, body = lay.panel("stitch_gen_bake", default_closed=False)
         header.label(text="Bake")
-        if not body:                       # folded away: the button stays at hand
-            bake_button(header.row())
+        if not body:                       # folded away: the button stays at hand,
+            end = header.row()             # just its icon (the title says what it does)
+            end.alignment = 'RIGHT'
+            if wm.stitch_gen_baking:
+                bake_button(end)
+            else:
+                end.operator("stitch_gen.bake", text="", icon='RENDER_STILL')
         if body:
             body.prop(s, "resolution")
             uvl = core.pick_uv(ob.data, s.uv_map)
