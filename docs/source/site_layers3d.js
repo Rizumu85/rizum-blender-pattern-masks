@@ -17,7 +17,7 @@ function surf(u, v, out = new THREE.Vector3()) {
 
 // colours (sRGB, as in the page)
 const C = {
-  fabric: 0xF7EFE1, check: 0x7383A3, inside: 0xD9CDBA, band: 0x2E3D5E, bow: 0xEE8E9C,
+  fabric: 0xF7EFE1, check: 0x7383A3, inside: 0xD9CDBA, band: 0x2E3D5E,
   stitch: 0xE07A2B, line: 0x22304A,
 };
 
@@ -119,7 +119,7 @@ function start(root) {
   });
   skirt.add(new THREE.Mesh(cloth, clothMat));
 
-  // -- the waistband and a bow at the front
+  // -- the waistband
   const band = toon(C.band);
   const bandH = 0.15, bandR = R0 * 1.035;
   const tube = new THREE.Mesh(new THREE.CylinderGeometry(bandR, bandR * 1.01, bandH, 96, 1, true), band);
@@ -130,25 +130,6 @@ function start(root) {
   rim.rotation.x = Math.PI / 2;
   rim.position.y = TOP + bandH - 0.01;
   skirt.add(rim);
-  const bow = new THREE.Group();
-  const bowMat = toon(C.bow);
-  for (const s of [-1, 1]) {
-    const loop = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 16), bowMat);
-    loop.scale.set(0.105, 0.07, 0.04);
-    loop.position.set(s * 0.095, 0.012, 0);
-    loop.rotation.z = s * 0.35;
-    bow.add(loop);
-    const tail = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 12), bowMat);
-    tail.scale.set(0.03, 0.085, 0.022);
-    tail.position.set(s * 0.045, -0.085, 0.005);
-    tail.rotation.z = s * 0.4;
-    bow.add(tail);
-  }
-  const knot = new THREE.Mesh(new THREE.SphereGeometry(0.038, 16, 12), bowMat);
-  knot.position.z = 0.02;
-  bow.add(knot);
-  bow.position.set(0, TOP + bandH / 2 - 0.01, bandR + 0.035);
-  skirt.add(bow);
 
   // -- curves on the cloth: v as a function of u, lifted off it a little
   const E = 1e-4;
