@@ -23,7 +23,8 @@ function placeBadge(hole, x, y) {
   if (!figs.length) return;   // replica panels and screenshots: see the end of this file
   const NS = "http://www.w3.org/2000/svg";
   const MM = 4;                         // view units per millimetre
-  const THREAD = "#E8843A", NAVY = "#22304A", FABRIC = "#EFE7D8";
+  // the palette of the overview's 3D skirt
+  const THREAD = "#E07A2B", NAVY = "#22304A", CHECK = "#7383A3", FABRIC = "#F7EFE1", PICK = "#2F6FD6";
 
   // -- the mesh: a 5 x 5 grid of vertices, four scallops along the hem -------
   const ROWS = [40, 150, 260, 350, 430];
@@ -117,7 +118,7 @@ function placeBadge(hole, x, y) {
   function addLayer(kind, name) {
     if (kind === "stitch" && stitchL()) { st.active = stitchL().id; return stitchL(); }
     const n = st.layers.filter((l) => l.kind === kind).length;
-    const L = Object.assign({ kind, color: kind === "stitch" ? THREAD : NAVY,
+    const L = Object.assign({ kind, color: kind === "stitch" ? THREAD : kind === "grid" ? CHECK : NAVY,
       name: name || (kind === "stitch" ? S.stitches : kind === "grid" ? S.grid : S.lineArt + (n ? " " + (n + 1) : "")) },
       DEFAULTS[kind]);
     Object.assign(L, { id: nextId++, own: new Map(), ref: null, marks: true, visible: true });
@@ -471,13 +472,14 @@ function placeBadge(hole, x, y) {
   svg.querySelector(`#pr-chk-${inst}`).insertAdjacentHTML("afterbegin", '<rect width="24" height="24" fill="#2A2A2A"/>');
   svg.querySelector(`#pr-chk-${inst}`).insertAdjacentHTML("beforeend", '<rect x="12" y="12" width="12" height="12" fill="#3A3A3A"/>');
   const bg = el("rect", { x: -20, y: -20, width: 560, height: 520, fill: "none" }, svg);
+  const shade = el("path", { d: outlineD, fill: "#22304A", opacity: 0.16, transform: "translate(0 10)" }, svg);
   const cloth = el("path", { d: outlineD, fill: FABRIC }, svg);
   const gPat = el("g", { "clip-path": `url(#${clipId})` }, svg);
   const gWire = el("g", {}, svg), gMarks = el("g", {}, svg), gHint = el("g", {}, svg);
   const gSel = el("g", {}, svg), gVerts = el("g", {}, svg), gHover = el("g", {}, svg);
   const segD = (k) => `M${V[E[k].a][0]} ${V[E[k].a][1]}L${V[E[k].b][0]} ${V[E[k].b][1]}`;
-  E.forEach((e, k) => el("path", { d: segD(k), stroke: e.border ? "#6E6656" : "#B9AF9C",
-    "stroke-width": e.border ? 1.4 : 1, fill: "none" }, gWire));
+  E.forEach((e, k) => el("path", { d: segD(k), stroke: e.border ? "#9C8768" : "#DCCFBA",
+    "stroke-width": e.border ? 1.8 : 1, fill: "none" }, gWire));
   let hintEdges = [], hover = null;            // hover: a piece index
 
   // checks laid from the layer's first marked edge: From Edge moves them off
@@ -541,7 +543,7 @@ function placeBadge(hole, x, y) {
     const clear = file && st.bg === "clear", white = file && st.bg === "white";
     bg.setAttribute("fill", !file ? "none" : clear ? `url(#pr-chk-${inst})` : white ? "#fff" : "#000");
     cloth.setAttribute("fill", !file ? FABRIC : clear ? "none" : white ? "#fff" : "#000");
-    for (const g of [gWire, gMarks, gHint, gSel, gVerts, gHover]) g.style.display = file ? "none" : "";
+    for (const g of [shade, gWire, gMarks, gHint, gSel, gVerts, gHover]) g.style.display = file ? "none" : "";
     gPat.innerHTML = "";
     if (file) drawLayer(file.L, white ? "#000" : "#fff", file.part);
     else {
@@ -561,8 +563,8 @@ function placeBadge(hole, x, y) {
     for (const k of st.sel) el("path", { d: segD(k), class: "pr-sel" }, gSel);
     gVerts.innerHTML = "";
     const sv = selVerts();
-    V.forEach((p, v) => el("circle", { cx: p[0], cy: p[1], r: sv.has(v) ? 3 : 2,
-      fill: sv.has(v) ? "#FFE2A8" : "#5F5848" }, gVerts));
+    V.forEach((p, v) => el("circle", { cx: p[0], cy: p[1], r: sv.has(v) ? 3 : 1.8,
+      fill: sv.has(v) ? PICK : "#A39478" }, gVerts));
     if (st.showCorners && st.allMarks) for (const v of st.corners) el("rect", { x: V[v][0] - 5, y: V[v][1] - 5, width: 10, height: 10,
       class: "pr-corner", fill: "#F2C230", stroke: "#3a2a05", "stroke-width": 1.5 }, gVerts);
     gHover.innerHTML = "";
