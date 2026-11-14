@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>インストールと最初のマスク · Pattern Masks</title>
 <link rel="icon" href="../img/icon-small.svg">
-<link rel="stylesheet" href="../style.css?v=df099500ac">
+<link rel="stylesheet" href="../style.css?v=e0df9f6351">
 <script>(function(){var d=document.documentElement,t=null;try{t=localStorage.getItem('pm-theme')}catch(e){}if(t)d.dataset.theme=t;var m=matchMedia('(prefers-color-scheme: dark)');function s(){var k=d.dataset.theme?d.dataset.theme==='dark':m.matches;if(k)d.setAttribute('data-dark','');else d.removeAttribute('data-dark')}s();m.addEventListener('change',s);window.pmToggleTheme=function(){var k=d.hasAttribute('data-dark');d.dataset.theme=k?'light':'dark';try{localStorage.setItem('pm-theme',d.dataset.theme)}catch(e){}s()}})()</script>
 </head>
 <body>
@@ -30,7 +30,7 @@
 <figure class="fig shot" id="shot-install"><div class="shot-box"><img src="../img/sidebar.ja.png" alt="" width="310" height="666" loading="lazy"><span class="hs" data-hs="tab" style="left:91.3%;top:45.3%;width:6.5%;height:15.3%"></span><span class="hs" data-hs="panel" style="left:0.7%;top:0.3%;width:86.8%;height:99.4%"></span></div></figure>
 <ol class="um-keys" data-for="shot-install"><li data-t="tab"><span class="um-n">1</span><span class="um-k"><strong>パターンマスク</strong> タブ</span><span class="um-d">3D ビューで N キーを押してサイドバーを開き、このタブを押します。英語の UI では Pattern Masks です。</span></li><li data-t="panel"><span class="um-n">2</span><span class="um-k">パネル</span><span class="um-d">上にレイヤーリスト、その下に辺と角のマーク、選んだレイヤーの設定、ベイクが続きます。</span></li></ol>
 </section><div class="flow"><div class="flow-text"><section id="layer" data-step="0"><h2>ステッチのレイヤーを追加</h2>
-<p>模様は 1 つずつリストのレイヤーになります。<strong>ステッチ</strong> はオブジェクトに 1 つだけ、<strong>線画</strong> と <strong>チェック柄</strong> はいくつでも追加できます。</p>
+<p>模様は 1 つずつリストのレイヤーになります。<strong>ステッチ</strong>、<strong>線画</strong>、<strong>チェック柄</strong> はいくつでも追加できます。</p>
 </section><section id="hem" data-step="1"><h2>裾の辺を割り当てる</h2>
 <p>レイヤーは、自分に割り当てた辺に沿って描きます。Blender では、まず編集モードで辺を選びます。</p>
 </section><section id="tune" data-step="2"><h2>ステッチを調整</h2>
@@ -49,7 +49,7 @@
   <aside class="toc"><p>このページの内容</p><ol><li><a href="#install">インストール</a></li><li><a href="#layer">ステッチのレイヤーを追加</a></li><li><a href="#hem">裾の辺を割り当てる</a></li><li><a href="#tune">ステッチを調整</a></li><li><a href="#bake">ベイク</a></li><li><a href="#use">ペイントに使う</a></li><li><a href="#safety">ファイルへの変更</a></li></ol></aside>
 </div>
 
-<script src="../practice.js?v=835a48598a"></script>
+<script src="../practice.js?v=8f90582d0a"></script>
 <script>(function(){var l=[].slice.call(document.querySelectorAll('.toc a'));if(!l.length)return;var s=l.map(function(a){return document.getElementById(decodeURIComponent(a.hash.slice(1)))});function u(){var n=0;for(var i=0;i<s.length;i++)if(s[i]&&s[i].getBoundingClientRect().top<=150)n=i;if(scrollY>0&&innerHeight+scrollY>=document.documentElement.scrollHeight-4)n=s.length-1;l.forEach(function(a,i){a.classList.toggle('now',i===n)})}addEventListener('scroll',u,{passive:true});addEventListener('resize',u);u()})()</script>
 </body>
 </html>

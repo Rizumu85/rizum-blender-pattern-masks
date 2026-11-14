@@ -13,7 +13,7 @@ Requires Blender 4.2 or newer (tested on 5.0.1).
 ## Install
 
 Edit > Preferences > Get Extensions > ⌄ (top right) > **Install from Disk…** >
-`rizum_pattern_masks-0.3.0.zip`.
+`rizum_pattern_masks-0.4.0.zip`.
 
 The panel is in the 3D View sidebar (N) under **Pattern Masks**.
 
@@ -24,8 +24,8 @@ to the mesh and never changes its shape, UVs or materials, but a copy is still
 the safe way.
 
 The panel is a layer list, like layers in Painter. It starts empty: **+**
-next to the list adds **Stitches** (one per object, always the first row) or a
-**Line Art** layer (as many as you like). Until there is a layer, the panel
+next to the list adds a **Stitches**, **Line Art** or **Grid** layer, as many
+of each as you like. Until there is a layer, the panel
 shows nothing else, and selecting an object never changes it. **The row you select is the
 one you work on**: the section below the list is titled with its name and holds,
 in working order, its **Edges** row, the **Sharp Corners** row, then its
@@ -130,9 +130,9 @@ corner on the line.
 
 Each line art layer is a solid line along its own edges (and those of the
 layer it refers to). A new layer starts with no edges, 0.5 mm wide, 0 mm from
-the edge and black. Like the stitch row, layers you have not renamed show their
+the edge and black. Like stitch layers, layers you have not renamed show their
 name in the interface language ("Line 2", "线稿 2") and bake to fixed English
-file names (`_line2.png`, like `_stitch.png`); a name you type is used as it is,
+file names (`_line2.png`, like `_stitch.png` and `_stitch2.png`); a name you type is used as it is,
 in the panel and in the file name.
 
 | Setting | Meaning |
@@ -251,9 +251,9 @@ millimetres.
   scene and at the size you picked last (change it, and the next new object
   uses the new size); its other bake settings start at their defaults.
 
-One PNG is written per material that has stitches, named
-`<object>_<material>_stitch.png`, and one per line layer,
-`<object>_<material>_<layer name>.png`. In Painter, each material is one texture set;
+One PNG is written per material for each stitch and line layer, named
+`<object>_<material>_<layer name>.png`: `_stitch.png` for the first stitch
+layer, `_stitch2.png` for the next, unless you renamed them. In Painter, each material is one texture set;
 slots that use the same material share one image. Baking again overwrites the
 same file. Faces in other UDIM tiles get their own file with a `.1002` style
 suffix.

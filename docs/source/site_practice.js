@@ -119,10 +119,10 @@ function placeBadge(hole, x, y) {
   const DEFAULTS = { stitch: { from: 3, width: 1.2, length: 4, gap: 2, height: 3, style: "dash" },
                      line: { from: 0, width: 0.5 }, grid: { from: 0, along: 0, angle: 0, cell: 8 } };
   function addLayer(kind, name) {
-    if (kind === "stitch" && stitchL()) { st.active = stitchL().id; return stitchL(); }
-    const n = st.layers.filter((l) => l.kind === kind).length;
+    const n = st.layers.filter((l) => l.kind === kind).length, k = n ? " " + (n + 1) : "";
     const L = Object.assign({ kind, color: kind === "stitch" ? THREAD : kind === "grid" ? CHECK : NAVY,
-      name: name || (kind === "stitch" ? S.stitches : kind === "grid" ? S.grid : S.lineArt + (n ? " " + (n + 1) : "")) },
+      name: name || (kind === "stitch" ? S.stitches + k : kind === "grid" ? S.grid : S.lineArt + k),
+      file: "stitch" + (n ? n + 1 : "") },              // a stitch layer's default file name
       DEFAULTS[kind]);
     Object.assign(L, { id: nextId++, own: new Map(), ref: null, marks: true, visible: true });
     st.layers.push(L);
@@ -300,7 +300,7 @@ function placeBadge(hole, x, y) {
     const base = `${safe(st.obj)}_${safe(st.mat)}_`, out = [];
     for (const L of st.layers) {
       if (!L.visible || !finalEdges(L).size) continue;
-      if (L.kind === "stitch") out.push({ id: "stitch", name: base + "stitch.png", L });
+      if (L.kind === "stitch") out.push({ id: "s" + L.id, name: base + L.file + ".png", L });
       else if (L.kind === "line") out.push({ id: "l" + L.id, name: base + safe(L.name) + ".png", L });
       else for (const part of ["black", "white"])
         out.push({ id: `g${L.id}${part}`, name: `${base}${safe(L.name)}_${part}.png`, L, part });
@@ -580,7 +580,7 @@ function placeBadge(hole, x, y) {
     if (hover != null) for (const k of PIECES[hover]) el("path", { d: segD(k), class: "pr-hover" }, gHover);
     // the key: name each kind of mark that is on screen
     const drawn = file ? [] : st.layers.filter((L) => L.visible && finalEdges(L).size);
-    const keys = file ? [] : drawn.map((L) => [`L${L.id}`, L.kind === "stitch" ? S.stitches : L.name, L.color, L.kind]).concat([
+    const keys = file ? [] : drawn.map((L) => [`L${L.id}`, L.name, L.color, L.kind]).concat([
       mine.length && ["mine", S.keyEdges], out.length && ["out", S.keyOut],
       st.showCorners && st.allMarks && st.corners.size && ["corner", S.keyCorners], st.sel.size && ["sel", S.keySel]]).filter(Boolean);
     const sig = keys.map((k) => k[0]).join();
@@ -643,11 +643,11 @@ function placeBadge(hole, x, y) {
     const pickNote = st.pick ? `<div class="bp-picknote">${icon("pick")}${esc(S.clickLayer)}</div>` : "";
     let h = `${title}<div class="bp-top"><div class="bp-list${st.pick ? " picking" : ""}">${items}${pickNote}</div>
       ${ROWS.has("add") ? `<div class="bp-side">${btn("menu", icon("add"), S.add, st.menu ? 'class="on"' : "")}
-        ${btn("remove-layer", icon("remove"), S.remove, A && A.kind !== "stitch" ? "" : "disabled")}
+        ${btn("remove-layer", icon("remove"), S.remove, A ? "" : "disabled")}
         ${btn("more", icon("down"), S.more, st.more ? 'class="on"' : "")}
         ${st.more ? `<div class="bp-menu more"><button type="button" data-act="clear-all"${st.layers.length ? "" : " disabled"}>${icon("clear")}${esc(S.clearAll)}</button></div>` : ""}
         ${st.menu ? `<div class="bp-menu">
-          <button type="button" data-act="add-stitch"${stitchL() ? " disabled" : ""}>${icon("stitch")}${esc(S.stitches)}</button>
+          <button type="button" data-act="add-stitch">${icon("stitch")}${esc(S.stitches)}</button>
           <button type="button" data-act="add-line">${icon("line")}${esc(S.lineArt)}</button>
           <button type="button" data-act="add-grid">${icon("grid")}${esc(S.grid)}</button></div>` : ""}
       </div>` : ""}</div>`;
@@ -694,7 +694,7 @@ function placeBadge(hole, x, y) {
           <hr><div class="pre-add"><input class="bp-text" value="${esc(st.pname)}" spellcheck="false" aria-label="${esc(S.preName)}">
           ${btn("p-save", icon("add"), S.add)}</div></div>` : "";
       // in the add-on's order, whichever rows this demo shows
-      h += `<div class="bp-head">${icon(A.kind)}<span>${esc(A.kind === "stitch" ? S.stitches : A.name)}</span>
+      h += `<div class="bp-head">${icon(A.kind)}<span>${esc(A.name)}</span>
           ${btn("pmenu", icon("preset"), S.presets, `class="t${st.pmenu ? " on" : ""}"`)}${pm}</div>`
         + LAYER_ROWS.filter((k) => ROWS.has(k) && (!NUMS.has(k) || A[k] !== undefined)).map((k) => R[k]).join("");
     }
@@ -868,7 +868,7 @@ function placeBadge(hole, x, y) {
       case "add-line": addLayer("line"); break;
       case "add-grid": addLayer("grid"); break;
       case "remove-layer":
-        if (A && A.kind !== "stitch") {
+        if (A) {
           st.layers = st.layers.filter((L) => L !== A);
           st.layers.forEach((L) => { if (L.ref === A.id) L.ref = null; });
           st.active = st.layers.length ? st.layers[st.layers.length - 1].id : null;

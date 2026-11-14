@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>注意点 · Pattern Masks</title>
 <link rel="icon" href="../img/icon-small.svg">
-<link rel="stylesheet" href="../style.css?v=df099500ac">
+<link rel="stylesheet" href="../style.css?v=e0df9f6351">
 <script>(function(){var d=document.documentElement,t=null;try{t=localStorage.getItem('pm-theme')}catch(e){}if(t)d.dataset.theme=t;var m=matchMedia('(prefers-color-scheme: dark)');function s(){var k=d.dataset.theme?d.dataset.theme==='dark':m.matches;if(k)d.setAttribute('data-dark','');else d.removeAttribute('data-dark')}s();m.addEventListener('change',s);window.pmToggleTheme=function(){var k=d.hasAttribute('data-dark');d.dataset.theme=k?'light':'dark';try{localStorage.setItem('pm-theme',d.dataset.theme)}catch(e){}s()}})()</script>
 </head>
 <body>
@@ -26,9 +26,7 @@
     <h1>注意点</h1>
     <p class="lead">ベイクする前に知っておきたいこと。</p>
     <section id="mesh"><h2>メッシュ</h2>
-<ul><li>モディファイアーは反映されません。先にコピーで適用しておきます。</li><li>辺からの距離の 2 倍より狭い切れ込みは、線がまたいでしまいます。</li><li>布が折り重なっている所では、ステッチは自分のある層にだけベイクされます。</li></ul>
-</section><section id="grid"><h2>チェック柄</h2>
-<ul><li><strong>ループに沿う</strong> は、パーツが広がる所で分かれ目ができます。マスが大きいほど少なくなります。</li><li><strong>展開</strong> は計算に 1〜2 秒かかります（バックグラウンドで実行）。</li></ul>
+<ul><li>アドオンが見るのはメッシュそのものだけで、サブディビジョンやミラーなどのモディファイアーの結果は見えません。モディファイアーを使ったモデルは、複製してモディファイアーを適用し、その複製でアドオンを使います。Painter に書き出すのも同じ複製にします。</li></ul>
 </section><section id="bake"><h2>ベイク</h2>
 <ul><li>8192 でベイクするには、約 2 GB の空きメモリーが必要です。</li><li>UDIM タイルの境目をまたぐ面は、どちらか 1 つのタイルにだけベイクされます。</li></ul>
 </section><section id="faq"><h2>よくある質問</h2>
@@ -39,11 +37,11 @@
 <h3>角が欠けている</h3>
 <p><strong>尖った角</strong> 行でその頂点をマークします。</p>
 <h3>Painter のマスクが古いまま</h3>
-<p>ファイルをインポートし直します。</p>
+<p>ファイルを再インポートするか、同期します。</p>
 </section>
     <nav class="pager"><a class="prev" href="bake.html"><small>前へ</small><span class="t"><i class="ar" aria-hidden="true">←</i>ベイクと使い方</span></a></nav>
   </main>
-  <aside class="toc"><p>このページの内容</p><ol><li><a href="#mesh">メッシュ</a></li><li><a href="#grid">チェック柄</a></li><li><a href="#bake">ベイク</a></li><li><a href="#faq">よくある質問</a></li></ol></aside>
+  <aside class="toc"><p>このページの内容</p><ol><li><a href="#mesh">メッシュ</a></li><li><a href="#bake">ベイク</a></li><li><a href="#faq">よくある質問</a></li></ol></aside>
 </div>
 
 <script>(function(){var l=[].slice.call(document.querySelectorAll('.toc a'));if(!l.length)return;var s=l.map(function(a){return document.getElementById(decodeURIComponent(a.hash.slice(1)))});function u(){var n=0;for(var i=0;i<s.length;i++)if(s[i]&&s[i].getBoundingClientRect().top<=150)n=i;if(scrollY>0&&innerHeight+scrollY>=document.documentElement.scrollHeight-4)n=s.length-1;l.forEach(function(a,i){a.classList.toggle('now',i===n)})}addEventListener('scroll',u,{passive:true});addEventListener('resize',u);u()})()</script>

@@ -6,6 +6,10 @@
   <b>English</b> · <a href="./README.zh-CN.md">简体中文</a> · <a href="./README.ja.md">日本語</a>
 </p>
 
+<p align="center">
+  <a href="https://rizumu85.github.io/rizum-blender-pattern-masks/en/"><img src="./assets/readme/docs-button.svg" width="360" alt="Read the documentation"></a>
+</p>
+
 Mark edges on a mesh in Blender, and Pattern Masks draws sewing stitches,
 outlines and checks along them. It measures everything in real millimetres
 on the surface, then bakes each layer to a 16-bit UV mask PNG for

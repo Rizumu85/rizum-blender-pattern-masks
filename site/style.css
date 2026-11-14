@@ -1,6 +1,6 @@
 :root {
-  --bg: #FBF8F2; --text: #1D2433; --muted: #5E6779; --line: #E4DCCD; --card: #F3EDE2;
-  --navy: #22304A; --thread: #D9732C; --fabric: #EFE7D8; --night: #161B24; --link: #B85A1B;
+  --bg: #FAFAFA; --text: #1C1D21; --muted: #62656D; --line: #E3E3E5; --card: #F1F1F2;
+  --navy: #22304A; --thread: #D9732C; --fabric: #EFE7D8; --night: #161B24; --link: #2F6FD6;
   color-scheme: light dark;
 }
 /* dark: from the system unless the reader picked light; or picked */
@@ -406,7 +406,7 @@ section:has(> .fig.shot) > ol.um-keys .um-d { grid-column: 2; margin: -4px 0 6px
 /* -- round 5: polish ------------------------------------------------------------ */
 /* surfaces: a hairline and a soft two-layer shadow in the page's own hue */
 :root { --edge: #1D24331A; --stage-edge: transparent;
-        --shadow: 0 1px 2px #3C280F12, 0 14px 30px -16px #3C280F47; }
+        --shadow: 0 1px 2px #0000000F, 0 14px 30px -16px #00000033; }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme=light]) { --edge: #FFFFFF14; --stage-edge: #2A3345;
                                   --shadow: 0 1px 2px #00000059, 0 16px 34px -18px #000000CC; }
@@ -656,3 +656,17 @@ strong.ico svg { width: 1em; height: 1em; vertical-align: -0.15em; }
 .rp-desc.multi { flex-direction: column; align-items: flex-start; justify-content: center; gap: 5px; padding-top: 8px; padding-bottom: 8px; }
 /* the control of such a row stays where it would be, by the first line */
 .rp-ui:has(+ .rp-desc.multi) { align-self: start; margin-top: 4px; }
+
+/* the sandboxes in dark mode: Blender's greys, a viewport-like gradient */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme=light]) .practice { --bg: #232323; --card: #2B2B2B; --line: #3A3A3A;
+                                            --text: #E6E6E6; --muted: #A3A3A3; }
+  :root:not([data-theme=light]) .pr-view { background: radial-gradient(circle at 50% 30%, #4A4A4A, #303030 92%); }
+}
+:root[data-theme=dark] .practice { --bg: #232323; --card: #2B2B2B; --line: #3A3A3A;
+                                   --text: #E6E6E6; --muted: #A3A3A3; }
+:root[data-theme=dark] .pr-view { background: radial-gradient(circle at 50% 30%, #4A4A4A, #303030 92%); }
+
+/* list dashes as a border: a 2px box can round to 2 or 3 device pixels by
+   where it falls (at 135% scaling), a border width rounds the same everywhere */
+main ul > li::before { height: 0; border-top: 2px solid var(--thread); background: none; }

@@ -63,7 +63,7 @@
     {
      "id": "layer",
      "heading": "Add a stitch layer",
-     "body": "Each pattern is a layer in the list: one **Stitches** layer per object, and as many **Line Art** and **Grid** layers as you like.",
+     "body": "Each pattern is a layer in the list: as many **Stitches**, **Line Art** and **Grid** layers as you like.",
      "table": [],
      "figure": "sb-flow",
      "step": 0
@@ -160,7 +160,7 @@
       [
        "add",
        "**+**",
-       "Adds **Stitches** (one per object), **Line Art** or **Grid**."
+       "Adds **Stitches**, **Line Art** or **Grid**."
       ],
       [
        "remove",
@@ -425,12 +425,12 @@
       [
        "from",
        "**Offset Inward**",
-       "Slides the squares away from the edge."
+       "Slides the squares away from the edge (up or down on a horizontal edge)."
       ],
       [
        "along",
        "**Offset Along**",
-       "Slides them along the edge."
+       "Slides the squares along the edge (left or right on a horizontal edge)."
       ],
       [
        "angle",
@@ -459,7 +459,7 @@
   {
    "slug": "presets",
    "title": "Presets",
-   "lead": "Save a layer's settings and reuse them in any file.",
+   "lead": "Save settings to reuse them.",
    "sections": [
     {
      "id": "use",
@@ -505,12 +505,12 @@
   {
    "slug": "bake",
    "title": "Bake and use",
-   "lead": "One PNG per layer and material.",
+   "lead": "",
    "sections": [
     {
      "id": "files",
      "heading": "Files",
-     "body": "One PNG per layer and material, named from the object, the material and the layer.\n\n- With several objects selected, one press bakes them all, each with its own settings.\n- Fold the **Bake** section and its button stays in the title row.\n\n> The bake runs in the background, so you can keep working.",
+     "body": "File names are made of the **object**, **material** and **layer** names.\n\n- With several objects selected, one bake does them all, each with its own layers and settings.\n- Once the bake settings are right, fold them away to keep the panel tidy.\n\n> Baking runs in the background, so you can keep working.",
      "table": [],
      "figure": "sb-bakeall"
     },
@@ -565,14 +565,7 @@
     {
      "id": "mesh",
      "heading": "Mesh",
-     "body": "- Modifiers are ignored. Apply them on a copy first.\n- Lines skip notches narrower than twice their distance from the edge.\n- Where cloth folds over itself, stitches bake only on the layer they belong to.",
-     "table": [],
-     "figure": ""
-    },
-    {
-     "id": "grid",
-     "heading": "Grid",
-     "body": "- **Follow Loops** forks where the piece widens. Larger squares mean fewer forks.\n- **Unrolled** takes a second or two to compute, in the background.",
+     "body": "- The add-on sees the mesh itself, not what modifiers such as Subdivision or Mirror add. For a model with modifiers, duplicate it, apply the modifiers on the copy and use the add-on there; export that copy to Painter too.",
      "table": [],
      "figure": ""
     },
@@ -586,7 +579,7 @@
     {
      "id": "faq",
      "heading": "Questions",
-     "body": "### Bake is greyed out\nShow a layer and give it edges.\n\n### Stitches are on the wrong side\nTurn on **Flip Side**.\n\n### A corner is cut off\nMark it on the **Sharp Corners** row.\n\n### Painter shows the old mask\nRe-import the file.",
+     "body": "### Bake is greyed out\nShow a layer and give it edges.\n\n### Stitches are on the wrong side\nTurn on **Flip Side**.\n\n### A corner is cut off\nMark it on the **Sharp Corners** row.\n\n### Painter shows the old mask\nRe-import or sync the file.",
      "table": [],
      "figure": ""
     }

@@ -6,6 +6,10 @@
   <a href="./README.md">English</a> · <a href="./README.zh-CN.md">简体中文</a> · <b>日本語</b>
 </p>
 
+<p align="center">
+  <a href="https://rizumu85.github.io/rizum-blender-pattern-masks/ja/"><img src="./assets/readme/docs-button.ja.svg" width="360" alt="ドキュメントを読む"></a>
+</p>
+
 Blender でメッシュの辺をいくつか指定すると、Pattern Masks がその辺に沿ってステッチ・縁取り線・チェック柄を描きます。サイズはすべてモデル表面上の実寸（ミリ）で計算され、レイヤーごとに 16 ビットの UV マスク PNG としてベイクされます。Substance 3D Painter や CLIP STUDIO PAINT など、マスクを使えるソフトでそのまま使えます。
 
 <p align="center">

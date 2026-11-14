@@ -6,6 +6,10 @@
   <a href="./README.md">English</a> · <b>简体中文</b> · <a href="./README.ja.md">日本語</a>
 </p>
 
+<p align="center">
+  <a href="https://rizumu85.github.io/rizum-blender-pattern-masks/zh-CN/"><img src="./assets/readme/docs-button.zh-CN.svg" width="360" alt="阅读文档"></a>
+</p>
+
 在 Blender 里给网格标几条边，图案遮罩就会沿着它们画出缝线、描边和格纹。所有尺寸都按模型表面上的真实毫米计算，然后每一层烘焙成一张 16 位 UV 遮罩 PNG，可以直接拿去 Substance 3D Painter、Clip Studio Paint 等支持遮罩的软件用。
 
 <p align="center">
