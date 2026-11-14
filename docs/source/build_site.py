@@ -755,6 +755,15 @@ REF_VALUES = {
 }
 
 
+def rp_desc(desc):
+    """A settings row's words; a description of several lines (one per case)
+    keeps them as lines."""
+    lines = [x for x in desc.split("\n") if x.strip()]
+    if len(lines) < 2:
+        return f'<div class="rp-desc">{inline(desc)}</div>'
+    return '<div class="rp-desc multi">' + "".join(f"<span>{inline(x)}</span>" for x in lines) + "</div>"
+
+
 def refpanel(kind, lang, keys=None):
     """Replica of one settings block: the panel on the left, each row's words on
     the right, row by row. Only Style and Layout can be switched."""
@@ -786,7 +795,7 @@ def refpanel(kind, lang, keys=None):
             ctl = f'<span class="rp-sub">{html.escape(label)}</span>'
         lab = "" if typ in ("check", "sub") else html.escape(label)
         rows.append(f'<div class="rp-row" data-r="{rid}"{show}><div class="rp-ui"><span class="rp-lb">{lab}</span>{ctl}</div>'
-                    f'<div class="rp-desc">{inline(desc)}</div></div>')
+                    f'{rp_desc(desc)}</div>')
     return f'<figure class="fig refpanel" data-ref="{kind}">' + "".join(rows) + '</figure>'
 
 

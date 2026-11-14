@@ -295,17 +295,17 @@
       [
        "from",
        "**Offset Inward**",
-       "Distance from the edge, measured along the cloth."
+       "How far in from the marked edge the stitches sit."
       ],
       [
        "corner_inset",
        "**Corner Depth**",
-       "Extra inset at marked corners."
+       "How much further in at marked corners."
       ],
       [
        "smooth",
        "**Smooth**",
-       "Evens out the kinks a low-poly edge puts in the line. Mark the corners that should stay sharp."
+       "Smooths the arcs of a low-poly mesh; mark the corners that should stay sharp."
       ],
       [
        "style",
@@ -315,22 +315,22 @@
       [
        "width",
        "**Width**",
-       "Stitch width; for a zigzag, the thread width."
+       "The width of each stitch."
       ],
       [
        "length",
        "**Length**",
-       "Stitch length; for a zigzag, peak to peak."
+       "The length of each stitch."
       ],
       [
        "gap",
        "**Gap**",
-       "Space between stitches."
+       "The space between stitches."
       ],
       [
        "round",
        "**Round Ends**",
-       "How round the stitch ends are (100% is fully round)."
+       "How round each stitch's ends are."
       ],
       [
        "height",
@@ -340,7 +340,7 @@
       [
        "even",
        "**Even Fit**",
-       "Whole stitches on closed loops; even ends on open lines."
+       "Nudges the stitch length and gap so the stitches fit the line exactly.\n**Closed loop**: off, an odd gap is left where the loop closes; on, each stitch stretches or shrinks a little and the join doesn't show.\n**Open line**: off, all the leftover space piles up at one end; on, it's split between both ends."
       ]
      ]
     }
