@@ -3089,7 +3089,9 @@ class VIEW3D_PT_stitch_gen(bpy.types.Panel):
             row.prop(s, "output_dir")
             row.operator("stitch_gen.pick_folder", text="", **_icon("folder"))
             row.operator("stitch_gen.open_folder", text="", **_icon("reveal"))
-            body.row().prop(s, "background", expand=True)
+            # a menu, not three buttons: "Transparent" doesn't fit a third of
+            # the value column at the sidebar's usual width
+            body.prop(s, "background")
             if _stitches_on(s) and s.dash_count > 0:      # line art doesn't use these
                 h2, b2 = body.panel("stitch_gen_bake_render", default_closed=True)
                 h2.label(text="Stitches: Samples & Device", text_ctxt=i18n.CTX)

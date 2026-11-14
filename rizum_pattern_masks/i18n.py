@@ -1,4 +1,4 @@
-"""Hand-written UI translations (Simplified Chinese).
+"""Hand-written UI translations (Simplified Chinese, Japanese).
 
 Blender looks strings up by (context, message). Property names, panel titles
 and tooltips use the default context "*"; operator names use "Operator".
@@ -12,6 +12,7 @@ ZH = {
     "Rizum Pattern Masks": "Rizum 图案遮罩",
     "Pattern Masks": "图案遮罩",
     "Sharp Corners": "尖角",
+    "Edges": "边",
     "Show Edges": "显示标记的边",
     "Show this layer's marked edges in the viewport (display only)":
         "在视图里显示这一层标记的边（只是显示）",
@@ -41,7 +42,6 @@ ZH = {
     "Show the marked edges and corners of all layers in the viewport (display only)":
         "在视图里显示所有图层标记的边和尖角（只影响显示）",
     "The marked edges are too short for a stitch": "标记的边太短，放不下一针",
-    "The stitch row stays; hide it with its eye": "缝线这一行不能删除，可以点眼睛隐藏",
     "Add the selected edges to the layer selected in the list": "把选中的边加到列表里选中的那一层",
     "Remove the selected edges from the layer selected in the list, also those it gets from the layer it refers to":
         "把选中的边从列表里选中的那一层移除，引用来的边也可以去掉",
@@ -174,7 +174,6 @@ ZH = {
     "Add Selected": "添加所选边",
     "Remove Selected": "移除所选边",
     "Update": "重新生成",
-    "Bake Mask": "烘焙遮罩",
     "Detect Corners": "自动识别尖角",
     "Transparent Background": "透明背景",
     "Save white stitches on a transparent background (the stitch is the alpha), e.g. for Clip Studio. Off: white on black, as Painter masks expect":
@@ -198,8 +197,6 @@ ZH = {
     "Click a layer in the list to also follow its edges (Esc or right-click: cancel)":
         "在列表里点一个图层，也沿它的边走（Esc 或右键取消）",
     "Rebuild the stitches": "重新生成缝线",
-    "Bake the stitches into a 16-bit mask PNG per texture set":
-        "把缝线烘焙成遮罩，每个纹理集一张 16 位 PNG",
 
     # line art
     "Stitches": "缝线",
@@ -208,8 +205,6 @@ ZH = {
     "Width of the line, the same real size everywhere": "线的宽度，在模型上处处是同样的实际尺寸",
     "Used in the file name of this layer's mask": "用在这一层遮罩的文件名里",
     "Add Line": "添加线稿",
-    "Remove Line": "删除线稿",
-    "Remove the selected line art layer": "删除选中的线稿层",
     "Bake Masks": "烘焙遮罩",
     "Bake the stitches and each line art layer into a 16-bit mask PNG per texture set, for every selected object":
         "把缝线和每层线稿烘焙成遮罩，每个纹理集各一张 16 位 PNG；选中的物体都会烘焙",
@@ -261,19 +256,266 @@ ZH_CTX = {
     "Width": "宽度",
 }
 
+# Japanese: the words of the Japanese docs (ステッチ, 線画, チェック柄, マーク)
+JA = {
+    # panel and layer list
+    "Rizum Pattern Masks": "Rizum パターンマスク",
+    "Pattern Masks": "パターンマスク",
+    "Sharp Corners": "尖った角",
+    "Edges": "辺",
+    "Show Edges": "マークした辺を表示",
+    "Show this layer's marked edges in the viewport (display only)":
+        "このレイヤーのマークした辺をビューポートに表示します（表示のみ）",
+    "Show Corners": "角を表示",
+    "Show the marked corners in the viewport (display only)": "マークした角をビューポートに表示します（表示のみ）",
+    "Color of this layer's preview in the viewport (not baked)":
+        "ビューポートでのこのレイヤーのプレビュー色（ベイクには影響しません）",
+    "Show and bake this layer": "このレイヤーを表示してベイクします",
+    "Show and bake the stitches": "ステッチを表示してベイクします",
+    "Select Edges": "辺を選択",
+    "Clear Edges": "辺をクリア",
+    "Works in Edit Mode": "編集モードで使えます",
+    "Edit the mesh, not its preview": "プレビューではなくメッシュ本体を編集してください",
+    "No edges selected": "辺が選択されていません",
+    "Choose Folder": "フォルダーを選択",
+    "Choose the folder for the mask PNGs": "マスク PNG の保存先フォルダーを選びます",
+    "Keep the folder relative to the .blend file": ".blend ファイルからの相対パスで保存します",
+    "Clear All Layers": "すべてのレイヤーをクリア",
+    "Remove all layers, with their marked edges and corners, and the previews from every object in the scene":
+        "シーン内のすべてのオブジェクトから、レイヤーとそのマークした辺・角、プレビューを削除します",
+    "Remove all layers, marked edges, corners and previews from every object in this scene?":
+        "このシーンのすべてのオブジェクトから、レイヤー、マークした辺と角、プレビューを削除しますか？",
+    "Clear": "クリア",
+    "Nothing to clear": "クリアするものがありません",
+    "Cleared {} objects": "{} 個のオブジェクトをクリアしました",
+    "Show Marks": "マークを表示",
+    "Show the marked edges and corners of all layers in the viewport (display only)":
+        "すべてのレイヤーのマークした辺と角をビューポートに表示します（表示のみ）",
+    "The marked edges are too short for a stitch": "マークした辺が短すぎて、ステッチが入りません",
+    "Add the selected edges to the layer selected in the list": "選択した辺を、リストで選んだレイヤーに追加します",
+    "Remove the selected edges from the layer selected in the list, also those it gets from the layer it refers to":
+        "選択した辺を、リストで選んだレイヤーから外します。参照先から来た辺も外せます",
+    "Select the edges of the layer selected in the list, with those it gets from the layer it refers to":
+        "リストで選んだレイヤーの辺を、参照先から来た辺も含めて選択します",
+    "Clear all edges of the layer selected in the list, and bring back the edges it took out of its reference":
+        "リストで選んだレイヤーの辺をすべてクリアし、参照から外した辺も元に戻します",
+    "Keep the lines sharp at the selected vertices": "選択した頂点で線を尖らせたままにします",
+    "Let the lines round off at the selected vertices again": "選択した頂点で、線がまた丸く回り込むようにします",
+    "Mark likely corners on the marked edges automatically (replaces the marks there)":
+        "マークした辺の上で角らしい所を自動でマークします（そこにあるマークは置き換わります）",
+    "Add a line art layer; while it is selected, the edge buttons mark its edges":
+        "線画レイヤーを追加します。選択中は、辺のボタンでこのレイヤーの辺をマークします",
+
+    # panel and tab
+    "Bake": "ベイク",
+
+    # settings
+    "Live": "自動更新",
+    "Flip Side": "反対側",
+    "Round Ends": "端の丸み",
+    "Corner radius of each stitch: 100% gives fully round ends": "ステッチ端の丸み。100% で完全な丸になります",
+    "How far the stitch line sits inward from the marked edges": "マークした辺から、ステッチの線をどれだけ内側に入れるか",
+    "How far the line sits inward from the marked edges, to its outer side (0 = the line starts at the edge)":
+        "マークした辺から線の外側までを、どれだけ内側に入れるか（0 = 線は辺から始まります）",
+    "Extra inward offset at marked corners, tapering off along the line, for a deeper, pointed corner":
+        "マークした角でさらに内側へ入れる量。線に沿って次第に小さくなり、角がより深く尖ります",
+    "Slides the squares inward from the marked edge": "マス目を、マークした辺から内側へずらします",
+    "Even Fit": "均等に配置",
+    "Size": "サイズ",
+    "UV Map": "UV マップ",
+    "Folder": "フォルダー",
+    "Samples": "サンプル数",
+    "Device": "デバイス",
+    "CPU Usage": "CPU 使用率",
+    "What bakes. GPU is faster but can make the screen stutter while baking":
+        "ベイクに使うデバイス。GPU は速いですが、ベイク中に画面がカクつくことがあります",
+    "Share of CPU cores the bake may use; the rest keeps Blender responsive":
+        "ベイクに使える CPU コアの割合。残りは Blender の操作用に空けておきます",
+    "Baking {}/{}": "ベイク中 {}/{}",
+    "Unrolling {}/{}": "展開中 {}/{}",
+    "Baking stopped": "ベイクを中止しました",
+
+    # tooltips of the settings
+    "Rebuild the stitches while you change the values": "値を変えるたびにステッチを作り直します",
+    "Evens out low-poly zigzags along the line; larger values also flatten curves":
+        "ローポリの辺のガタつきを線に沿ってならします。値を大きくすると曲線も平らになります",
+    "Inset to the other side of the picked edges": "選んだ辺の反対側に入れます",
+    "Space between stitches": "ステッチ同士の間隔",
+    "Thread width": "糸の太さ",
+    "Corner radius of each stitch as a fraction of half its width (1 = fully round ends)":
+        "ステッチ端の丸み。半幅に対する割合（1 = 完全な丸）",
+    "Slide the stitches along the line": "ステッチを線に沿ってずらします",
+    "Closed loops get a whole number of stitches; open lines get equal space at both ends":
+        "閉じたループではステッチ数を整数にそろえ、開いた線では両端の余白を等しくします",
+    "Size of the baked mask PNGs, in pixels": "ベイクするマスク PNG のサイズ（ピクセル）",
+    "UV map to bake into; empty follows the mesh's active UV map":
+        "ベイク先の UV マップ。空欄ならメッシュのアクティブな UV マップに従います",
+    "Active: {}": "現在：{}",
+    "Follow Active UV Map": "アクティブな UV マップに従う",
+    "Set this layer's settings back to the default: the starred preset, or the add-on's own":
+        "このレイヤーの設定をデフォルトに戻します。星を付けたプリセット、なければアドオン既定の値です",
+    "Apply Preset": "プリセットを適用",
+    "Apply this preset": "このプリセットを適用します",
+    "Use as Default": "デフォルトにする",
+    "Use this preset as the default: new layers start with it, and Default applies it. Click again to go back to the add-on's own default":
+        "このプリセットをデフォルトにします。新しいレイヤーはこの設定で始まり、「デフォルト」でもこれが適用されます。もう一度押すとアドオン既定の値に戻ります",
+    "Separate stitches along the line": "線に沿って一針ずつ並ぶステッチ",
+    "One thread going back and forth across the line": "1 本の糸が線をまたいで行き来するジグザグ",
+    "Kind of stitch": "ステッチの種類",
+    "How far the zigzag swings across the line, from peak to peak": "ジグザグの振れ幅（山から反対側の山まで）",
+    "Length of each stitch; for a zigzag, the distance along the line from one peak to the next":
+        "1 針の長さ。ジグザグでは、線に沿って山から次の山までの距離",
+    "Add Layer": "レイヤーを追加",
+    "Add Stitches": "ステッチを追加",
+    "Add the stitches; while they are selected, the edge buttons mark their edges":
+        "ステッチを追加します。選択中は、辺のボタンでステッチの辺をマークします",
+    "The object already has stitches": "このオブジェクトにはすでにステッチがあります",
+    "Remove Layer": "レイヤーを削除",
+    "Remove the selected layer together with its marked edges": "選択したレイヤーを、マークした辺ごと削除します",
+    "Name of this layer; a name you type also goes into the file name of its mask":
+        "このレイヤーの名前。入力した名前はマスクのファイル名にも使われます",
+    "Preview color in the viewport (not baked)": "ビューポートでのプレビュー色（ベイクには影響しません）",
+    "Bake 1 Mask": "マスクを 1 枚ベイク",
+    "Bake {} Masks": "マスクを {} 枚ベイク",
+    "Open Folder": "フォルダーを開く",
+    "Open the mask folder in the file manager": "マスクのフォルダーをファイルマネージャーで開きます",
+    "Nothing baked here yet": "まだここにはベイクしていません",
+    "Nothing to bake: show a layer that has edges": "ベイクするものがありません。辺をマークしたレイヤーを表示してください",
+    "White on black, as Painter masks expect": "黒地に白。Painter のマスクはこの形式です",
+    "Black on white. In Clip Studio Paint, Convert Brightness to Opacity turns it into a mask (it can't open a transparent PNG that holds very little)":
+        "白地に黒。CLIP STUDIO PAINT では「輝度を透明度に変換」でマスクになります（中身の少ない透明 PNG は読み込めないため）",
+    "Save black stitches on white (used when Transparent is off)": "白地に黒いステッチで保存します（透明がオフのとき）",
+    "White Background": "白背景",
+    "White with the mask in the alpha channel (soft edges kept), for Photoshop and other 2D apps":
+        "白で、マスクはアルファチャンネルに入ります（ぼかしも保持）。Photoshop などの 2D ソフト向け",
+    "Background of the saved mask PNGs": "保存するマスク PNG の背景",
+    "Stitch Presets": "ステッチのプリセット",
+    "Grid Presets": "チェック柄のプリセット",
+    "Add Grid": "チェック柄を追加",
+    "Add Grid Preset": "チェック柄のプリセットを追加",
+    "Add a checkered layer: squares that follow the mesh's loops out from a marked edge":
+        "チェック柄のレイヤーを追加します。マス目はマークした辺から、メッシュのループに沿って並びます",
+    "Turns the squares against the marked edge (45 degrees: on the bias)":
+        "マス目をマークした辺に対して回します（45° でバイアス）",
+    "Save this grid layer's settings as a preset, or remove the selected preset":
+        "このチェック柄レイヤーの設定をプリセットとして保存するか、選択中のプリセットを削除します",
+    "Slides the squares along the marked edge": "マス目を、マークした辺に沿ってずらします",
+    "Size of each square": "1 マスの大きさ",
+    "Bends the lines of the squares a little at random, as cloth pulls them out of true; the corners stay sharp":
+        "布に引っ張られたように、マス目の線をランダムに少し曲げます。角は尖ったままです",
+    "The squares follow the mesh's loops out from the marked edge, forking where the piece widens":
+        "マス目はマークした辺からメッシュのループに沿って並び、パーツが広がる所で分かれます",
+    "The piece unrolled on its marked edge: the edge straight, the columns straight down from it, and the squares square but growing where the piece widens; nothing forks":
+        "パーツをマークした辺で展開します。辺はまっすぐ、列は辺からまっすぐ下に伸び、マス目は正方形のままパーツが広がる所で大きくなります。分かれません",
+    "Line Art Presets": "線画のプリセット",
+    "Add Stitch Preset": "ステッチのプリセットを追加",
+    "Add Line Art Preset": "線画のプリセットを追加",
+    "Save the stitch settings as a preset, or remove the selected preset":
+        "ステッチの設定をプリセットとして保存するか、選択中のプリセットを削除します",
+    "Save this line art layer's settings as a preset, or remove the selected preset":
+        "この線画レイヤーの設定をプリセットとして保存するか、選択中のプリセットを削除します",
+    "Auto": "自動",
+    "Bake into this UV map": "この UV マップにベイクします",
+    "Set UV Map": "UV マップを設定",
+    "Folder for the mask PNGs; baking again overwrites them": "マスク PNG の保存先。もう一度ベイクすると上書きされます",
+    "Bake samples per texel": "テクセルあたりのベイクのサンプル数",
+
+    # operators (name + tooltip)
+    "Add Selected": "選択した辺を追加",
+    "Remove Selected": "選択した辺を外す",
+    "Update": "更新",
+    "Detect Corners": "角を自動検出",
+    "Transparent Background": "透明背景",
+    "Save white stitches on a transparent background (the stitch is the alpha), e.g. for Clip Studio. Off: white on black, as Painter masks expect":
+        "透明な背景に白いステッチで保存します（ステッチがアルファ）。CLIP STUDIO などで使えます。オフ：黒地に白で、Painter のマスク用",
+    "Select Corners": "角を選択",
+    "Select the vertices marked as corners": "角としてマークした頂点を選択します",
+    "Marked {} corners": "{} 個の角をマークしました",
+    "Mark Corner": "角をマーク",
+    "Clear Corner": "角のマークを解除",
+    "Smooths the inner side of the line between corners, like the stitch line; the outer side keeps the exact edge":
+        "ステッチの線と同じように、角と角の間で線の内側をなめらかにします。外側は辺にぴったり沿ったままです",
+    "Reference": "参照",
+    "Also follow this layer's edges": "このレイヤーの辺にも沿います",
+    "Pick Layer": "スポイトで選ぶ",
+    "Pick in List": "リストから選ぶ",
+    "Click a layer in the list": "リストのレイヤーをクリックしてください",
+    "Also follows {}": "「{}」の辺にも沿っています",
+    "Clear Reference": "参照を解除",
+    "Also follow another layer's edges": "別のレイヤーの辺にも沿います",
+    "Stop following that layer's edges": "そのレイヤーの辺に沿うのをやめます",
+    "Click a layer in the list to also follow its edges (Esc or right-click: cancel)":
+        "リストのレイヤーをクリックすると、その辺にも沿います（Esc か右クリックで取り消し）",
+    "Rebuild the stitches": "ステッチを作り直します",
+
+    # line art
+    "Stitches": "ステッチ",
+    "Stitch Color": "ステッチの色",
+    "Color of the stitch preview in the viewport (not baked)": "ビューポートでのステッチのプレビュー色（ベイクには影響しません）",
+    "Width of the line, the same real size everywhere": "線の太さ。モデル上のどこでも同じ実寸です",
+    "Used in the file name of this layer's mask": "このレイヤーのマスクのファイル名に使われます",
+    "Add Line": "線画を追加",
+    "Bake Masks": "マスクをベイク",
+    "Bake the stitches and each line art layer into a 16-bit mask PNG per texture set, for every selected object":
+        "ステッチと各線画レイヤーを、テクスチャセットごとに 16 ビットのマスク PNG にベイクします。選択中のオブジェクトすべてが対象です",
+
+    # messages (templates)
+    "{count} stitches: Length + Gap too small for this path (limit {limit})":
+        "ステッチ {count} 個：この線には長さ＋間隔が小さすぎます（上限 {limit}）",
+    "Saved {}": "{} を保存しました",
+    'The mesh already has an attribute "{}" of another type; rename it first':
+        "メッシュに型の違う属性「{}」がすでにあります。先に名前を変えてください",
+    "No stitches to bake": "ベイクするステッチがありません",
+    "Save the .blend file first, or pick an absolute output folder":
+        "先に .blend ファイルを保存するか、絶対パスの出力フォルダーを選んでください",
+    "{} has no UV map": "{} に UV マップがありません",
+    "{} is open in another program (for example Clip Studio Paint or Painter) and can't be replaced. Close it there and bake again":
+        "{} は別のソフト（CLIP STUDIO PAINT や Painter など）で開かれているため置き換えられません。そちらで閉じてからもう一度ベイクしてください",
+}
+JA_CTX = {
+    "Offset Inward": "内側オフセット",
+    "Corner Depth": "角の深さ",
+    "Offset Along": "線方向オフセット",
+    "Grid": "チェック柄",
+    "Cell Size": "マスの大きさ",
+    "Angle": "角度",
+    "Wobble": "ゆらぎ",
+    "Layout": "並べ方",
+    "Follow Loops": "ループに沿う",
+    "Unrolled": "展開",
+    "Stitches: Samples & Device": "ステッチ：サンプル数とデバイス",
+    "Default": "デフォルト",
+    "Reference": "参照",
+    "Style": "スタイル",
+    "Dashed": "破線",
+    "Zigzag": "ジグザグ",
+    "Height": "高さ",
+    "Line Art": "線画",
+    "Stitches": "ステッチ",
+    "Line": "線画",           # default name of a line art layer
+    "Background": "背景",
+    "Black": "黒",
+    "White": "白",
+    "Transparent": "透明",
+    "Smooth": "スムーズ",
+    "Length": "長さ",
+    "Gap": "間隔",
+    "Width": "幅",
+}
+
 OPERATOR_NAMES = ("Add Selected", "Remove Selected", "Select Edges", "Clear Edges",
-                  "Update", "Bake Mask", "Mark Corner", "Clear Corner", "Detect Corners",
-                  "Select Corners", "Add Line", "Remove Line", "Bake Masks", "Add Stitches",
+                  "Update", "Mark Corner", "Clear Corner", "Detect Corners",
+                  "Select Corners", "Add Line", "Bake Masks", "Add Stitches",
                   "Remove Layer", "Apply Preset", "Use as Default",
                   "Reference", "Pick Layer", "Clear All Layers", "Choose Folder")
 
-translations = {
-    "zh_HANS": {
-        **{("*", k): v for k, v in ZH.items()},
-        **{("Operator", k): ZH[k] for k in OPERATOR_NAMES},
-        **{(CTX, k): v for k, v in ZH_CTX.items()},
-    },
-}
+def _table(words, ctx_words):
+    return {**{("*", k): v for k, v in words.items()},
+            **{("Operator", k): words[k] for k in OPERATOR_NAMES},
+            **{(CTX, k): v for k, v in ctx_words.items()}}
+
+
+translations = {"zh_HANS": _table(ZH, ZH_CTX), "ja_JP": _table(JA, JA_CTX)}
 
 
 def iface(msg):
