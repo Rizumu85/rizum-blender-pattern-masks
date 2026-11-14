@@ -38,7 +38,7 @@ if core.PATH_ATTR not in ob.data.attributes:
     s.inset, s.smooth, s.length, s.gap, s.width, s.corner_inset = 4.0, 2.0, 4.0, 2.5, 1.2, 1.0
 core.drop_cache()
 sg.regenerate(ob)
-e = core._cache[ob.name_full]
+e = dict(core._cache[ob.name_full], cls=next(iter(core._cache[ob.name_full]["stitch"].values()))["cls"])
 topo = e["topo"]
 bvh = topo.bvh()
 

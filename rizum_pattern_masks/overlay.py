@@ -1,7 +1,7 @@
 """Viewport overlay, in the 3D view and in the UV editor:
 
-* the marked edges of each layer whose marks are shown: the stitch edges
-  purple, line art edges green, the layer selected in the list brightest,
+* the marked edges of each layer whose marks are shown: stitch layers'
+  purple, line art and grid layers' green, the layer selected in the list brightest,
 * for the selected layer, the edges it takes out of what it gets from the
   layer it refers to, red,
 * the vertices marked as corners as yellow dots.
@@ -48,7 +48,7 @@ def _shown(ob):
         if not l.show_marks:
             continue
         attr = l.edge_attr or core.LINE_ATTR
-        base = PURPLE if attr == core.PATH_ATTR else GREEN
+        base = PURPLE if l.kind == 'STITCH' or attr == core.PATH_ATTR else GREEN
         active = i == sel
         out.append((active, attr, base if active else base[:3] + (DIM,), 1))
         if active and l.ref_attr:

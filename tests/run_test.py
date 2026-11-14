@@ -48,12 +48,14 @@ t1 = time.perf_counter()
 s.gap = 2.5       # dash-only change (centerline cached)
 data = sg.regenerate(ob)
 t2 = time.perf_counter()
-print(f"STATUS={s.status!r} dashes={data.dash_count} width_px={data.width_px:.2f} "
-      f"gap_px={data.gap_px:.2f} lift={data.lift*1000:.3f}mm border_hits={data.border_hits} "
+rib = data.stitches[0][1]                 # the first stitch layer
+print(f"STATUS={s.status!r} dashes={data.dash_count} width_px={rib.width_px:.2f} "
+      f"gap_px={rib.gap_px:.2f} lift={rib.lift*1000:.3f}mm border_hits={rib.border_hits} "
       f"first={1000*(t1-t0):.0f}ms dash_only={1000*(t2-t1):.0f}ms "
-      f"verts={len(data.co)} band_polys={len(data.band_polys)}")
+      f"verts={len(rib.co)} band_polys={len(rib.band_polys)}")
 
 t3 = time.perf_counter()
-paths = sg.bake.bake_masks(bpy.context, ob, s.ribbon, data, s)
+paths = sg.bake.bake_masks(sg.bake.BakeSession(bpy.context, ob, [(rib, "stitch")], s,
+                                               sg._mask_material()))
 print(f"BAKE {1000*(time.perf_counter()-t3):.0f}ms -> {paths}")
 bpy.ops.wm.save_as_mainfile(filepath=os.path.join(out_dir, "result.blend"), copy=True)

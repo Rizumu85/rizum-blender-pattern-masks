@@ -208,9 +208,7 @@ def _ensure_emission(mat):
 def _apply_colors(ob):
     """Preview colors into the preview materials (display color and shader)."""
     s = ob.stitch_gen
-    pairs = []
-    if s.ribbon is not None and s.ribbon.type == 'MESH':
-        pairs += [(mat, s.stitch_color) for mat in s.ribbon.data.materials]
+    pairs = [(l.material, l.color) for l in _stitch_items(s)]
     pairs += [(l.material, l.color) for l in _line_items(s)]
     pairs += [(l.material, l.color) for l in _grid_items(s)]
     for l in _grid_items(s):                      # the grid shader's own color
@@ -227,12 +225,11 @@ def _apply_colors(ob):
                     n.inputs["Color"].default_value = col
 
 
-def _layer_materials(ob, create):
-    """Preview material of each shown line art layer, in the order of the
+def _preview_materials(ob, create, items, new, fallback):
+    """Preview material of each shown layer of ``items``, in the order of the
     preview's material slots. Only operators create new materials."""
-    s = ob.stitch_gen
     out = []
-    for l in _line_items(s):
+    for l in items:
         if not l.enabled:
             continue
         mat = l.material
@@ -241,12 +238,25 @@ def _layer_materials(ob, create):
                 o != ob and o.type == 'MESH' and any(x.material == mat for x in o.stitch_gen.lines)
                 for o in bpy.data.objects)
             if mat is None or shared:
-                mat = mat.copy() if shared else bpy.data.materials.new(LINE_MATERIAL)
+                mat = mat.copy() if shared else new()
                 mat.diffuse_color = l.color
                 l.material = mat
             _ensure_emission(mat)
-        out.append(mat if mat is not None else bpy.data.materials.get(LINE_MATERIAL))
+        out.append(mat if mat is not None else bpy.data.materials.get(fallback))
     return out
+
+
+def _layer_materials(ob, create):
+    """Preview material of each shown line art layer."""
+    return _preview_materials(ob, create, _line_items(ob.stitch_gen),
+                              lambda: bpy.data.materials.new(LINE_MATERIAL), LINE_MATERIAL)
+
+
+def _stitch_materials(ob, create):
+    """Preview material of each shown stitch layer: the stitch shader, in the
+    layer's color."""
+    return _preview_materials(ob, create, _stitch_items(ob.stitch_gen),
+                              lambda: _mask_material().copy(), MATERIAL)
 
 
 def _on_color(self, context):
@@ -518,30 +528,15 @@ def _write_lines(lo, data, mats):
         lo.matrix_world = Matrix.Identity(4)
 
 
-def _write_ribbon(rib_obj, data):
-    """Rewrite the preview mesh in place (no new data-blocks, undo-safe)."""
+def _write_ribbon(rib_obj, data, mats):
+    """Rewrite the stitch preview in place (no new data-blocks, undo-safe):
+    material slot i is the i-th shown stitch layer."""
     me = rib_obj.data
-    me.clear_geometry()
-    nv = len(data.co)
-    nq = len(data.quads)
-    if nq:
-        me.vertices.add(nv)
-        me.vertices.foreach_set("co", data.co.astype(np.float32).ravel())
-        me.loops.add(nq * 4)
-        me.loops.foreach_set("vertex_index", data.quads.astype(np.int32).ravel())
-        me.polygons.add(nq)
-        me.polygons.foreach_set("loop_start", (np.arange(nq, dtype=np.int32) * 4))
-        loop_v = data.quads.ravel()
-        a = me.attributes.new("stitch_uv", 'FLOAT2', 'CORNER')
-        a.data.foreach_set("vector", data.uv[loop_v].astype(np.float32).ravel())
-        a = me.attributes.new("stitch_dims", 'FLOAT_VECTOR', 'POINT')
-        a.data.foreach_set("vector", data.dims.astype(np.float32).ravel())
-        # Cycles misreads plain FLOAT attributes here; carry the texel size in a vector.
-        a = me.attributes.new("stitch_aa", 'FLOAT_VECTOR', 'POINT')
-        aa = np.zeros((nv, 3), np.float32)
-        aa[:, 0] = data.aa
-        a.data.foreach_set("vector", aa.ravel())
-    me.update()
+    if list(me.materials) != mats:
+        me.materials.clear()
+        for mat in mats:
+            me.materials.append(mat)
+    bake.write_ribbon_mesh(me, [r for _attr, r in data.stitches])
     if rib_obj.matrix_world != Matrix.Identity(4):
         rib_obj.matrix_world = Matrix.Identity(4)
 
@@ -592,18 +587,17 @@ def _on_size(self, context):
 def _params(s, scene):
     # UI values are millimetres; geometry works in scene units.
     k = 0.001 / (scene.unit_settings.scale_length or 1.0)
-    st = _stitch_item(s)
     return {
-        "inset": s.inset * k, "smooth": s.smooth * k, "flip": s.flip,
-        "length": s.length * k, "gap": s.gap * k, "width": s.width * k, "round": s.roundness,
+        "flip": s.flip,
         "offset": 0.0,                     # sliding the stitches was dropped in 0.3.0
-        "zigzag": s.zigzag_height * k if s.style == 'ZIGZAG' else 0.0,
-        "even": s.even, "resolution": int(s.resolution),
+        "resolution": int(s.resolution),
         "corner": 0.0,
-        "corner_inset": s.corner_inset * k,
         "uv_name": s.uv_map,
-        "stitches": _stitches_on(s),
-        "stitch_attrs": _edge_spec(s, st) if st is not None else (core.PATH_ATTR, None),
+        "stitch_layers": tuple(
+            (_layer_attr(l), _edge_spec(s, l), l.inset * k, l.stitch_smooth * k,
+             l.corner_inset * k, l.length * k, l.gap * k, l.thread_width * k, l.roundness,
+             l.even, l.zigzag_height * k if l.style == 'ZIGZAG' else 0.0)
+            for l in _stitch_items(s) if l.enabled),
         "lines": tuple((l.offset * k, l.width * k, l.corner_inset * k, _edge_spec(s, l),
                         l.smooth * k, _layer_attr(l)) for l in _line_items(s) if l.enabled),
         "grids": tuple((_layer_attr(l), l.grid_cell * k, l.grid_angle, l.grid_from * k,
@@ -619,7 +613,9 @@ def _layer_attr(layer):
 
 
 def _is_stitch(layer):
-    return layer.edge_attr == core.PATH_ATTR
+    # the stitch row of files from before 0.4.0 is told by its edges until
+    # it is migrated
+    return layer.kind == 'STITCH' or layer.edge_attr == core.PATH_ATTR
 
 
 def _is_grid(layer):
@@ -636,16 +632,22 @@ def _grid_items(s):
     return [l for l in s.lines if _is_grid(l)]
 
 
+def _stitch_items(s):
+    """The stitch layers."""
+    return [l for l in s.lines if _is_stitch(l)]
+
+
 def _stitch_item(s):
-    for l in s.lines:
-        if _is_stitch(l):
-            return l
-    return None
+    """The stitch layer the object's stitch settings stand for (scripts,
+    presets): the one selected in the list, else the first."""
+    if 0 <= s.line_index < len(s.lines) and _is_stitch(s.lines[s.line_index]):
+        return s.lines[s.line_index]
+    return next((l for l in s.lines if _is_stitch(l)), None)
 
 
 def _stitches_on(s):
-    """Stitches are made when the list has a stitch row and its eye is on."""
-    return s.stitches and _stitch_item(s) is not None
+    """Stitches are made when a stitch layer's eye is on."""
+    return any(l.enabled for l in _stitch_items(s))
 
 
 def _uses_addon(ob):
@@ -655,18 +657,75 @@ def _uses_addon(ob):
                 or core.PATH_ATTR in ob.data.attributes)
 
 
-def _new_stitch_row(s):
-    had = len(s.lines)
+STITCH_COLOR = (1.0, 0.35, 0.05, 1.0)
+
+# Before 0.4.0 the stitch settings were the object's own; they are now each
+# stitch layer's. The object's names stay for presets and scripts and stand
+# for the stitch layer selected in the list (else the first); a value stored
+# under them in an older file (or set before there was a stitch layer) goes
+# to the object's first stitch layer.
+_STITCH_MAP = {"inset": "inset", "smooth": "stitch_smooth", "corner_inset": "corner_inset",
+               "style": "style", "zigzag_height": "zigzag_height", "length": "length",
+               "gap": "gap", "width": "thread_width", "roundness": "roundness",
+               "even": "even", "stitches": "enabled", "stitch_color": "color"}
+_STYLES = ('DASH', 'ZIGZAG')
+
+
+def _stitch_from_stored(s, item):
+    """Give a stitch layer the stitch settings stored on the object."""
+    for name, iname in _STITCH_MAP.items():
+        v = s.get(name)
+        if v is None:
+            continue
+        if name == "style":
+            v = _STYLES[int(v)]
+        elif name in ("even", "stitches"):
+            v = bool(v)
+        elif name == "stitch_color":
+            v = tuple(v)
+        setattr(item, iname, v)
+
+
+def _new_stitch_layer(ob):
+    """Add a stitch layer, selected. The object's first one takes the stitch
+    edges (if no layer has them) and the stitch settings the object may
+    already have; the others start their own, still empty, set of edges."""
+    s = ob.stitch_gen
+    first = not _stitch_items(s)
+    attrs = {l.edge_attr for l in s.lines}
     item = s.lines.add()
-    item.name = "Stitches"
-    item.edge_attr = core.PATH_ATTR
-    s.lines.move(len(s.lines) - 1, 0)
-    return had
+    item.kind = 'STITCH'
+    item.color = STITCH_COLOR
+    if core.PATH_ATTR not in attrs:
+        item.edge_attr = core.PATH_ATTR
+    else:
+        used = set(ob.data.attributes.keys()) | attrs
+        n = 1
+        while f"{core.LINE_ATTR}_{n}" in used:
+            n += 1
+        item.edge_attr = f"{core.LINE_ATTR}_{n}"
+    if first:
+        _stitch_from_stored(s, item)
+    _default_name(s, item, "stitch")
+    s.line_index = len(s.lines) - 1
+    return item
+
+
+def _default_name(s, item, stem):
+    """stem, stem2, ...: a default name no other layer has (it names the
+    mask file)."""
+    names = {l.name for l in s.lines if l != item}
+    k = 1
+    item.name = stem
+    while item.name in names:
+        k += 1
+        item.name = f"{stem}{k}"
 
 
 def _ensure_layers(ob):
-    """Bring objects set up before 0.3.0 to the layer list, once: objects that
-    used stitches get the stitch row, line layers their own color. Objects
+    """Bring objects set up by older versions up to date, once: before 0.3.0
+    objects that used stitches get the stitch row and line layers their own
+    color; before 0.4.0 the stitch settings move onto the stitch row. Objects
     that never used the add-on are left alone (the list starts empty)."""
     s = ob.stitch_gen
     if s.ui_version >= UI_VERSION:
@@ -675,8 +734,10 @@ def _ensure_layers(ob):
         return
     if s.ui_version >= 1:
         _migrate_references(ob)
+        _migrate_stitch_layers(ob)
         return
     _migrate_line_layers(ob)      # also when the file was open before the add-on
+    _migrate_units(s)             # before the stitch row takes the stored values
     global _MUTE
     _MUTE = True
     try:
@@ -686,32 +747,57 @@ def _ensure_layers(ob):
                 if not l.is_property_set("width"):
                     l.width = 1.0          # the default width before 0.3.0
         used_stitches = s.ribbon is not None or core.PATH_ATTR in ob.data.attributes
-        if used_stitches and _stitch_item(s) is None:
-            had = _new_stitch_row(s)
-            s.line_index = min(s.line_index + 1, len(s.lines) - 1) if had else 0
+        if used_stitches and not _stitch_items(s):
+            sel = s.line_index if len(s.lines) else -1
+            _new_stitch_layer(ob)
+            s.lines.move(len(s.lines) - 1, 0)          # the stitch row came first
+            s.line_index = sel + 1 if sel >= 0 else 0
         s.ui_version = 1
     finally:
         _MUTE = False
     _migrate_references(ob)
+    _migrate_stitch_layers(ob)
 
 
-UI_VERSION = 2           # 1: the layer list (0.3.0); 2: references between layers
+UI_VERSION = 3   # 1: the layer list (0.3.0); 2: references; 3: stitch layers (0.4.0)
+
+
+def _migrate_stitch_layers(ob):
+    """Before 0.4.0 an object had one stitch row whose settings were the
+    object's own: they move onto the row, a stitch layer like any other."""
+    s = ob.stitch_gen
+    if s.ui_version >= 3:
+        return
+    _migrate_units(s)              # what is stored is millimetres from here on
+    global _MUTE
+    _MUTE = True
+    try:
+        for l in s.lines:
+            if l.kind != 'STITCH' and l.edge_attr == core.PATH_ATTR:
+                l.kind = 'STITCH'
+                l.color = STITCH_COLOR
+                if l.name in ("Stitches", "line"):
+                    _default_name(s, l, "stitch")
+                _stitch_from_stored(s, l)
+        s.ui_version = 3
+    finally:
+        _MUTE = False
 
 
 def _migrate_references(ob):
     """Before references, a line art layer followed the stitch edges when its
     Include Stitch Edges was on (the default): it now refers to the stitches."""
     s = ob.stitch_gen
-    if s.ui_version >= UI_VERSION:
+    if s.ui_version >= 2:
         return
     global _MUTE
     _MUTE = True
     try:
-        if _stitch_item(s) is not None:
+        if _stitch_items(s):
             for l in _line_items(s):
                 if l.include_stitch and not l.ref_attr:
                     l.ref_attr = core.PATH_ATTR
-        s.ui_version = UI_VERSION
+        s.ui_version = 2
     finally:
         _MUTE = False
 
@@ -830,8 +916,7 @@ def regenerate(obj, scene=None, create=False):
     scene = scene or bpy.context.scene
     s = obj.stitch_gen
     _migrate_units(s)
-    if create:
-        _ensure_layers(obj)
+    _ensure_layers(obj)           # older files: never build from settings not yet moved
     src = None
     try:
         me = obj.data
@@ -858,15 +943,15 @@ def regenerate(obj, scene=None, create=False):
     overlay.invalidate(obj)
     s.status = ""
     s.dash_count = data.dash_count
-    s.width_px = data.width_px
-    s.gap_px = data.gap_px
+    for l, (_attr, r) in zip([l for l in _stitch_items(s) if l.enabled], data.stitches):
+        l.dash_count = r.dash_count
     _release_shared_previews(obj)
     if create and s.ribbon is None and s.line_preview is None and s.grid_preview is None:
         _inherit_bake_settings(obj, scene)        # first set-up of this object
     sig = _params_sig(_last_params[obj.name_full])
     rib = _ribbon_object(obj, scene, create and data.dash_count > 0)
     if rib is not None:
-        _write_ribbon(rib, data)
+        _write_ribbon(rib, data, _stitch_materials(obj, create))
         rib.data[SIG_PROP] = sig
     lo = _line_object(obj, scene, create and len(data.line_quads) > 0)
     if lo is not None:
@@ -902,9 +987,9 @@ def _migrate_units(s):
         # already the new millimetre defaults. A saved length under 0.05 is a
         # metre value (0.05 mm stitches make no sense).
         for name in _MM_PROPS:
-            v = getattr(s, name)
-            if s.is_property_set(name) and 0 < abs(v) < 0.05:
-                setattr(s, name, v * 1000.0)
+            v = s.get(name)
+            if v is not None and 0 < abs(v) < 0.05:
+                s[name] = v * 1000.0
         s.units_version = 1
     finally:
         _MUTE = False
@@ -928,7 +1013,7 @@ def _on_load(_dummy):
         if ob.type == 'MESH':
             st = ob.stitch_gen
             row = next((i for i, l in enumerate(st.lines) if _is_stitch(l)), None)
-            if (row is not None and st.ribbon is None
+            if (row is not None and st.ui_version < 3 and st.ribbon is None
                     and core.PATH_ATTR not in ob.data.attributes):
                 # a stitch row a 0.3.0 test build added on its own, never used
                 st.lines.remove(row)
@@ -1118,17 +1203,17 @@ def _on_marks(self, context):
                 area.tag_redraw()
 
 
-_DEFAULT_NAME = re.compile(r"(line|grid)(\d*)")
+_DEFAULT_NAME = re.compile(r"(line|grid|stitch)(\d*)")
 
 
 def _display_name(layer):
-    """A default name ("line", "line2", ...) in the interface language, like
-    the stitch row; a name the user typed as it is. Files use ``name``."""
+    """A default name ("line", "line2", "stitch", ...) in the interface
+    language; a name the user typed as it is. Files use ``name``."""
     m = _DEFAULT_NAME.fullmatch(layer.name)
     if m is None:
         return layer.name
-    base = bpy.app.translations.pgettext_iface("Line" if m.group(1) == "line" else "Grid",
-                                               i18n.CTX)
+    base = bpy.app.translations.pgettext_iface(
+        {"line": "Line", "grid": "Grid", "stitch": "Stitches"}[m.group(1)], i18n.CTX)
     return f"{base} {m.group(2)}" if m.group(2) else base
 
 
@@ -1139,8 +1224,7 @@ def _set_display_name(layer, value):
 
 
 class StitchGenLine(bpy.types.PropertyGroup):
-    """A row of the layer list: the stitch row (its settings live on the
-    object's settings) or a line art layer."""
+    """A row of the layer list: a stitch, line art or grid layer."""
     name: StringProperty(name="Name", default="line",
                          description="Used in the file name of this layer's mask")
     label: StringProperty(name="Name", get=_display_name, set=_set_display_name,
@@ -1172,8 +1256,37 @@ class StitchGenLine(bpy.types.PropertyGroup):
                              description="Edges of the layer this one also follows")
     # replaced by references; kept so files and presets from 0.3.0 still load
     include_stitch: BoolProperty(default=True, options={'HIDDEN'})
-    kind: EnumProperty(items=[('LINE', "Line Art", ""), ('GRID', "Grid", "")], default='LINE',
-                       options={'HIDDEN'})
+    kind: EnumProperty(items=[('LINE', "Line Art", ""), ('GRID', "Grid", ""),
+                              ('STITCH', "Stitches", "")], default='LINE', options={'HIDDEN'})
+    # a stitch layer's own settings
+    inset: _mm("Offset Inward", 3.0, "How far the stitch line sits inward from the marked "
+               "edges", minv=-1000.0, soft_max=30.0)
+    stitch_smooth: _mm("Smooth", 2.0, "Evens out low-poly zigzags along the line; larger "
+                       "values also flatten curves", soft_max=50.0)
+    style: EnumProperty(
+        name="Style", translation_context=i18n.CTX, default='DASH', update=_on_change,
+        items=[('DASH', "Dashed", "Separate stitches along the line"),
+               ('ZIGZAG', "Zigzag", "One thread going back and forth across the line")],
+        description="Kind of stitch")
+    zigzag_height: _mm("Height", 3.0, "How far the zigzag swings across the line, from "
+                       "peak to peak", minv=0.0, soft_max=20.0)
+    length: _mm("Length", 4.0, "Length of each stitch; for a zigzag, the distance along "
+                "the line from one peak to the next", minv=0.01, soft_max=20.0)
+    gap: _mm("Gap", 2.0, "Space between stitches", soft_max=20.0)
+    thread_width: _mm("Width", 1.2, "Thread width", minv=0.01, soft_max=10.0)
+    roundness: FloatProperty(name="Round Ends", default=1.0, min=0.0, max=1.0, subtype='FACTOR',
+                             update=_on_change,
+                             description="Corner radius of each stitch as a fraction of half "
+                                         "its width (1 = fully round ends)")
+    roundness_pct: FloatProperty(
+        name="Round Ends", min=0.0, max=100.0, subtype='PERCENTAGE', precision=0, step=500,
+        description="Corner radius of each stitch: 100% gives fully round ends",
+        get=lambda self: self.roundness * 100.0,
+        set=lambda self, v: setattr(self, "roundness", v / 100.0))
+    even: BoolProperty(name="Even Fit", default=True, update=_on_change,
+                       description="Closed loops get a whole number of stitches; open lines "
+                                   "get equal space at both ends")
+    dash_count: IntProperty(options={'HIDDEN'})       # stitches made last time
     grid_from: _mm("Offset Inward", 0.0, "Slides the squares inward from the marked edge",
                    minv=-1000.0, soft_min=-100.0, soft_max=100.0)
     grid_along: _mm("Offset Along", 0.0, "Slides the squares along the marked edge",
@@ -1201,19 +1314,57 @@ class StitchGenLine(bpy.types.PropertyGroup):
     grid_panel: FloatProperty(default=40.0, options={'HIDDEN'})
 
 
+# the stitch layer defaults (StitchGenLine), for a stand-in without a layer
+_STITCH_DEFAULTS = {"inset": 3.0, "smooth": 2.0, "corner_inset": 0.0, "style": 0,
+                    "zigzag_height": 3.0, "length": 4.0, "gap": 2.0, "width": 1.2,
+                    "roundness": 1.0, "even": True, "stitches": True,
+                    "stitch_color": STITCH_COLOR}
+
+
+def _stand_in(name):
+    """An object-level stitch setting standing for the setting of the stitch
+    layer the object's stitch settings stand for (_stitch_item). Without a
+    stitch layer it keeps the value for the first one."""
+    iname = _STITCH_MAP[name]
+
+    def default():
+        return _STITCH_DEFAULTS[name]
+
+    def get(self):
+        t = _stitch_item(self)
+        if t is not None:
+            v = getattr(t, iname)
+            return _STYLES.index(v) if name == "style" else tuple(v) if name == "stitch_color" else v
+        v = self.get(name)
+        return default() if v is None else (tuple(v) if name == "stitch_color" else v)
+
+    def set(self, v):
+        t = _stitch_item(self)
+        if t is None:
+            self[name] = list(v) if name == "stitch_color" else v
+        elif name == "style":
+            t.style = _STYLES[v]
+        else:
+            setattr(t, iname, v)
+
+    if name == "style":
+        return EnumProperty(items=[(k, k, "") for k in _STYLES], get=get, set=set,
+                            options={'HIDDEN'})
+    if name in ("even", "stitches"):
+        return BoolProperty(get=get, set=set, options={'HIDDEN'})
+    if name == "stitch_color":
+        return bpy.props.FloatVectorProperty(subtype='COLOR', size=4, get=get, set=set,
+                                             options={'HIDDEN'})
+    return FloatProperty(get=get, set=set, options={'HIDDEN'})
+
+
 class StitchGenSettings(bpy.types.PropertyGroup):
     ribbon: PointerProperty(type=bpy.types.Object)
     line_preview: PointerProperty(type=bpy.types.Object)
     grid_preview: PointerProperty(type=bpy.types.Object)
-    stitch_color: bpy.props.FloatVectorProperty(
-        name="Stitch Color", subtype='COLOR', size=4, min=0.0, max=1.0,
-        default=(1.0, 0.35, 0.05, 1.0), update=_on_color,
-        description="Color of the stitch preview in the viewport (not baked)")
     line_color: bpy.props.FloatVectorProperty(       # before 0.3.0: one for all layers
         subtype='COLOR', size=4, min=0.0, max=1.0, default=(0.0, 0.0, 0.0, 1.0),
         options={'HIDDEN'})
-    stitches: BoolProperty(name="Stitches", default=True, update=_on_change,
-                           description="Show and bake the stitches")
     lines: CollectionProperty(type=StitchGenLine)      # the layer list
     line_index: IntProperty(name="Layer", default=0, update=_on_marks)
     show_corners: BoolProperty(name="Show Corners", default=True, update=_on_marks,
@@ -1223,41 +1374,25 @@ class StitchGenSettings(bpy.types.PropertyGroup):
     live: BoolProperty(name="Live", default=True, update=_on_change,
                        description="Rebuild the stitches while you change the values")
 
-    inset: _mm("Offset Inward", 3.0, "How far the stitch line sits inward from the marked "
-               "edges", minv=-1000.0, soft_max=30.0)
-    smooth: _mm("Smooth", 2.0, "Evens out low-poly zigzags along the line; larger values "
-                "also flatten curves", soft_max=50.0)
-    corner_inset: _mm("Corner Depth", 0.0, "Extra inward offset at marked corners, tapering "
-                      "off along the line, for a deeper, pointed corner", soft_max=10.0)
     flip: BoolProperty(name="Flip Side", default=False, update=_on_change,
                        description="Inset to the other side of the picked edges")
 
-    style: EnumProperty(
-        name="Style", translation_context=i18n.CTX, default='DASH', update=_on_change,
-        items=[('DASH', "Dashed", "Separate stitches along the line"),
-               ('ZIGZAG', "Zigzag", "One thread going back and forth across the line")],
-        description="Kind of stitch")
-    zigzag_height: _mm("Height", 3.0, "How far the zigzag swings across the line, from "
-                       "peak to peak", minv=0.0, soft_max=20.0)
-    length: _mm("Length", 4.0, "Length of each stitch; for a zigzag, the distance along "
-                "the line from one peak to the next", minv=0.01, soft_max=20.0)
-    gap: _mm("Gap", 2.0, "Space between stitches", soft_max=20.0)
-    width: _mm("Width", 1.2, "Thread width", minv=0.01, soft_max=10.0)
-    roundness: FloatProperty(name="Round Ends", default=1.0, min=0.0, max=1.0,
-                             description="Corner radius of each stitch as a fraction of half its width (1 = fully round ends)",
-                             subtype='FACTOR', update=_on_change)
-    # the same value shown as a percentage (stored as the fraction above,
-    # so files and presets keep working)
-    roundness_pct: FloatProperty(
-        name="Round Ends", min=0.0, max=100.0, subtype='PERCENTAGE', precision=0, step=500,
-        description="Corner radius of each stitch: 100% gives fully round ends",
-        get=lambda self: self.roundness * 100.0,
-        set=lambda self, v: setattr(self, "roundness", v / 100.0))
     offset: _mm("Offset", 0.0, "Slide the stitches along the line", minv=-1000.0,
                 soft_max=20.0)
-    even: BoolProperty(name="Even Fit", default=True, update=_on_change,
-                       description="Closed loops get a whole number of stitches; open lines get equal space at both ends")
-
+    # Before 0.4.0 the stitch settings: now stand-ins for those of a stitch
+    # layer (see _STITCH_MAP), for presets and scripts
+    inset: _stand_in("inset")
+    smooth: _stand_in("smooth")
+    corner_inset: _stand_in("corner_inset")
+    style: _stand_in("style")
+    zigzag_height: _stand_in("zigzag_height")
+    length: _stand_in("length")
+    gap: _stand_in("gap")
+    width: _stand_in("width")
+    roundness: _stand_in("roundness")
+    even: _stand_in("even")
+    stitches: _stand_in("stitches")
+    stitch_color: _stand_in("stitch_color")
     resolution: EnumProperty(name="Size", description="Size of the baked mask PNGs, in pixels", items=[
         ('1024', "1024", ""), ('2048', "2048", ""), ('4096', "4096", ""), ('8192', "8192", "")],
         default='4096', update=_on_size)
@@ -1327,26 +1462,28 @@ def _edited(context, main):
     return out
 
 
+def _layer_kind(item):
+    return 'STITCH' if _is_stitch(item) else 'GRID' if _is_grid(item) else 'LINE'
+
+
 def _layer_spec(s):
-    """('STITCH', None) or (kind, name) of the layer selected in the list."""
-    if 0 <= s.line_index < len(s.lines) and not _is_stitch(s.lines[s.line_index]):
+    """(kind, name) of the layer selected in the list; ('STITCH', None)
+    without one (scripts): the first stitch layer."""
+    if 0 <= s.line_index < len(s.lines):
         item = s.lines[s.line_index]
-        return ('GRID' if _is_grid(item) else 'LINE', item.name)
+        return (_layer_kind(item), item.name)
     return ('STITCH', None)
 
 
 def _select_twin(context, ob, spec, create):
-    """Select on ``ob`` the layer that matches ``spec``: its stitches, or its
-    line art or grid layer of that name. ``create`` makes it when missing.
-    False when there is none."""
+    """Select on ``ob`` the layer that matches ``spec``: the layer of that
+    kind and name (no name: the first stitch layer). ``create`` makes it when
+    missing. False when there is none."""
     s = ob.stitch_gen
     _ensure_layers(ob)
     kind, name = spec
-    if kind == 'STITCH':
-        found = next((i for i, l in enumerate(s.lines) if _is_stitch(l)), None)
-    else:
-        found = next((i for i, l in enumerate(s.lines) if not _is_stitch(l)
-                      and _is_grid(l) == (kind == 'GRID') and l.name == name), None)
+    found = next((i for i, l in enumerate(s.lines) if _layer_kind(l) == kind
+                  and (name is None or l.name == name)), None)
     if found is not None:
         if s.line_index != found:
             s.line_index = found
@@ -1356,12 +1493,12 @@ def _select_twin(context, ob, spec, create):
     global _MUTE
     _MUTE = True
     try:
-        if kind == 'STITCH':               # the stitch settings are the object's own: kept
-            _new_stitch_row(s)
-            s.line_index = 0
+        if kind == 'STITCH':
+            _new_stitch_layer(ob)
         else:
             _new_line_layer(ob, kind)
-            _apply_default_to_new(context, ob, kind)
+        _apply_default_to_new(context, ob, kind)
+        if name:
             s.lines[s.line_index].name = name
         s.ui_version = UI_VERSION
     finally:
@@ -1420,7 +1557,8 @@ class _EditPathBase:
         if targets and not done:
             return {'CANCELLED'}
         if adds and spec[0] == 'STITCH' and any(
-                ob.stitch_gen.dash_count == 0 and not ob.stitch_gen.status for ob in done):
+                _selected_layer_of(ob) is not None and _selected_layer_of(ob).dash_count == 0
+                and not ob.stitch_gen.status for ob in done):
             self.report({'WARNING'}, rpt("The marked edges are too short for a stitch"))
         return {'FINISHED'}
 
@@ -1451,14 +1589,16 @@ class _EditPathBase:
             global _MUTE
             _MUTE = True                     # edges added to a hidden layer: show it
             try:
-                if _is_stitch(item):
-                    s.stitches = True
-                else:
-                    item.enabled = True
+                item.enabled = True
             finally:
                 _MUTE = False
         regenerate(ob, context.scene, create=True)
         return True
+
+
+def _selected_layer_of(ob):
+    s = ob.stitch_gen
+    return s.lines[s.line_index] if 0 <= s.line_index < len(s.lines) else None
 
 
 def _edge_attr(ob):
@@ -1731,20 +1871,14 @@ class STITCHGEN_OT_grid_add(bpy.types.Operator):
 
 
 class STITCHGEN_OT_stitch_add(bpy.types.Operator):
-    """Add the stitches; while they are selected, the edge buttons mark their edges"""
+    """Add a stitch layer; while it is selected, the edge buttons mark its edges"""
     bl_idname = "stitch_gen.stitch_add"
     bl_label = "Add Stitches"
     bl_options = {'REGISTER', 'UNDO'}
 
     @classmethod
     def poll(cls, context):
-        ob = _source_object(context)
-        if ob is None:
-            return False
-        if _stitch_item(ob.stitch_gen) is None:
-            return True
-        cls.poll_message_set(rpt("The object already has stitches"))
-        return False
+        return _source_object(context) is not None
 
     def execute(self, context):
         ob = _source_object(context)
@@ -1753,10 +1887,8 @@ class STITCHGEN_OT_stitch_add(bpy.types.Operator):
         _ensure_layers(ob)
         _MUTE = True
         try:
-            _new_stitch_row(s)
-            s.line_index = 0
+            _new_stitch_layer(ob)
             _apply_default_to_new(context, ob, 'STITCH')
-            s.stitches = True
             s.ui_version = UI_VERSION
         finally:
             _MUTE = False
@@ -1896,7 +2028,7 @@ def _bake_count(ob):
     """Layers the bake will write: the shown ones that have something to bake."""
     s = ob.stitch_gen
     attrs = ob.data.attributes
-    n = 1 if _stitches_on(s) and s.dash_count > 0 else 0
+    n = sum(1 for l in _stitch_items(s) if l.enabled and l.dash_count > 0)
     for l in _line_items(s):
         if l.enabled and l.width > 0 and any(a in attrs for a in _edge_set(s, l)):
             n += 1
@@ -1986,7 +2118,7 @@ _PICK = {}               # while the eyedropper is on: object name, edges of the
 
 
 def _layer_label(layer):
-    return iface("Stitches") if _is_stitch(layer) else _display_name(layer)
+    return _display_name(layer)
 
 
 def _layer_icon(layer):
@@ -2250,11 +2382,11 @@ def _default_preset(kind):
 
 
 def _preset_target(ob, kind):
-    """What a preset of this kind sets on the object: the stitch settings, or
-    the selected layer if it is of that kind; None otherwise."""
+    """What a preset of this kind sets: the selected layer if it is of that
+    kind (stitch presets: else the first stitch layer); None otherwise."""
     s = ob.stitch_gen
     if kind == 'STITCH':
-        return s
+        return _stitch_item(s)
     if 0 <= s.line_index < len(s.lines):
         item = s.lines[s.line_index]
         if not _is_stitch(item) and (kind == 'GRID') == _is_grid(item):
@@ -2270,7 +2402,8 @@ def _apply_preset(context, ob, kind, filepath):
     if data is None:
         return False
     for name in _DEFAULT_PROPS[kind]:
-        data.property_unset(name)
+        # stitch presets name the object's settings, which stand for the layer's
+        data.property_unset(_STITCH_MAP[name] if kind == 'STITCH' else name)
     if filepath:
         # preset files act on the active object
         with context.temp_override(active_object=ob, object=ob):
@@ -2580,9 +2713,14 @@ class STITCHGEN_OT_edit_color(bpy.types.Operator):
             return None, None
         s = ob.stitch_gen
         item = s.lines[self.index]
-        return (s, "stitch_color") if _is_stitch(item) else (item, "color")
+        return item, "color"
 
     def invoke(self, context, event):
+        data, _prop = self._target(context)
+        if data is not None and data.material is None and not _is_grid(data):
+            # a layer from an older file has no preview material yet: make it
+            # here, so the color shows in the preview at once
+            regenerate(_source_object(context), context.scene, create=True)
         return context.window_manager.invoke_popup(self, width=200)
 
     def draw(self, context):
@@ -2601,16 +2739,11 @@ class STITCHGEN_UL_lines(bpy.types.UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname,
                   index=0, flt_flag=0):
         s = data
-        stitch = _is_stitch(item)
-        on = s.stitches if stitch else item.enabled
+        on = item.enabled
         row = layout.row(align=True)
         name = row.row(align=True)
         name.active = on
-        if stitch:
-            name.label(text="Stitches", icon=STITCH_ICON)
-        else:
-            name.prop(item, "label", text="", emboss=False,
-                      icon=GRID_ICON if _is_grid(item) else LINE_ICON)
+        name.prop(item, "label", text="", emboss=False, icon=_layer_icon(item))
         # a link when this layer follows another one, so the list shows who follows whom
         ref = _layer_by_attr(s, item.ref_attr) if item.ref_attr else None
         if ref is not None and ref != item:
@@ -2618,14 +2751,13 @@ class STITCHGEN_UL_lines(bpy.types.UIList):
         # The color as an icon like the toggles next to it (a framed swatch
         # gets joined with the swatches of the rows above and below).
         op = row.operator("stitch_gen.edit_color", text="", emboss=False,
-                          icon_value=_color_icon(s.stitch_color if stitch else item.color))
+                          icon_value=_color_icon(item.color))
         op.index = index
         marks = row.row(align=True)
         marks.active = item.show_marks and context.scene.stitch_gen_marks
         marks.prop(item, "show_marks", text="", emboss=False,
                    **_icon("marks", "wcol_list_item", item.show_marks))
-        row.prop(s if stitch else item, "stitches" if stitch else "enabled", text="",
-                 icon='HIDE_OFF' if on else 'HIDE_ON', emboss=False)
+        row.prop(item, "enabled", text="", icon='HIDE_OFF' if on else 'HIDE_ON', emboss=False)
 
 
 _bake_flag = {"state": None}
@@ -2648,7 +2780,7 @@ def _redraw(context):
 
 def _bakeable(ob, scene):
     s = ob.stitch_gen
-    return bool(_bake_count(ob) and ((_stitches_on(s) and s.ribbon is not None)
+    return bool(_bake_count(ob) and (_stitches_on(s)
                                      or _line_layers(s, scene) or _grid_layers(s, scene)))
 
 
@@ -2686,8 +2818,12 @@ class STITCHGEN_OT_bake(bpy.types.Operator):
         """(stitch session or None, line bake or None) for this object."""
         s = ob.stitch_gen
         session = lines = None
-        if _stitches_on(s) and data.dash_count > 0 and s.ribbon is not None:
-            session = bake.BakeSession(context, ob, s.ribbon, data, s)
+        if data.dash_count > 0:
+            shown = [l for l in _stitch_items(s) if l.enabled]
+            names = bake.unique_names([l.name for l in shown], "stitch")
+            session = bake.BakeSession(context, ob, [(r, n) for (_a, r), n in
+                                                     zip(data.stitches, names)],
+                                       s, _mask_material())
         layers = _line_layers(s, context.scene)
         entry = core._cache.get(ob.name_full)
         texel = []                          # bakes computed per texel (no Cycles)
@@ -2724,8 +2860,7 @@ class STITCHGEN_OT_bake(bpy.types.Operator):
                 try:
                     session, lines = self._jobs(context, ob, data)
                     if session is not None:
-                        paths += bake.bake_masks(context, ob, ob.stitch_gen.ribbon, data,
-                                                 ob.stitch_gen)
+                        paths += bake.bake_masks(session)
                     if lines is not None:
                         for i in range(len(lines.groups)):
                             paths += lines.step(i, paths)
@@ -3016,11 +3151,7 @@ class VIEW3D_PT_stitch_gen(bpy.types.Panel):
 
         # the selected layer's own settings, with its presets
         header, body = lay.panel("stitch_gen_layer", default_closed=False)
-        if stitch:
-            header.label(text="Stitches", icon=STITCH_ICON)
-        else:
-            header.label(text=_display_name(item), icon=GRID_ICON if is_grid else LINE_ICON,
-                         translate=False)
+        header.label(text=_display_name(item), icon=_layer_icon(item), translate=False)
         pr = header.row()
         pr.alignment = 'RIGHT'
         pr.emboss = 'NONE'                  # a plain icon, not a dark popup button
@@ -3047,26 +3178,25 @@ class VIEW3D_PT_stitch_gen(bpy.types.Panel):
         elif body:
             # Same groups, same order for all: where the line runs, then its shape.
             body = body.column()
-            src = s if stitch else item
-            body.active = s.stitches if stitch else item.enabled
+            body.active = item.enabled
             col = body.column(align=True)
-            col.prop(src, "inset" if stitch else "offset")
-            col.prop(src, "corner_inset")
-            body.prop(src, "smooth")
+            col.prop(item, "inset" if stitch else "offset")
+            col.prop(item, "corner_inset")
+            body.prop(item, "stitch_smooth" if stitch else "smooth")
             col = body.column(align=True)
             if stitch:
                 col = body.column()
-                col.row().prop(s, "style", expand=True)
+                col.row().prop(item, "style", expand=True)
                 col = body.column(align=True)
-            col.prop(src, "width")
-            if stitch and s.style == 'ZIGZAG':
-                col.prop(s, "length")
-                col.prop(s, "zigzag_height")
+            col.prop(item, "thread_width" if stitch else "width")
+            if stitch and item.style == 'ZIGZAG':
+                col.prop(item, "length")
+                col.prop(item, "zigzag_height")
             elif stitch:
-                col.prop(s, "length")
-                col.prop(s, "gap")
-                col.prop(s, "roundness_pct", slider=True)
-                body.prop(s, "even")
+                col.prop(item, "length")
+                col.prop(item, "gap")
+                col.prop(item, "roundness_pct", slider=True)
+                body.prop(item, "even")
 
         wm = context.window_manager
 
@@ -3168,6 +3298,13 @@ classes = (
 )
 
 
+def _migrate_open_file():
+    for ob in bpy.data.objects:
+        if ob.type == 'MESH' and _uses_addon(ob):
+            _ensure_layers(ob)
+    return None
+
+
 def register():
     for c in classes:
         bpy.utils.register_class(c)
@@ -3184,12 +3321,17 @@ def register():
     overlay.register()
     _icons["coll"] = bpy.utils.previews.new()
     bpy.app.handlers.load_post.append(_on_load)
+    # enabled with a file already open: bring its objects up to date (data
+    # can't be written while registering)
+    bpy.app.timers.register(_migrate_open_file, first_interval=0.0)
     bpy.app.handlers.undo_post.append(_on_undo_redo)
     bpy.app.handlers.redo_post.append(_on_undo_redo)
     bpy.app.handlers.depsgraph_update_post.append(_sync_previews)
 
 
 def unregister():
+    if bpy.app.timers.is_registered(_migrate_open_file):
+        bpy.app.timers.unregister(_migrate_open_file)
     if _sync_previews in bpy.app.handlers.depsgraph_update_post:
         bpy.app.handlers.depsgraph_update_post.remove(_sync_previews)
     if _on_load in bpy.app.handlers.load_post:

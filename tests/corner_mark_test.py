@@ -28,7 +28,7 @@ bpy.ops.stitch_gen.path_add()
 
 def corners():
     sg.regenerate(ob)
-    return [c for cl in core._cache[ob.name_full]["cls"] for c in cl.corners]
+    return [c for cl in next(iter(core._cache[ob.name_full]["stitch"].values()))["cls"] for c in cl.corners]
 
 
 before = len(corners())

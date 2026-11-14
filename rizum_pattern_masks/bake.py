@@ -218,21 +218,61 @@ def output_path(obj, mat_name, tile, folder, kind="stitch"):
     return os.path.join(folder, name + ".png")
 
 
-class BakeSession:
-    """One bake of all texture sets, split into steps so it can also run as a
-    background job (Blender stays usable and shows a progress bar):
+def write_ribbon_mesh(me, ribs):
+    """Rewrite a mesh with the stitches of ``ribs`` (RibbonData), those of
+    ribs[i] in material slot i, with the attributes the stitch shader draws
+    them from."""
+    me.clear_geometry()
+    ribs = [r for r in ribs]
+    parts = [(i, r) for i, r in enumerate(ribs) if len(r.quads)]
+    if parts:
+        base = np.cumsum([0] + [len(r.co) for _i, r in parts])
+        co = np.vstack([r.co for _i, r in parts])
+        quads = np.vstack([r.quads + b for (_i, r), b in zip(parts, base)])
+        uv = np.vstack([r.uv for _i, r in parts])
+        dims = np.vstack([r.dims for _i, r in parts])
+        aa = np.concatenate([r.aa for _i, r in parts])
+        slot = np.concatenate([np.full(len(r.quads), i, np.int32) for i, r in parts])
+        nv, nq = len(co), len(quads)
+        me.vertices.add(nv)
+        me.vertices.foreach_set("co", co.astype(np.float32).ravel())
+        me.loops.add(nq * 4)
+        me.loops.foreach_set("vertex_index", quads.astype(np.int32).ravel())
+        me.polygons.add(nq)
+        me.polygons.foreach_set("loop_start", (np.arange(nq, dtype=np.int32) * 4))
+        me.polygons.foreach_set("material_index", slot)
+        a = me.attributes.new("stitch_uv", 'FLOAT2', 'CORNER')
+        a.data.foreach_set("vector", uv[quads.ravel()].astype(np.float32).ravel())
+        a = me.attributes.new("stitch_dims", 'FLOAT_VECTOR', 'POINT')
+        a.data.foreach_set("vector", dims.astype(np.float32).ravel())
+        # Cycles misreads plain FLOAT attributes here; carry the texel size in a vector.
+        a = me.attributes.new("stitch_aa", 'FLOAT_VECTOR', 'POINT')
+        aa3 = np.zeros((nv, 3), np.float32)
+        aa3[:, 0] = aa
+        a.data.foreach_set("vector", aa3.ravel())
+    me.update()
 
-        session = BakeSession(context, obj, ribbon, rib, settings)
+
+class BakeSession:
+    """One bake of all texture sets of each stitch layer, split into steps so
+    it can also run as a background job (Blender stays usable and shows a
+    progress bar):
+
+        session = BakeSession(context, obj, layers, settings, material)
         session.begin()
         for i in range(len(session.groups)):
             kwargs = session.prepare(i)        # temp object, image, selection
             bpy.ops.object.bake(**kwargs)      # or 'INVOKE_DEFAULT' as a job
             session.finish()                   # margin + PNG, temp removed
         session.end()                          # scene restored
-    """
 
-    def __init__(self, context, obj, ribbon, rib, settings):
-        if rib is None or rib.dash_count == 0:
+    layers: [(RibbonData, file name part)] of the stitch layers; material:
+    the stitch shader, baked white. Each layer is baked from a copy of its
+    stitches of its own, so one mask holds one layer."""
+
+    def __init__(self, context, obj, layers, settings, material):
+        layers = [(r, k) for r, k in layers if r is not None and r.dash_count]
+        if not layers:
             raise RuntimeError(rpt("No stitches to bake"))
         self.folder = bpy.path.abspath(settings.output_dir)
         if settings.output_dir.startswith("//") and not bpy.data.filepath:
@@ -243,12 +283,13 @@ class BakeSession:
         if not uv_name:
             raise RuntimeError(rpt("{} has no UV map").format(obj.name))
         self.context = context
-        self.obj, self.ribbon, self.rib, self.settings = obj, ribbon, rib, settings
+        self.obj, self.layers, self.settings, self.material = obj, layers, settings, material
         self.uv_name = uv_name
         self.res = int(settings.resolution)
         self.margin = max(4, self.res // 256)
-        self.extrusion = rib.lift * 2.5
-        self.ray = rib.lift * 5.0
+        self.ribbons = []                     # each layer's stitches, baked from
+        self._meshes = []
+        self._mat = None
         self.written = []
         self._tmp = None
         self.groups = []
@@ -279,13 +320,13 @@ class BakeSession:
         self.poly_tile[self.tri_poly] = np.floor(self.tri_uv.mean(axis=1)).astype(np.int64)
         self.tri_mat = self.poly_mat[self.tri_poly]
         self.tri_tile = self.poly_tile[self.tri_poly]
-        self.band = self.rib.band_polys
-        self.in_band = np.zeros(len(me.polygons), bool)
-        self.in_band[self.band] = True
-        self.groups = sorted({(self.poly_mat[p], int(self.poly_tile[p, 0]),
-                               int(self.poly_tile[p, 1])) for p in self.band.tolist()})
+        # per layer, per texture set and tile
+        self.groups = []
+        for li, (rib, _kind) in enumerate(self.layers):
+            self.groups += sorted({(li, self.poly_mat[p], int(self.poly_tile[p, 0]),
+                                    int(self.poly_tile[p, 1])) for p in rib.band_polys.tolist()})
 
-        scene, vl, ribbon = context.scene, context.view_layer, self.ribbon
+        scene, vl = context.scene, context.view_layer
         self.state = {
             "engine": scene.render.engine,
             "samples": scene.cycles.samples,
@@ -294,9 +335,6 @@ class BakeSession:
             "threads": scene.render.threads,
             "active": vl.objects.active,
             "selected": [o for o in vl.objects if o.select_get()],
-            "rib_hide_render": ribbon.hide_render,
-            "rib_hide": ribbon.hide_get(),
-            "rib_hide_vp": ribbon.hide_viewport,
         }
         scene.render.engine = 'CYCLES'
         scene.cycles.samples = s.samples
@@ -311,17 +349,22 @@ class BakeSession:
         # Leave cores for Blender itself so it stays responsive while baking.
         scene.render.threads_mode = 'FIXED'
         scene.render.threads = max(1, round((os.cpu_count() or 4) * s.cpu_usage / 100.0))
-        ribbon.hide_render = False
-        ribbon.hide_viewport = False
-        ribbon.hide_set(False)
-        # the preview color lives in the emission shader: bake it white
-        self._emit = []
-        for mat in ribbon.data.materials:
-            if mat is not None and mat.node_tree is not None:
-                for n in mat.node_tree.nodes:
-                    if n.type == 'EMISSION':
-                        self._emit.append((n, tuple(n.inputs["Color"].default_value)))
-                        n.inputs["Color"].default_value = (1.0, 1.0, 1.0, 1.0)
+        # the stitch shader baked white (the preview color lives in its emission)
+        mat = self.material.copy()
+        mat.name = TMP
+        if mat.node_tree is not None:
+            for n in mat.node_tree.nodes:
+                if n.type == 'EMISSION':
+                    n.inputs["Color"].default_value = (1.0, 1.0, 1.0, 1.0)
+        self._mat = mat
+        for rib, _kind in self.layers:         # each kept as made, for end()
+            me = bpy.data.meshes.new(TMP)
+            self._meshes.append(me)
+            me.materials.append(mat)
+            write_ribbon_mesh(me, [rib])
+            ob = bpy.data.objects.new(TMP, me)
+            self.ribbons.append(ob)
+            scene.collection.objects.link(ob)
 
     def end(self):
         self._remove_tmp()
@@ -334,15 +377,14 @@ class BakeSession:
         scene.cycles.device = st["device"]
         scene.render.threads_mode = st["threads_mode"]
         scene.render.threads = st["threads"]
-        for n, col in getattr(self, "_emit", ()):
-            try:
-                n.inputs["Color"].default_value = col
-            except ReferenceError:
-                pass
-        self._emit = []
-        self.ribbon.hide_render = st["rib_hide_render"]
-        self.ribbon.hide_viewport = st["rib_hide_vp"]
-        self.ribbon.hide_set(st["rib_hide"])
+        for ob in self.ribbons:
+            bpy.data.objects.remove(ob)
+        for me in self._meshes:
+            bpy.data.meshes.remove(me)
+        self.ribbons, self._meshes = [], []
+        if self._mat is not None:
+            bpy.data.materials.remove(self._mat)
+            self._mat = None
         for o in vl.objects:
             o.select_set(False)
         for o in st["selected"]:
@@ -360,10 +402,12 @@ class BakeSession:
         the arguments for bpy.ops.object.bake."""
         # Blender's own margin treats texels whose ray missed the ribbon as empty
         # and smears stitches into them, so bake without margin and add it later.
-        mat_name, tu, tv = self.groups[i]
+        li, mat_name, tu, tv = self.groups[i]
+        rib = self.layers[li][0]
         tile = np.array([tu, tv])
-        sel = (self.poly_mat[self.band] == mat_name) & (self.poly_tile[self.band] == tile).all(1)
-        polys = self.band[sel]
+        band = rib.band_polys
+        sel = (self.poly_mat[band] == mat_name) & (self.poly_tile[band] == tile).all(1)
+        polys = band[sel]
         scene, obj, uv_name, res = self.context.scene, self.obj, self.uv_name, self.res
         me = obj.data.copy()
         me.name = TMP
@@ -414,11 +458,11 @@ class BakeSession:
         vl = self.context.view_layer
         for o in vl.objects:
             o.select_set(False)
-        self.ribbon.select_set(True)
+        self.ribbons[li].select_set(True)
         tmp.select_set(True)
         vl.objects.active = tmp
         return dict(type='EMIT', use_selected_to_active=True, use_cage=False,
-                    cage_extrusion=self.extrusion, max_ray_distance=self.ray,
+                    cage_extrusion=rib.lift * 2.5, max_ray_distance=rib.lift * 5.0,
                     margin=0, use_clear=True, target='IMAGE_TEXTURES', uv_layer=uv_name)
 
     def finish(self):
@@ -428,20 +472,28 @@ class BakeSession:
         px = np.empty(res * res * 4, np.float32)
         t["img"].pixels.foreach_get(px)
         gray = px.reshape(res, res, 4)[:, :, 0].copy()
-        mat_name = self.groups[t["group"]][0]
+        li, mat_name = self.groups[t["group"]][:2]
+        rib, kind = self.layers[li]
         tile = t["tile"]
         self._remove_tmp()
         of_group = (self.tri_mat == mat_name) & (self.tri_tile == tile).all(1)
-        gray *= own_layer_mask(self.rib, tile, res)
+        in_band = np.zeros(len(self.poly_mat), bool)
+        in_band[rib.band_polys] = True
+        gray *= own_layer_mask(rib, tile, res)
         # Where the fabric folds sharply, bake rays graze the stitch strips and
         # smear their soft edge into faint lines (a few percent grey). Coverage
         # this low is not visible on a real edge either: drop it.
         gray[gray < FAINT] = 0.0
         add_margin(gray, self.tri_uv[of_group] - tile,
-                   self.tri_uv[of_group & self.in_band[self.tri_poly]] - tile, res, self.margin)
-        path = output_path(self.obj, mat_name, tile, self.folder)
-        if path in self.written:     # e.g. "Red/Blue" and "Red_Blue"
+                   self.tri_uv[of_group & in_band[self.tri_poly]] - tile, res, self.margin)
+        path = output_path(self.obj, mat_name, tile, self.folder, kind)
+        taken = {p.casefold() for p in self.written}
+        if path.casefold() in taken:     # e.g. "Red/Blue" and "Red_Blue"
             path = path[:-4] + f"_{zlib.crc32(mat_name.encode()) % 10000:04d}.png"
+        stem, k = path[:-4], 2
+        while path.casefold() in taken:
+            path = f"{stem}_{k}.png"
+            k += 1
         _write_mask(path, gray[::-1], self.settings)
         self.written.append(path)
         return path
@@ -483,7 +535,7 @@ class LineBake:
         self.topo = topo = entry["topo"]
         if topo.uv is None:
             raise RuntimeError(rpt("{} has no UV map").format(obj.name))
-        self.names = _unique_names([l[0] for l in layers])
+        self.names = unique_names([l[0] for l in layers])
         # one distance field per set of edges followed
         self.parts = []                      # (layer indices, field, faces)
         faces = []
@@ -561,7 +613,7 @@ class GridBake:
         self.topo = topo = entry["topo"]
         if topo.uv is None:
             raise RuntimeError(rpt("{} has no UV map").format(obj.name))
-        self.names = _unique_names([l[0] for l in layers])
+        self.names = unique_names([l[0] for l in layers])
         self.layers = [(l, core.grid_coords(entry, l[8]).layout(l[2], l[3], l[7]))
                        for l in layers]
         faces = [c.faces for _, c in self.layers if len(c.faces)]
@@ -621,12 +673,12 @@ class Chain:
         return b.step(j, taken)
 
 
-def _unique_names(names):
+def unique_names(names, stem="line"):
     """File-name parts for the layers, distinct after cleaning and ignoring case
     (Windows file names), e.g. "a/b", "a_b" and "A b" become a_b, a_b_2, A_b_3."""
     out, used = [], set()
     for n in names:
-        base = _safe((n or "line").strip() or "line")
+        base = _safe((n or stem).strip() or stem)
         name, k = base, 2
         while name.casefold() in used:
             name = f"{base}_{k}"
@@ -636,11 +688,10 @@ def _unique_names(names):
     return out
 
 
-def bake_masks(context, obj, ribbon, rib, settings):
-    """Bake everything now (blocking). Returns the written file paths."""
-    session = BakeSession(context, obj, ribbon, rib, settings)
-    session.begin()
+def bake_masks(session):
+    """Run a BakeSession now (blocking). Returns the written file paths."""
     try:
+        session.begin()
         for i in range(len(session.groups)):
             kwargs = session.prepare(i)
             bpy.ops.object.bake(**kwargs)

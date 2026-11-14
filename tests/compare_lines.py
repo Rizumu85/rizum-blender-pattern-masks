@@ -32,7 +32,7 @@ def lines_from(pkg_dir):
     ob.stitch_gen.live = False
     core.drop_cache()
     sg.regenerate(ob)
-    e = core._cache[ob.name_full]
+    e = dict(core._cache[ob.name_full], cls=next(iter(core._cache[ob.name_full]["stitch"].values()))["cls"])
     out = [(cl.sample(np.arange(0, cl.length, 0.0002))[0], cl.length) for cl in e["cls"]]
     topo = e["topo"]
     sg.unregister()

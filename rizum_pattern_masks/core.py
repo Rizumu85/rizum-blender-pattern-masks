@@ -1184,6 +1184,7 @@ class RibbonData:
         self.line_layer = np.zeros(0, np.int64)   # index into p["lines"] of each quad
         self.line_uv = np.zeros((0, 2))     # the stitch line in UV, on its own faces
         self.line_r_uv = np.zeros(0)        # half the stitch width there, in UV units
+        self.stitches = []                  # [(edge attribute, RibbonData)] per stitch layer
 
 
 def band_triangles(topo, centerlines, reach):
@@ -1403,8 +1404,9 @@ _cache = {}
 
 def generate(key_obj, me, mw, p):
     """key_obj: cache key. me: mesh (object mode data). mw: world matrix.
-    p: dict with inset, smooth, flip, length, gap, width, round, offset, even,
-    resolution, uv_name. Returns (RibbonData, Topology)."""
+    p: dict with flip, offset, resolution, uv_name, stitch_layers (see
+    _stitch_ribbons), lines and grids. Returns (RibbonData, Topology): the
+    stitches of each stitch layer in .stitches, the line art strips on it."""
     sig, line_sig = mesh_signature(me, mw, p["uv_name"])
     entry = _cache.get(key_obj)
     if entry is not None and entry["sig"] == sig and entry.get("line_sig") != line_sig:
@@ -1415,8 +1417,9 @@ def generate(key_obj, me, mw, p):
                               for n in line_attr_names(me)})
         entry["line_chains"] = {}
         entry["grid_coords"] = {}
-        if any(a != PATH_ATTR for a in spec_attrs(entry.get("stitch_attrs"))):
-            entry["cl_key"] = None          # the stitches follow line art edges too
+        for c in entry["stitch"].values():
+            if any(a != PATH_ATTR for a in spec_attrs(c.get("spec"))):
+                c["cl_key"] = None          # stitches on line art style edges
         entry["line_key"] = None
         entry["line_sig"] = line_sig
     if entry is None or entry["sig"] != sig:
@@ -1424,16 +1427,18 @@ def generate(key_obj, me, mw, p):
         pairs = topo.path_pairs(me)
         line_pairs = {n: topo.path_pairs(me, (n,)) for n in line_attr_names(me)}
         excl = {n: topo.path_pairs(me, (n,), -1) for n in [PATH_ATTR] + line_attr_names(me)}
-        entry = {"sig": sig, "topo": topo, "cl_key": None, "cls": None, "excl": excl,
+        entry = {"sig": sig, "topo": topo, "stitch": {}, "excl": excl,
                  "corners": topo.corner_ids(me), "pairs": pairs, "line_pairs": line_pairs,
                  "line_chains": {}, "grid_coords": {}, "line_sig": line_sig}
         _cache[key_obj] = entry
     topo = entry["topo"]
-    entry["stitch_attrs"] = stitch_attrs = p.get("stitch_attrs") or (PATH_ATTR, None)
-    chains = edge_chains(entry, stitch_attrs)
     rib = RibbonData()
-    if chains and p.get("stitches", True):
-        rib = _stitch_ribbons(entry, topo, chains, p)
+    for sl in p.get("stitch_layers", ()):
+        cache = entry["stitch"].setdefault(sl[0], {"cl_key": None})
+        chains = edge_chains(entry, sl[1])
+        rib.stitches.append((sl[0], _stitch_ribbons(entry, topo, chains, p, sl, cache)
+                             if chains else RibbonData()))
+    rib.dash_count = sum(r.dash_count for _a, r in rib.stitches)
     # line art preview strips, cached per layer settings
     layers = tuple(p.get("lines", ()))
     line_key = (layers, p["flip"])
@@ -1527,19 +1532,21 @@ def grid_coords(entry, spec):
     return hit
 
 
-def _stitch_ribbons(entry, topo, chains, p):
-    cl_key = (p["inset"], p["smooth"], p["flip"], p.get("corner", 0.0),
-              p.get("corner_inset", 0.0), entry.get("stitch_attrs"))
-    if entry["cl_key"] != cl_key:
-        ds = centerline_spacing(topo, chains, p["smooth"])
-        cls = build_lines(topo, [c for c in chains if len(c[0]) >= 2], p["inset"], p["smooth"],
-                          p["flip"], ds, entry["corners"], p.get("corner_inset", 0.0))
-        entry["cls"] = cls
-        entry["cl_key"] = cl_key
-        entry["band"] = {}
-    return build_ribbons(topo, entry["cls"], p["length"], p["gap"], p["width"], p["round"],
-                         p["offset"], p["even"], p["resolution"], entry["band"],
-                         zigzag=p.get("zigzag", 0.0))
+def _stitch_ribbons(entry, topo, chains, p, sl, cache):
+    """The stitches of one stitch layer. sl: (edge attribute, edge spec, inset,
+    smooth, corner depth, length, gap, width, roundness, even, zigzag height or
+    0); cache: this layer's centerlines, kept while its line stays the same."""
+    _attr, spec, inset, smooth, corner_inset, length, gap, width, roundness, even, zigzag = sl
+    cl_key = (inset, smooth, p["flip"], p.get("corner", 0.0), corner_inset, spec)
+    if cache["cl_key"] != cl_key:
+        ds = centerline_spacing(topo, chains, smooth)
+        cache["cls"] = build_lines(topo, [c for c in chains if len(c[0]) >= 2], inset, smooth,
+                                   p["flip"], ds, entry["corners"], corner_inset)
+        cache["cl_key"] = cl_key
+        cache["spec"] = spec
+        cache["band"] = {}
+    return build_ribbons(topo, cache["cls"], length, gap, width, roundness,
+                         p["offset"], even, p["resolution"], cache["band"], zigzag=zigzag)
 
 
 def drop_cache(obj=None):

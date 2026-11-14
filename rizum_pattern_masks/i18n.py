@@ -117,9 +117,8 @@ ZH = {
         "每个针脚的长度；锯齿时是沿缝线从一个尖到下一个尖的距离",
     "Add Layer": "添加图层",
     "Add Stitches": "添加缝线",
-    "Add the stitches; while they are selected, the edge buttons mark their edges":
-        "添加缝线；选中它时，边按钮标的就是缝线的边",
-    "The object already has stitches": "这个物体已经有缝线了",
+    "Add a stitch layer; while it is selected, the edge buttons mark its edges":
+        "添加一层缝线；选中它时，边按钮标的就是它的边",
     "Remove Layer": "删除图层",
     "Remove the selected layer together with its marked edges": "删除选中的图层和它标记的边",
     "Name of this layer; a name you type also goes into the file name of its mask":
@@ -367,9 +366,8 @@ JA = {
         "1 針の長さ。ジグザグでは、線に沿って山から次の山までの距離",
     "Add Layer": "レイヤーを追加",
     "Add Stitches": "ステッチを追加",
-    "Add the stitches; while they are selected, the edge buttons mark their edges":
-        "ステッチを追加します。選択中は、辺のボタンでステッチの辺をマークします",
-    "The object already has stitches": "このオブジェクトにはすでにステッチがあります",
+    "Add a stitch layer; while it is selected, the edge buttons mark its edges":
+        "ステッチのレイヤーを追加します。選択中は、辺のボタンでこのレイヤーの辺をマークします",
     "Remove Layer": "レイヤーを削除",
     "Remove the selected layer together with its marked edges": "選択したレイヤーを、マークした辺ごと削除します",
     "Name of this layer; a name you type also goes into the file name of its mask":

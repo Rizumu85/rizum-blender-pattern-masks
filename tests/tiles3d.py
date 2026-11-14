@@ -82,7 +82,7 @@ else:
         s.smooth = float(os.environ["STITCH_SMOOTH"])
     core.drop_cache()
     sg.regenerate(ob)
-    e = core._cache[ob.name_full]
+    e = dict(core._cache[ob.name_full], cls=next(iter(core._cache[ob.name_full]["stitch"].values()))["cls"])
     topo = e["topo"]
     cls = e["cls"]
 

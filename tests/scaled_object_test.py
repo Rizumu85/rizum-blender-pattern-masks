@@ -34,7 +34,8 @@ bpy.ops.stitch_gen.path_add()
 bpy.ops.object.mode_set(mode='OBJECT')
 s.inset, s.smooth, s.length, s.gap, s.width = 4.0, 2.0, 4.0, 2.5, 1.2
 d = sg.regenerate(ob)
-paths = bake.bake_masks(bpy.context, ob, s.ribbon, d, s)
+paths = bake.bake_masks(bake.BakeSession(bpy.context, ob, [(d.stitches[0][1], "stitch")], s,
+                                         sg._mask_material()))
 v = np.empty(2048 * 2048 * 4, np.float32)
 img = bpy.data.images.load(paths[0])
 img.colorspace_settings.name = "Non-Color"

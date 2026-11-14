@@ -18,7 +18,7 @@ cusp = np.array(ob.matrix_world @ ob.data.vertices[320].co)      # hem vertex 0 
 for ci in (0.0, 2.5):
     s.corner_inset = ci
     d = sg.regenerate(ob)
-    cls = core._cache[ob.name_full]["cls"]
+    cls = next(iter(core._cache[ob.name_full]["stitch"].values()))["cls"]
     pts = [cl.sample(np.array([c]))[0][0] for cl in cls for c in cl.corners]
     near = min(pts, key=lambda p: np.linalg.norm(p - cusp))
     print(f"RESULT corner_inset={ci} corners={len(pts)} corner point depth from cusp vertex "

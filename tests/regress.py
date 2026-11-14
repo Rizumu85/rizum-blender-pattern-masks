@@ -68,7 +68,7 @@ s.length = s.length / 1.05
 d = sg.regenerate(ob)
 
 entry = core._cache[ob.name_full]
-cls = entry["cls"]
+cls = next(iter(entry["stitch"].values()))["cls"]        # the first stitch layer
 topo = entry["topo"]
 W = s.width * 0.001
 Ls = s.length * 0.001
@@ -137,7 +137,8 @@ for cl in cls:
 s.output_dir = out_dir
 s.transparent = False
 s.resolution = '4096'
-paths = bake.bake_masks(bpy.context, ob, s.ribbon, d, s)
+paths = bake.bake_masks(bake.BakeSession(bpy.context, ob, [(d.stitches[0][1], "stitch")], s,
+                                         sg._mask_material()))
 img = bpy.data.images.load(paths[0])
 img.colorspace_settings.name = "Non-Color"
 res = img.size[0]
