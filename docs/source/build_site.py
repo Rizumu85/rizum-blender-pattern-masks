@@ -896,7 +896,8 @@ def page_html(pages, i, lang):
     langs = "".join(
         f'<a href="../{code}/{fname}"{" aria-current=page" if code == lang else ""}>{name}</a>'
         for code, name in LANGS)
-    toc = "".join(f'<li><a href="#{s["id"]}">{html.escape(s["heading"])}</a></li>' for s in p["sections"])
+    toc = "".join(f'<li><a href="#{s["id"]}">{html.escape(s["heading"])}</a></li>' for s in p["sections"]
+                  if s.get("heading"))          # a section without a heading opens the page
     body = []
     flow = []                                     # Start: the steps beside one demo
 
@@ -904,7 +905,8 @@ def page_html(pages, i, lang):
         step = f' data-step="{s["step"]}"' if "step" in s else ""
         if s.get("figure") == "fig-layers3d":
             return f'<section id="{s["id"]}"><h2>{html.escape(s["heading"])}</h2>{layers3d(s["body"])}</section>'
-        part = [f'<section id="{s["id"]}"{step}><h2>{html.escape(s["heading"])}</h2>',
+        h2 = f'<h2>{html.escape(s["heading"])}</h2>' if s.get("heading") else ""
+        part = [f'<section id="{s["id"]}"{step}>{h2}',
                 markdown(s.get("body", ""))]
         if s.get("table"):
             rows = "".join(f"<tr><th>{inline(a)}</th><td>{inline(b)}</td></tr>" for a, b in s["table"])
@@ -980,7 +982,7 @@ def page_html(pages, i, lang):
     onclick="var n=this.parentNode;n.classList.toggle('open');this.setAttribute('aria-expanded',n.classList.contains('open'))">{html.escape(p["title"])}</button>{nav(pages, lang, p["slug"])}</nav>
   <main>
     <h1>{html.escape(p["title"])}</h1>
-    <p class="lead">{inline(p.get("lead", ""))}</p>
+    {f'<p class="lead">{inline(p["lead"])}</p>' if p.get("lead") else ""}
     {"".join(body)}
     <nav class="pager">{link(i - 1, ui["prev"], "prev")}{link(i + 1, ui["next"], "next")}</nav>
   </main>

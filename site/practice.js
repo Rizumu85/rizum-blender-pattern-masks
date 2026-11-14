@@ -360,8 +360,10 @@ function placeBadge(hole, x, y) {
           const g = G[m], dx = px - g.ax, dy = py - g.ay, t = dx * g.ux + dy * g.uy;
           let v, fine;
           if (t >= 0 && t <= g.len) {
+            // signed, and usable a little past the edge: a line close to the
+            // edge (line art at Offset Inward 0) crosses cells that reach past it
             const s = dx * g.nx + dy * g.ny;
-            v = Math.abs(s); fine = s >= -0.01;
+            v = s; fine = s >= -2 * FC;
           } else {
             const atA = t < 0, end = atA ? g.a : g.b, others = atA ? g.oa : g.ob;
             const qx = px - (atA ? g.ax : g.bx), qy = py - (atA ? g.ay : g.by);
@@ -377,7 +379,7 @@ function placeBadge(hole, x, y) {
               }
             }
           }
-          if (v < best) { best = v; good = fine ? 1 : 0; }
+          if (Math.abs(v) < Math.abs(best)) { best = v; good = fine ? 1 : 0; }
         }
         val[j * NX + i] = best; ok[j * NX + i] = good;
       }

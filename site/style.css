@@ -654,3 +654,5 @@ strong.ico svg { width: 1em; height: 1em; vertical-align: -0.15em; }
 
 /* a settings row explained case by case: one line each */
 .rp-desc.multi { flex-direction: column; align-items: flex-start; justify-content: center; gap: 5px; padding-top: 8px; padding-bottom: 8px; }
+/* the control of such a row stays where it would be, by the first line */
+.rp-ui:has(+ .rp-desc.multi) { align-self: start; margin-top: 4px; }

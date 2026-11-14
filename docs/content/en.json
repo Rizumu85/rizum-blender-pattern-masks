@@ -276,7 +276,7 @@
   {
    "slug": "stitches",
    "title": "Stitches",
-   "lead": "Dashed or zigzag stitches, a set distance in from the edge.",
+   "lead": "",
    "sections": [
     {
      "id": "style",
@@ -349,12 +349,12 @@
   {
    "slug": "line-art",
    "title": "Line art",
-   "lead": "Solid lines of one real width, from an outline to a band.",
+   "lead": "",
    "sections": [
     {
      "id": "what",
-     "heading": "What it draws",
-     "body": "A solid line along the layer's edges: the same width everywhere on the model, following the edge's exact shape, sharp at marked corners. Add as many Line Art layers as you need.",
+     "heading": "",
+     "body": "Draws a line on the marked edges, following their exact shape; with Smooth on, mark corners to keep them sharp.",
      "table": [],
      "figure": "sb-lineart"
     },
@@ -368,22 +368,22 @@
       [
        "from",
        "**Offset Inward**",
-       "Distance from the edge to the line's outer side (0 = an outline)."
+       "How far in from the marked edge the line sits, to its outer side; 0 outlines the edge."
       ],
       [
        "corner_inset",
        "**Corner Depth**",
-       "Extra inset at marked corners."
+       "How much further in at marked corners."
       ],
       [
        "smooth",
        "**Smooth**",
-       "Smooths the inner side between corners."
+       "Smooths the inner side of the line; the outer side keeps to the edge. Mark the corners that should stay sharp."
       ],
       [
        "width",
        "**Width**",
-       "Line width, the same everywhere on the model."
+       "The width of the line, kept the same everywhere on the model."
       ]
      ]
     }
