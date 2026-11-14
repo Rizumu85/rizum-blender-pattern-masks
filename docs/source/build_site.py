@@ -919,12 +919,16 @@ def page_html(pages, i, lang):
         body.append(section(s, ""))
     close_flow()
 
-    def link(j, label):
+    def link(j, label, side):
+        """Previous or next page: its name with an arrow pointing the way."""
         if not 0 <= j < len(pages):
-            return "<span></span>"
+            return ""
         q = pages[j]
         href = "index.html" if q["slug"] == "index" else f'{q["slug"]}.html'
-        return f'<a href="{href}"><small>{label}</small>{html.escape(q["title"])}</a>'
+        arrow = '<i class="ar" aria-hidden="true">' + ("←" if side == "prev" else "→") + "</i>"
+        name = html.escape(q["title"])
+        title = arrow + name if side == "prev" else name + arrow
+        return f'<a class="{side}" href="{href}"><small>{label}</small><span class="t">{title}</span></a>'
 
     extra_js = (f'\n<script src="{asset("site_practice.js", "practice.js")}"></script>'
                 if any(x.get("figure", "").startswith(("sb-", "ref-", "fig-install"))
@@ -960,7 +964,7 @@ def page_html(pages, i, lang):
     <h1>{html.escape(p["title"])}</h1>
     <p class="lead">{inline(p.get("lead", ""))}</p>
     {"".join(body)}
-    <nav class="pager">{link(i - 1, ui["prev"])}{link(i + 1, ui["next"])}</nav>
+    <nav class="pager">{link(i - 1, ui["prev"], "prev")}{link(i + 1, ui["next"], "next")}</nav>
   </main>
   <aside class="toc"><p>{ui["on_page"]}</p><ol>{toc}</ol></aside>
 </div>

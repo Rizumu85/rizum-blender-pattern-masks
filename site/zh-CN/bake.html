@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>烘焙和使用 · Pattern Masks</title>
 <link rel="icon" href="../img/icon-small.svg">
-<link rel="stylesheet" href="../style.css?v=b9df3b8a15">
+<link rel="stylesheet" href="../style.css?v=fff102e0ce">
 <script>(function(){var d=document.documentElement,t=null;try{t=localStorage.getItem('pm-theme')}catch(e){}if(t)d.dataset.theme=t;var m=matchMedia('(prefers-color-scheme: dark)');function s(){var k=d.dataset.theme?d.dataset.theme==='dark':m.matches;if(k)d.setAttribute('data-dark','');else d.removeAttribute('data-dark')}s();m.addEventListener('change',s);window.pmToggleTheme=function(){var k=d.hasAttribute('data-dark');d.dataset.theme=k?'light':'dark';try{localStorage.setItem('pm-theme',d.dataset.theme)}catch(e){}s()}})()</script>
 </head>
 <body>
@@ -36,7 +36,7 @@
 
 <figure class="fig refpanel" data-ref="bake"><div class="rp-row" data-r="size"><div class="rp-ui"><span class="rp-lb">尺寸</span><span class="rp-field">4096<i class="dd"></i></span></div><div class="rp-desc">图片的像素尺寸。</div></div><div class="rp-row" data-r="uv"><div class="rp-ui"><span class="rp-lb">UV 贴图</span><span class="rp-field">当前：UVMap<i class="dd"></i></span></div><div class="rp-desc">烘焙到哪一套 UV。</div></div><div class="rp-row" data-r="folder"><div class="rp-ui"><span class="rp-lb">文件夹</span><span class="rp-field path">//stitch_masks/</span></div><div class="rp-desc">输出位置。开头的 // 表示 .blend 所在的文件夹，所以要先保存 .blend。</div></div><div class="rp-row" data-r="background"><div class="rp-ui"><span class="rp-lb">背景</span><span class="rp-field">黑底<i class="dd"></i></span></div><div class="rp-desc">给 Painter 用 <strong>黑底</strong>，给 Clip Studio Paint 用 <strong>白底</strong>，给 Photoshop 等 2D 软件用 <strong>透明</strong>。</div></div><div class="rp-gap"></div><div class="rp-row" data-r="samples"><div class="rp-ui"><span class="rp-lb"></span><span class="rp-sub">缝线：采样与设备</span></div><div class="rp-desc">缝线烘焙的质量，以及用 CPU 还是 GPU。</div></div></figure>
 </section>
-    <nav class="pager"><a href="presets.html"><small>上一页</small>预设</a><a href="limits.html"><small>下一页</small>注意事项</a></nav>
+    <nav class="pager"><a class="prev" href="presets.html"><small>上一页</small><span class="t"><i class="ar" aria-hidden="true">←</i>预设</span></a><a class="next" href="limits.html"><small>下一页</small><span class="t">注意事项<i class="ar" aria-hidden="true">→</i></span></a></nav>
   </main>
   <aside class="toc"><p>本页内容</p><ol><li><a href="#files">文件</a></li><li><a href="#painter">使用遮罩</a></li><li><a href="#settings">烘焙设置</a></li></ol></aside>
 </div>

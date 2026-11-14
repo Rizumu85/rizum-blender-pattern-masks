@@ -106,7 +106,6 @@ table.settings th { width: 30%; font-weight: 600; white-space: nowrap; }
          padding-top: 24px; border-top: 1px solid var(--line); }
 .pager a { text-decoration: none; color: var(--text); font-weight: 600; }
 .pager small { display: block; color: var(--muted); font-weight: 400; font-size: 13px; }
-.pager a:last-child { text-align: right; }
 
 @media (max-width: 1100px) { .wrap { grid-template-columns: 200px minmax(0, 1fr); } .toc { display: none; } }
 @media (max-width: 760px) {
@@ -523,14 +522,20 @@ section:has(> .fig.shot) > ol.um-keys { grid-template-columns: 22px minmax(0, 1f
 .rp-row:hover .rp-ui { border-radius: 5px 0 0 5px; }
 .rp-row:hover .rp-desc { background: var(--card); }
 
-/* previous and next: two cards */
-.pager { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 64px; padding-top: 0; border-top: 0; }
-.pager a { display: block; padding: 14px 18px; border: 1px solid var(--line); border-radius: 12px; font-size: 17px;
-           transition: border-color .12s, background .12s; }
-.pager a:hover { border-color: color-mix(in srgb, var(--thread) 60%, var(--line)); background: var(--card); }
-.pager small { margin-bottom: 2px; }
-.pager a:first-child small::before { content: "\2190\00A0"; }
-.pager a:last-child small::after { content: "\00A0\2192"; }
+/* previous and next: the page names, each with an arrow pointing the way;
+   a rule above, and one between them when there are two */
+.pager { gap: 0; }
+.pager a { flex: 1; display: block; padding: 6px 0; font-size: 17px; }
+.pager a.next { text-align: right; }
+.pager a.prev + a.next { padding-left: 24px; border-left: 1px solid var(--line); }
+.pager a.prev { padding-right: 24px; }
+.pager small { margin-bottom: 4px; }
+.pager .t { display: inline-flex; align-items: center; gap: 10px; transition: color .15s; }
+.pager .ar { color: var(--thread); font-style: normal; transition: transform .2s ease-out; }
+.pager a:hover .t { color: var(--link); }
+.pager a.next:hover .ar { transform: translateX(4px); }
+.pager a.prev:hover .ar { transform: translateX(-4px); }
+@media (prefers-reduced-motion: reduce) { .pager .t, .pager .ar { transition: none; } }
 
 /* Start: the panel is as tall as what it holds; the demo keeps its height */
 @media (min-width: 1101px) {
@@ -554,7 +559,9 @@ section:has(> .fig.shot) > ol.um-keys { grid-template-columns: 22px minmax(0, 1f
   .rp-row + .rp-row > .rp-desc { background: none; }
   .rp-row:hover .rp-ui { border-radius: 5px; }
   .rp-row:hover .rp-desc { background: none; }
-  .pager a { padding: 12px 14px; font-size: 16px; }
+  .pager a { font-size: 16px; }
+  .pager a.prev { padding-right: 14px; }
+  .pager a.prev + a.next { padding-left: 14px; }
 }
 @media (max-width: 480px) { .langs { gap: 0; } .langs a { padding: 2px 7px; } }
 

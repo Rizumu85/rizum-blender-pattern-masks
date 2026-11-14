@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ベイクと使い方 · Pattern Masks</title>
 <link rel="icon" href="../img/icon-small.svg">
-<link rel="stylesheet" href="../style.css?v=b9df3b8a15">
+<link rel="stylesheet" href="../style.css?v=fff102e0ce">
 <script>(function(){var d=document.documentElement,t=null;try{t=localStorage.getItem('pm-theme')}catch(e){}if(t)d.dataset.theme=t;var m=matchMedia('(prefers-color-scheme: dark)');function s(){var k=d.dataset.theme?d.dataset.theme==='dark':m.matches;if(k)d.setAttribute('data-dark','');else d.removeAttribute('data-dark')}s();m.addEventListener('change',s);window.pmToggleTheme=function(){var k=d.hasAttribute('data-dark');d.dataset.theme=k?'light':'dark';try{localStorage.setItem('pm-theme',d.dataset.theme)}catch(e){}s()}})()</script>
 </head>
 <body>
@@ -36,7 +36,7 @@
 
 <figure class="fig refpanel" data-ref="bake"><div class="rp-row" data-r="size"><div class="rp-ui"><span class="rp-lb">サイズ</span><span class="rp-field">4096<i class="dd"></i></span></div><div class="rp-desc">画像のピクセル数。</div></div><div class="rp-row" data-r="uv"><div class="rp-ui"><span class="rp-lb">UV マップ</span><span class="rp-field">現在：UVMap<i class="dd"></i></span></div><div class="rp-desc">ベイク先の UV マップ。</div></div><div class="rp-row" data-r="folder"><div class="rp-ui"><span class="rp-lb">フォルダー</span><span class="rp-field path">//stitch_masks/</span></div><div class="rp-desc">保存先。// は .blend のあるフォルダーなので、先に .blend を保存します。</div></div><div class="rp-row" data-r="background"><div class="rp-ui"><span class="rp-lb">背景</span><span class="rp-field">黒<i class="dd"></i></span></div><div class="rp-desc">Painter 用なら <strong>黒</strong>、CLIP STUDIO PAINT 用なら <strong>白</strong>、Photoshop などの 2D ソフト用なら <strong>透明</strong>。</div></div><div class="rp-gap"></div><div class="rp-row" data-r="samples"><div class="rp-ui"><span class="rp-lb"></span><span class="rp-sub">ステッチ：サンプル数とデバイス</span></div><div class="rp-desc">ステッチのベイク品質と、CPU／GPU のどちらを使うか。</div></div></figure>
 </section>
-    <nav class="pager"><a href="presets.html"><small>前へ</small>プリセット</a><a href="limits.html"><small>次へ</small>注意点</a></nav>
+    <nav class="pager"><a class="prev" href="presets.html"><small>前へ</small><span class="t"><i class="ar" aria-hidden="true">←</i>プリセット</span></a><a class="next" href="limits.html"><small>次へ</small><span class="t">注意点<i class="ar" aria-hidden="true">→</i></span></a></nav>
   </main>
   <aside class="toc"><p>このページの内容</p><ol><li><a href="#files">ファイル</a></li><li><a href="#painter">マスクを使う</a></li><li><a href="#settings">ベイクの設定</a></li></ol></aside>
 </div>

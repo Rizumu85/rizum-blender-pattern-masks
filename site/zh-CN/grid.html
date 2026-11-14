@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>格纹 · Pattern Masks</title>
 <link rel="icon" href="../img/icon-small.svg">
-<link rel="stylesheet" href="../style.css?v=b9df3b8a15">
+<link rel="stylesheet" href="../style.css?v=fff102e0ce">
 <script>(function(){var d=document.documentElement,t=null;try{t=localStorage.getItem('pm-theme')}catch(e){}if(t)d.dataset.theme=t;var m=matchMedia('(prefers-color-scheme: dark)');function s(){var k=d.dataset.theme?d.dataset.theme==='dark':m.matches;if(k)d.setAttribute('data-dark','');else d.removeAttribute('data-dark')}s();m.addEventListener('change',s);window.pmToggleTheme=function(){var k=d.hasAttribute('data-dark');d.dataset.theme=k?'light':'dark';try{localStorage.setItem('pm-theme',d.dataset.theme)}catch(e){}s()}})()</script>
 </head>
 <body>
@@ -38,7 +38,7 @@
 
 <figure class="fig refpanel" data-ref="grid"><div class="rp-row" data-r="from"><div class="rp-ui"><span class="rp-lb">向内偏移</span><span class="rp-field">0 mm</span></div><div class="rp-desc">让方格朝离开边的方向滑动。</div></div><div class="rp-row" data-r="along"><div class="rp-ui"><span class="rp-lb">沿边偏移</span><span class="rp-field">0 mm</span></div><div class="rp-desc">让方格沿着边滑动。</div></div><div class="rp-gap"></div><div class="rp-row" data-r="angle"><div class="rp-ui"><span class="rp-lb">角度</span><span class="rp-field">0°</span></div><div class="rp-desc">旋转方格，45° 就是斜裁。</div></div><div class="rp-row" data-r="cell"><div class="rp-ui"><span class="rp-lb">格子大小</span><span class="rp-field">8 mm</span></div><div class="rp-desc">方格的大小。</div></div><div class="rp-row" data-r="wobble"><div class="rp-ui"><span class="rp-lb">扭曲</span><span class="rp-field slider" style="--f:30%">0.300</span></div><div class="rp-desc">让格线随机地轻微弯曲，0 是直线。</div></div><div class="rp-gap"></div><div class="rp-row" data-r="layout"><div class="rp-ui"><span class="rp-lb">排法</span><span class="rp-seg"><button type="button" data-v="loops" class=on>顺布线</button><button type="button" data-v="unrolled">展开</button></span></div><div class="rp-desc"><strong>顺布线</strong> 或 <strong>展开</strong>，见上面的两张图。</div></div></figure>
 </section>
-    <nav class="pager"><a href="line-art.html"><small>上一页</small>线稿</a><a href="presets.html"><small>下一页</small>预设</a></nav>
+    <nav class="pager"><a class="prev" href="line-art.html"><small>上一页</small><span class="t"><i class="ar" aria-hidden="true">←</i>线稿</span></a><a class="next" href="presets.html"><small>下一页</small><span class="t">预设<i class="ar" aria-hidden="true">→</i></span></a></nav>
   </main>
   <aside class="toc"><p>本页内容</p><ol><li><a href="#what">生成什么</a></li><li><a href="#marking">标哪条边</a></li><li><a href="#layouts">两种排法</a></li><li><a href="#settings">参数</a></li></ol></aside>
 </div>
