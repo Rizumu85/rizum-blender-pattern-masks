@@ -9,6 +9,15 @@
 // squares over a small grid), like the add-on's: one-sided per edge (the side
 // Flip Side picks), cut off square at open ends, round at unmarked corners and
 // mitred at marked ones.
+
+// The number on a lit control's corner, moved in where that corner meets the
+// veil's edge (the veil clips what lies outside it).
+function placeBadge(hole, x, y) {
+  const b = hole.firstChild;
+  b.style.left = Math.max(-9, 2 - x) + "px";
+  b.style.top = Math.max(-9, 2 - y) + "px";
+}
+
 (() => {
   const figs = document.querySelectorAll("[data-sandbox]");
   if (!figs.length) return;   // replica panels and screenshots: see the end of this file
@@ -776,6 +785,7 @@
     const hole = veil.firstChild;
     Object.assign(hole.style, { left: r.left - area.left - 3 + "px", top: r.top - area.top - 3 + "px",
       width: r.width + 6 + "px", height: r.height + 6 + "px" });
+    placeBadge(hole, r.left - area.left - 3, r.top - area.top - 3);
     hole.firstChild.textContent = lit.querySelector(".um-n").textContent;
     if (fromPanel) {
       tip.innerHTML = lit.querySelector(".um-d").innerHTML;
@@ -1045,6 +1055,7 @@
       const b = box.getBoundingClientRect(), r = x.getBoundingClientRect(), hole = veil.firstChild;
       Object.assign(veil.style, { left: 0, top: 0, width: b.width + "px", height: b.height + "px" });
       Object.assign(hole.style, { left: r.left - b.left + "px", top: r.top - b.top + "px", width: r.width + "px", height: r.height + "px" });
+      placeBadge(hole, r.left - b.left, r.top - b.top);
       hole.firstChild.textContent = li.querySelector(".um-n").textContent;
     }
     items.forEach((li) => {
