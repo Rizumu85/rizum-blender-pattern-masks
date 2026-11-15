@@ -162,57 +162,72 @@ class _Charts:
         self.Minv = np.where(good[:, None, None], Minv, 0.0)
         self._trees = {}
 
-    def _face_at(self, z, isl):
-        """The face of island isl whose UV triangle holds the UV point z, or -1."""
-        tree = self._trees.get(isl)
-        if tree is None:
-            faces = np.nonzero(self.isl == isl)[0]
-            tree = kdtree.KDTree(len(faces))
-            for f in faces.tolist():
-                c = self.Uz[f].mean()
-                tree.insert((c.real, c.imag, 0.0), f)
-            tree.balance()
-            self._trees[isl] = tree
-        for _, f, _ in tree.find_n((z.real, z.imag, 0.0), 12):
-            a, b, c = self.Uz[f]
-            v0, v1, v2 = b - a, c - a, z - a
-            den = (v0.conjugate() * v1).imag
-            if abs(den) < 1e-30:
-                continue
-            u = (v2.conjugate() * v1).imag / den
-            v = (v0.conjugate() * v2).imag / den
-            if u >= -1e-9 and v >= -1e-9 and u + v <= 1.0 + 1e-9:
-                return f
-        return -1
+    def _faces_at(self, Z, ISL):
+        """Per UV point (complex) Z on island ISL: the face whose UV triangle
+        holds it, or -1. The candidates are the 12 faces with the nearest
+        centres, tried nearest first."""
+        K = 12
+        cand = np.full((len(Z), K), -1, np.int64)
+        for isl in np.unique(ISL).tolist():
+            tree = self._trees.get(isl)
+            if tree is None:
+                faces = np.nonzero(self.isl == isl)[0]
+                tree = kdtree.KDTree(len(faces))
+                for f in faces.tolist():
+                    c = self.Uz[f].mean()
+                    tree.insert((c.real, c.imag, 0.0), f)
+                tree.balance()
+                self._trees[isl] = tree
+            sel = np.nonzero(ISL == isl)[0]
+            for i, z in zip(sel.tolist(), Z[sel].tolist()):
+                got = [f for _, f, _ in tree.find_n((z.real, z.imag, 0.0), K)]
+                cand[i, :len(got)] = got
+        tri = self.Uz[np.maximum(cand, 0)]                       # (n, K, 3)
+        a = tri[..., 0]
+        v0, v1, v2 = tri[..., 1] - a, tri[..., 2] - a, Z[:, None] - a
+        den = (v0.conjugate() * v1).imag
+        ok = (cand >= 0) & (np.abs(den) >= 1e-30)
+        safe = np.where(ok, den, 1.0)
+        u = (v2.conjugate() * v1).imag / safe
+        v = (v0.conjugate() * v2).imag / safe
+        inside = ok & (u >= -1e-9) & (v >= -1e-9) & (u + v <= 1.0 + 1e-9)
+        first = inside.argmax(1)
+        return np.where(inside.any(1), cand[np.arange(len(Z)), first], -1)
 
-    def across(self, z, nz, isl, d, f0):
+    def across(self, Z, NZ, ISL, d, F0):
         """Real distance from the hem per UV unit, going inward from the hem
-        point z (UV) along the unit UV direction nz (square to the hem there),
-        averaged over the first ``d`` of real distance; f0 is the starting
-        guess (the island's). Only the part of each step square to the hem in
-        real space counts: where the UVs are sheared a step also slides along
-        the hem."""
-        f = f0
+        points Z (UV) along the unit UV directions NZ (square to the hem
+        there), averaged over the first ``d`` of real distance; F0 are the
+        starting guesses (the islands'). Only the part of each step square to
+        the hem in real space counts: where the UVs are sheared a step also
+        slides along the hem. All points at once."""
+        f = np.array(F0, float)
+        active = np.ones(len(Z), bool)
+        S = np.array([0.125, 0.375, 0.625, 0.875])
         for _ in range(2):                         # where the line is depends on f
-            u = d / max(f, 1e-30)
-            got = []
-            for s in (0.125, 0.375, 0.625, 0.875):
-                t = self._face_at(z + nz * (u * s), isl)
-                if t < 0:
-                    break
-                M = self.Minv[t]
-                v = M @ np.array([nz.real, nz.imag])
-                a = M @ np.array([-nz.imag, nz.real])        # along the hem
-                na = float(np.hypot(a[0], a[1]))
-                g = abs(float(a[0] * v[1] - a[1] * v[0])) / na if na > 0 else 0.0
-                if g <= 0.0:
-                    break
-                got.append(g)
-            if not got:
-                return f
-            prev, f = f, float(np.mean(got))
-            if abs(f - prev) < 0.03 * prev:        # settled: the line stays put
+            idx = np.nonzero(active)[0]
+            if not len(idx):
                 break
+            u = d / np.maximum(f[idx], 1e-30)
+            nz = NZ[idx]
+            P = Z[idx, None] + nz[:, None] * (u[:, None] * S[None, :])
+            T = self._faces_at(P.reshape(-1), np.repeat(ISL[idx], len(S))).reshape(-1, len(S))
+            M = self.Minv[np.maximum(T, 0)]                         # (n, 4, 2, 2)
+            nr, ni = nz.real[:, None], nz.imag[:, None]
+            v0 = M[..., 0, 0] * nr + M[..., 0, 1] * ni
+            v1 = M[..., 1, 0] * nr + M[..., 1, 1] * ni
+            a0 = M[..., 0, 0] * -ni + M[..., 0, 1] * nr              # along the hem
+            a1 = M[..., 1, 0] * -ni + M[..., 1, 1] * nr
+            na = np.hypot(a0, a1)
+            g = np.where(na > 0, np.abs(a0 * v1 - a1 * v0) / np.where(na > 0, na, 1.0), 0.0)
+            # the samples up to the first one off the island or without a size
+            took = np.cumprod((T >= 0) & (g > 0), axis=1).astype(bool)
+            n = took.sum(1)
+            prev = f[idx]
+            new = np.where(n > 0, np.where(took, g, 0.0).sum(1) / np.maximum(n, 1), prev)
+            f[idx] = new
+            # none measured: keep the guess; settled: the line stays put
+            active[idx] = (n > 0) & ~(np.abs(new - prev) < 0.03 * prev)
         return f
 
     def uv(self, X, T):
@@ -368,12 +383,16 @@ class _Segments:
         # real size per UV unit across the hem at each end of each segment
         self.fA, self.fB = self.scale.copy(), self.scale.copy()
         if charts is not None and charts.ok and nS and d > 0:
-            for k in np.nonzero(self.scale > 0)[0].tolist():
-                AB = self.Bz[k] - self.Az[k]
-                nz = AB / abs(AB) * 1j * self.psi[k]       # inward, in the UV layout
-                isl = int(charts.isl[self.tri[k]])
-                self.fA[k] = charts.across(self.Az[k], nz, isl, d, self.scale[k])
-                self.fB[k] = charts.across(self.Bz[k], nz, isl, d, self.scale[k])
+            k = np.nonzero(self.scale > 0)[0]
+            if len(k):
+                # inward, in the UV layout; one at a time, as scalar abs()
+                # and the array's np.abs can differ in the last bit
+                nz = np.array([ab / abs(ab) * 1j * ps for ab, ps in
+                               zip(self.Bz[k] - self.Az[k], self.psi[k])], complex)
+                isl = charts.isl[self.tri[k]]
+                f = charts.across(np.r_[self.Az[k], self.Bz[k]], np.r_[nz, nz],
+                                  np.r_[isl, isl], d, np.r_[self.scale[k], self.scale[k]])
+                self.fA[k], self.fB[k] = f[:len(k)], f[len(k):]
         if self.miters:
             M = self.miters
             self.mAlpha = np.array([m[7] for m in M])
@@ -559,6 +578,13 @@ class _Field:
         self.d = d
         self.charts = charts
         f, k = rows["f"], rows["k"]
+        # each row's segment data, gathered once (eval reads it per pair)
+        self.pre = {"A": segs.A[k], "AB": segs.AB[k], "L2": segs.L2[k],
+                    "eA": segs.eA[k], "dE": segs.eB[k] - segs.eA[k],
+                    "se": segs.start_end[k], "ee": segs.end_end[k]}
+        if charts.ok:
+            self.pre.update({"Az": rows["Az"], "ABz": rows["Bz"] - rows["Az"],
+                             "fA": segs.fA[k], "dF": segs.fB[k] - segs.fA[k]})
         csr = [self._csr(f, np.arange(len(f)), n_faces)]
         self.mrow = np.zeros(0, np.int64)
         self.mm = np.zeros(0, np.int64)
@@ -626,14 +652,24 @@ class _Field:
         return out - self.d
 
     def _seg_dist(self, X, Xz, r):
-        sg = self.segs
-        k = self.rows["k"][r]
-        AB = sg.AB[k]
-        t = ((X - sg.A[k]) * AB).sum(1) / sg.L2[k]
+        """_pair_value minus the extra inset along the segment, from the rows'
+        own copies of their segment data; and which points lie past an open
+        end of the hem."""
+        p = self.pre
+        AB = p["AB"][r]
+        D = X - p["A"][r]
+        t = (D * AB).sum(1) / p["L2"][r]
         tc = np.clip(t, 0.0, 1.0)
-        dist = _pair_value(sg, self.rows, r, X, Xz)
-        past = ((t < 0) & sg.start_end[k]) | ((t > 1) & sg.end_end[k])
-        return dist - (sg.eA[k] + tc * (sg.eB[k] - sg.eA[k])), past
+        diff = D - tc[:, None] * AB
+        dist = np.sqrt((diff * diff).sum(1))
+        if Xz is not None:
+            ABz = p["ABz"][r]
+            Dz = Xz - p["Az"][r]
+            L2z = np.maximum((ABz * ABz.conjugate()).real, 1e-30)
+            tz = np.clip((Dz * ABz.conjugate()).real / L2z, 0.0, 1.0)
+            dist = np.maximum(dist, np.abs(Dz - tz * ABz) * (p["fA"][r] + tz * p["dF"][r]))
+        past = ((t < 0) & p["se"][r]) | ((t > 1) & p["ee"][r])
+        return dist - (p["eA"][r] + tc * p["dE"][r]), past
 
     def _miter_dist(self, X, Xz, i):
         """Around a mitered inner corner, in the wedge where the corner vertex

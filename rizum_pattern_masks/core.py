@@ -1359,12 +1359,13 @@ def build_ribbons(topo, centerlines, Ls, G, W, roundness, offset, even, resoluti
     nrm = Ncl.copy()
     hit_tri = np.full(len(co), -1, np.int64)
     find = bvh.find_nearest
-    for i, v in enumerate(co.tolist()):
-        loc, n, fi, _ = find(v, maxd)
-        if loc is not None:
-            snapped[i] = loc
-            nrm[i] = topo.n_o[band[fi]]
-            hit_tri[i] = band[fi]
+    found = [find(v, maxd) for v in co.tolist()]
+    hit = [i for i, r in enumerate(found) if r[0] is not None]
+    if hit:                                  # written all at once, not point by point
+        fi = band[np.array([found[i][2] for i in hit], np.int64)]
+        snapped[hit] = np.array([found[i][0] for i in hit])
+        nrm[hit] = topo.n_o[fi]
+        hit_tri[hit] = fi
     across = _across_texel(topo, hit_tri, Bv, resolution, texel)
     out.width_px = W / float(np.percentile(across, 90))
     out.aa = np.minimum(across, 2.0 * pad)

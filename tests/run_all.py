@@ -9,7 +9,9 @@
                seeds: any exception, crash or hang fails
   performance  perf_suite.py, compared with tests/perf_baseline.json: a
                timing more than 30 % and 50 ms slower than the baseline fails
-               (measured twice before failing: other programs slow it down)
+               (measured twice before failing: other programs slow it down;
+               with psutil installed, the run also says how busy the computer
+               was, before and after)
 
 Blender runs with its user folders in the output folder, so your own
 preferences and add-ons are never read or written. The test scenes live in
@@ -189,11 +191,38 @@ def _slower(runs, base):
     return out
 
 
+def machine_load(seconds=3.0):
+    """What else is using the CPU: (cores busy in all, [(program, cores)]),
+    or None without psutil."""
+    try:
+        import psutil
+    except ImportError:
+        return None
+    procs = list(psutil.process_iter(["name"]))
+    for p in procs:
+        try:
+            p.cpu_percent(None)
+        except psutil.Error:
+            pass
+    time.sleep(seconds)
+    use = {}
+    for p in procs:
+        try:
+            c = p.cpu_percent(None) / 100.0
+        except psutil.Error:
+            continue
+        if c > 0.05 and p.info["name"] not in ("System Idle Process", "Idle"):
+            use[p.info["name"]] = use.get(p.info["name"], 0.0) + c
+    top = sorted(use.items(), key=lambda kv: -kv[1])[:4]
+    return sum(use.values()), top
+
+
 def performance(out, save):
     if not os.path.exists(SKIRT):
         return [("perf_suite", None, ["scene missing"])], None
     d = os.path.join(out, "perf")
     os.makedirs(d, exist_ok=True)
+    before = machine_load()
     code, runs = _perf_run(out, d, "")
     if code != 0 or not runs:
         return [("perf_suite", False, [f"exit {code}", "no timings"])], None
@@ -208,6 +237,14 @@ def performance(out, save):
                                   and k not in ("faces", "dashes") else v) for k, v in r.items()}
     slower = _slower(runs, base)
     rows = []
+    if before is not None:
+        after = machine_load()
+        busy = max(before[0], after[0])
+        top = before[1] if before[0] >= after[0] else after[1]
+        note = ", ".join(f"{name} {c:.1f}" for name, c in top)
+        rows.append((f"machine: other programs used {busy:.1f} of {os.cpu_count()} cores"
+                     + (" (timings may read high)" if busy > 1.0 else ""), "info",
+                     [note] if note else []))
     for mesh, r in runs.items():
         b = base.get(mesh, {})
         cells = [f"{k} {v:.0f}" + (f" ({b[k]:.0f})" if k in b else "") for k, v in r.items()
@@ -240,7 +277,7 @@ def main():
         rows += performance(out, "--save-baseline" in argv)[0]
     failed = 0
     for name, ok, why in rows:
-        mark = "SKIP" if ok is None else ("ok  " if ok else "FAIL")
+        mark = {None: "SKIP", "info": "info", True: "ok  ", False: "FAIL"}[ok]
         failed += ok is False
         print(f"{mark} {name}")
         for w in why:
