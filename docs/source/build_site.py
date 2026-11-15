@@ -760,7 +760,7 @@ def rp_desc(desc):
     keeps them as lines."""
     lines = [x for x in desc.split("\n") if x.strip()]
     if len(lines) < 2:
-        return f'<div class="rp-desc">{inline(desc)}</div>'
+        return f'<div class="rp-desc"><span>{inline(desc)}</span></div>'   # one flow of text
     return '<div class="rp-desc multi">' + "".join(f"<span>{inline(x)}</span>" for x in lines) + "</div>"
 
 
