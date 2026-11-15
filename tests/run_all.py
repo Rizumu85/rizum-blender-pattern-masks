@@ -11,7 +11,7 @@
                timing more than 30 % and 50 ms slower than the baseline fails
                (measured twice before failing: other programs slow it down;
                with psutil installed, the run also says how busy the computer
-               was, before and after)
+               was, apart from the programs always running there, USUAL)
 
 Blender runs with its user folders in the output folder, so your own
 preferences and add-ons are never read or written. The test scenes live in
@@ -191,14 +191,19 @@ def _slower(runs, base):
     return out
 
 
+# Always running on the computer the baseline was measured on, so part of it:
+# VRChat, and Claude Code driving the run. Anything else busy is reported.
+USUAL = {"VRChat.exe", "claude.exe"}
+
+
 def machine_load(seconds=3.0):
-    """What else is using the CPU: (cores busy in all, [(program, cores)]),
-    or None without psutil."""
+    """What else is using the CPU: (cores busy apart from USUAL and this run,
+    [(program, cores)]), or None without psutil."""
     try:
         import psutil
     except ImportError:
         return None
-    procs = list(psutil.process_iter(["name"]))
+    procs = [p for p in psutil.process_iter(["name"]) if p.pid != os.getpid()]
     for p in procs:
         try:
             p.cpu_percent(None)
@@ -214,7 +219,7 @@ def machine_load(seconds=3.0):
         if c > 0.05 and p.info["name"] not in ("System Idle Process", "Idle"):
             use[p.info["name"]] = use.get(p.info["name"], 0.0) + c
     top = sorted(use.items(), key=lambda kv: -kv[1])[:4]
-    return sum(use.values()), top
+    return sum(c for name, c in use.items() if name not in USUAL), top
 
 
 def performance(out, save):
@@ -241,11 +246,18 @@ def performance(out, save):
         after = machine_load()
         busy = max(before[0], after[0])
         top = before[1] if before[0] >= after[0] else after[1]
-        note = ", ".join(f"{name} {c:.1f}" for name, c in top)
-        rows.append((f"machine: other programs used {busy:.1f} of {os.cpu_count()} cores"
-                     + (" (timings may read high)" if busy > 1.0 else ""), "info",
-                     [note] if note else []))
+        note = ", ".join(f"{name} {c:.1f}" + (" (usual)" if name in USUAL else "")
+                         for name, c in top)
+        was = base.get("_machine", {}).get("busy")
+        rows.append((f"machine: programs besides {' and '.join(sorted(USUAL))} used "
+                     f"{busy:.1f} of {os.cpu_count()} cores"
+                     + (f" (baseline {was:.1f})" if was is not None else "")
+                     + (" - timings may read high" if was is not None and busy > was + 1.0 else ""),
+                     "info", [note] if note else []))
+        runs["_machine"] = {"busy": round(busy, 1)}
     for mesh, r in runs.items():
+        if mesh.startswith("_"):
+            continue
         b = base.get(mesh, {})
         cells = [f"{k} {v:.0f}" + (f" ({b[k]:.0f})" if k in b else "") for k, v in r.items()
                  if isinstance(v, (int, float)) and k not in ("faces", "dashes")]
