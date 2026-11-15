@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Rizum
 """Checkerboard woven into the fabric.
 
 The lines of a checked fabric are its threads: one set runs along the marked

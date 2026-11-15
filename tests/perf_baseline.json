@@ -1,0 +1,38 @@
+{
+ "Skirt_sub0": {
+  "dashes": 514,
+  "edge": 793.8,
+  "faces": 320,
+  "first": 1350.6,
+  "grid_cell": 8.2,
+  "inset": 380.9,
+  "length": 81.4,
+  "line_width": 271.8,
+  "mesh": "Skirt_sub0",
+  "overlay": 0.6
+ },
+ "Skirt_sub1": {
+  "dashes": 516,
+  "edge": 1191.8,
+  "faces": 1344,
+  "first": 2898.8,
+  "grid_cell": 17.4,
+  "inset": 759.1,
+  "length": 107.8,
+  "line_width": 569.5,
+  "mesh": "Skirt_sub1",
+  "overlay": 2.4
+ },
+ "Skirt_sub2": {
+  "dashes": 515,
+  "edge": 1803.8,
+  "faces": 5376,
+  "first": 8226.3,
+  "grid_cell": 50.0,
+  "inset": 864.0,
+  "length": 106.1,
+  "line_width": 1074.0,
+  "mesh": "Skirt_sub2",
+  "overlay": 5.3
+ }
+}

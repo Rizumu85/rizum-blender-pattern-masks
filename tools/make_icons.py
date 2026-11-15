@@ -1,4 +1,6 @@
-"""Draw the add-on's own icons into rizum_pattern_masks/icons.npz.
+"""Draw the add-on's own icons into rizum_pattern_masks/icons.npz (the icons
+themselves are released under CC0-1.0, as extensions.blender.org asks of
+bundled assets).
 
     python tools/make_icons.py
 

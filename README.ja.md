@@ -13,10 +13,10 @@
 Blender でメッシュの辺をいくつか指定すると、Pattern Masks がその辺に沿ってステッチ・縁取り線・チェック柄を描きます。サイズはすべてモデル表面上の実寸（ミリ）で計算され、レイヤーごとに 16 ビットの UV マスク PNG としてベイクされます。Substance 3D Painter や CLIP STUDIO PAINT など、マスクを使えるソフトでそのまま使えます。
 
 <p align="center">
-  <img src="./assets/readme/proof.png" width="100%" alt="ベイクしたマスクだけで色付けしたスカラップ裾のスカート：チェック柄、紺のウエストバンド、濃い色の裾の縁取り、スカラップに沿ったオレンジの破線ステッチ。右はスカラップの角で折れ曲がるステッチの拡大。下は同じマスクを UV 空間で見たもの">
+  <img src="./assets/readme/proof.png" width="100%" alt="各種類のレイヤーを付けたトゥーン調のスカート：チェック柄、裾の縁とウエストバンドの下の紺の線画、スカラップ裾に沿ったオレンジのステッチ。右は破線とジグザグのステッチの拡大。下は UV 空間にベイクしたマスク">
 </p>
 
-<sub>デモのスカートは、ベイクしたマスクだけで色付けしています：スカラップ裾のステッチ、そのステッチを参照する裾の縁取り、ウエストバンド、ウエストから敷いたチェック柄。右：ステッチはスカラップごとに沿って進み、スカラップ同士の間の角で折れ曲がります（チェック柄は非表示）。下：同じマスクを UV 空間で見たもの。</sub>
+<sub>デモのスカートに付けた各種類のレイヤー：スカラップ裾に沿ったステッチ、裾の縁とウエストバンドの下の線画、チェック柄。右：ステッチの 2 つのスタイル、破線とジグザグ。下：UV 空間にベイクしたマスク。そのままペイントソフトで使えます。</sub>
 
 ## できること
 
@@ -35,7 +35,7 @@ Blender でメッシュの辺をいくつか指定すると、Pattern Masks が�
 
 ## インストール
 
-Blender 4.2 以降が必要です（5.0 で動作確認済み）。
+Blender 4.4 以降が必要です（4.4 と 5.0 で動作確認済み）。
 
 - **Blender から**：編集 › プリファレンス の **Get Extensions**（エクステンションの入手）で*Pattern Masks* を検索します。
 - **zip から**：[Releases](https://github.com/Rizumu85/rizum-blender-pattern-masks/releases)から `rizum_pattern_masks-<バージョン>.zip` をダウンロードし、Get Extensions の右上の ⌄ メニューから **Install from Disk…**（ディスクからインストール）を選びます。
@@ -65,9 +65,12 @@ Blender 4.2 以降が必要です（5.0 で動作確認済み）。
 
 - `rizum_pattern_masks/` がアドオン本体です。
 - `tests/` には Blender 内で実行するスクリプトがあります。例：`blender -b --factory-startup test/skirt_test.blend -P tests/grid_test.py -- <出力フォルダー>`。`tests/make_test_mesh.py` が `test/skirt_test.blend` を作ります。
+- `python tests/run_all.py` は変更を出す前のチェックをまとめて実行します：テストスクリプト、Blender ウィンドウでのランダムな編集（エラー・クラッシュ・フリーズ）、`tests/perf_baseline.json` との処理時間の比較。
 - `python build.py` は zip を `dist/` に書き出し、`python build.py --install` はさらに Blender 5.0 のエクステンションフォルダーにコピーします。
-- `docs/source/` で README の画像とドキュメントサイトを作り直せます：`make_demo.py`（Blender 内でスカート・ベイク・レンダリング）、`make_svgs.py`（バナー・アイコン・図）、`build_site.py`（`docs/content/` から `site/` を生成し、GitHub Pages で公開）。
+- `docs/source/` で README の画像とドキュメントサイトを作り直せます：`make_demo.py`（Blender 内でスカート・ベイク・レンダリング）、`make_svgs.py`（バナー・アイコン・図）、`proof/`（作例ボードのトゥーン調スカート）、`build_site.py`（`docs/content/` から `site/` を生成し、GitHub Pages で公開）。
 
 ## ライセンス
 
 [GPL-3.0-or-later](./LICENSE) © 2026 Rizum
+
+アドオン内のアイコン（`rizum_pattern_masks/icons.npz`、`tools/make_icons.py` で描画）は [CC0-1.0](https://creativecommons.org/publicdomain/zero/1.0/) で公開しています。

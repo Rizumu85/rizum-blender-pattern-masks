@@ -30,7 +30,7 @@
     {
      "id": "requirements",
      "heading": "Requirements",
-     "body": "Blender 4.2 or newer, and a mesh with UVs.",
+     "body": "Blender 4.4 or newer, and a mesh with UVs.",
      "table": [],
      "figure": ""
     }

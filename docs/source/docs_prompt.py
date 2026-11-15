@@ -37,7 +37,7 @@ PAGES = [
         ("layers", "The three kinds of layers (stitches, line art, grid), one short paragraph each. Figure: fig-hero-render."),
         ("workflow", "The workflow in four steps: mark edges, tune, bake, use the masks. Figure: fig-workflow."),
         ("why", "What makes it different from painting by hand or using UV-space tools: sizes measured on the 3D surface in millimetres, lines that keep their distance from the edge along the fabric, sharp corners where marked, live preview."),
-        ("requirements", "Requirements: Blender 4.2 or newer (tested on 5.0), a mesh with UVs."),
+        ("requirements", "Requirements: Blender 4.4 or newer (tested on 4.4 and 5.0), a mesh with UVs."),
     ]),
     ("start", "Install and first mask", [
         ("install", "Installing: from Blender's Get Extensions (search Pattern Masks), or from a zip with Install from Disk."),

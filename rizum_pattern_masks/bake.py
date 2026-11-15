@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Rizum
 """Bake the stitch ribbons into the hem object's UV space and save 16-bit PNG masks."""
 
 import os

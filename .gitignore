@@ -12,3 +12,6 @@ backup/
 
 # design process files (oil-ui-pro)
 .oil-ui/
+
+# proof shots (docs/source/proof/serve.py)
+docs/source/proof/out/

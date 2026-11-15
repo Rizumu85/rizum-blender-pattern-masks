@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Rizum
 """Line art: a solid band along the marked edges.
 
 A line layer covers every point whose distance from the edges (along the

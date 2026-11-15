@@ -13,10 +13,10 @@
 在 Blender 里给网格标几条边，图案遮罩就会沿着它们画出缝线、描边和格纹。所有尺寸都按模型表面上的真实毫米计算，然后每一层烘焙成一张 16 位 UV 遮罩 PNG，可以直接拿去 Substance 3D Painter、Clip Studio Paint 等支持遮罩的软件用。
 
 <p align="center">
-  <img src="./assets/readme/proof.png" width="100%" alt="一条只用烘焙出的遮罩上色的扇形下摆裙子：格纹、深蓝腰头、深色下摆描边和沿扇形走的橙色虚线缝线；右边是缝线在扇形尖角处转折的近景；下面是同一组遮罩在 UV 空间里的样子">
+  <img src="./assets/readme/proof.png" width="100%" alt="卡通风格的裙子，用上了每一种图层：格纹、下摆边缘和腰头下方的深蓝线稿、沿扇形下摆走的橙色缝线；右边是虚线和锯齿两种缝线的近景；下面是烘焙到 UV 空间里的遮罩">
 </p>
 
-<sub>演示用的裙子只用烘焙出的遮罩上色：扇形下摆上的缝线、引用缝线的下摆描边、腰头，以及从腰线铺开的格纹。右：缝线沿着每个扇形走，在两个扇形之间的尖角处转折（这张隐藏了格纹）。下：同一组遮罩在 UV 空间里的样子。</sub>
+<sub>演示裙子上的每种图层：沿扇形下摆走的缝线、下摆边缘和腰头下方的线稿，以及格纹。右：两种缝线样式，虚线和锯齿。下：烘焙到 UV 空间里的遮罩，可以直接拿到绘图软件里用。</sub>
 
 ## 能做什么
 
@@ -35,7 +35,7 @@
 
 ## 安装
 
-需要 Blender 4.2 或更新版本（在 5.0 上测试过）。
+需要 Blender 4.4 或更新版本（在 4.4 和 5.0 上测试过）。
 
 - **在 Blender 里安装**：编辑 › 偏好设置 › 获取扩展，搜索 *Pattern Masks*。
 - **用 zip 安装**：从 [Releases](https://github.com/Rizumu85/rizum-blender-pattern-masks/releases)下载 `rizum_pattern_masks-<版本>.zip`，然后在"获取扩展"右上角的 ⌄ 菜单里选**从磁盘安装…**。
@@ -63,9 +63,12 @@
 
 - `rizum_pattern_masks/` 是插件本体。
 - `tests/` 是在 Blender 里运行的测试脚本，例如 `blender -b --factory-startup test/skirt_test.blend -P tests/grid_test.py -- <输出目录>`。`tests/make_test_mesh.py` 会生成 `test/skirt_test.blend`。
+- `python tests/run_all.py` 是改动发布前的全部检查：测试脚本、在 Blender 窗口里随机编辑（报错、闪退、卡死），以及和 `tests/perf_baseline.json` 对比耗时。
 - `python build.py` 把 zip 打包到 `dist/`，`python build.py --install` 还会把插件复制进 Blender 5.0 的扩展目录。
-- `docs/source/` 用来重新生成 README 里的图片和文档网站：`make_demo.py`（在 Blender 里生成裙子、烘焙和渲染）、`make_svgs.py`（横幅、图标和示意图）和 `build_site.py`（从 `docs/content/` 生成 `site/`，由 GitHub Pages 发布）。
+- `docs/source/` 用来重新生成 README 里的图片和文档网站：`make_demo.py`（在 Blender 里生成裙子、烘焙和渲染）、`make_svgs.py`（横幅、图标和示意图）、`proof/`（效果图上的卡通裙子）和 `build_site.py`（从 `docs/content/` 生成 `site/`，由 GitHub Pages 发布）。
 
 ## 许可
 
 [GPL-3.0-or-later](./LICENSE) © 2026 Rizum
+
+插件自带的图标（`rizum_pattern_masks/icons.npz`，由 `tools/make_icons.py` 绘制）以 [CC0-1.0](https://creativecommons.org/publicdomain/zero/1.0/) 发布。

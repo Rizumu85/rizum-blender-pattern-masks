@@ -16,13 +16,13 @@ on the surface, then bakes each layer to a 16-bit UV mask PNG for
 Substance 3D Painter, Clip Studio Paint or any app that takes masks.
 
 <p align="center">
-  <img src="./assets/readme/proof.png" width="100%" alt="A scalloped skirt textured only with the baked masks: a checked grid, a navy waistband, a dark hem outline and orange dashed stitches along the scallops; a close-up of the stitches turning at the scallop points; below, the same masks in UV space">
+  <img src="./assets/readme/proof.png" width="100%" alt="A toon skirt wearing each kind of layer: a grid of checks, a navy outline on the hem and a line under the waistband, and orange stitches along the scalloped hem; close-ups of the dashed and the zigzag stitches; below, the skirt's masks baked into UV space">
 </p>
 
-<sub>The demo skirt, textured with nothing but the baked masks: stitches on the
-scalloped hem, a hem outline that references them, a waistband and a grid
-laid from the waist. Right: the stitches follow each scallop and turn at the
-points between them (grid hidden). Bottom: the same masks in UV space.</sub>
+<sub>Each kind of layer on the demo skirt: stitches along the scalloped hem,
+line art on the hem edge and under the waistband, and a grid. Right: the two
+stitch styles, dashed and zigzag. Bottom: the masks baked into UV space, ready
+for a painting app.</sub>
 
 ## What it makes
 
@@ -54,7 +54,7 @@ the 3D surface, not in UV space.
 
 ## Install
 
-Requires Blender 4.2 or newer (tested on 5.0).
+Requires Blender 4.4 or newer (tested on 4.4 and 5.0).
 
 - **From Blender**: Edit › Preferences › Get Extensions, then search for
   *Pattern Masks*.
@@ -101,13 +101,21 @@ reference in one page.
 - `tests/` holds scripts that run inside Blender, for example
   `blender -b --factory-startup test/skirt_test.blend -P tests/grid_test.py -- <out_dir>`.
   `tests/make_test_mesh.py` builds `test/skirt_test.blend`.
+- `python tests/run_all.py` runs every check before a change ships: the test
+  scripts, random editing in a Blender window (exceptions, crashes, hangs) and
+  the timings against `tests/perf_baseline.json`.
 - `python build.py` writes the zip to `dist/`, and `python build.py --install`
   also copies it into Blender 5.0's extensions folder.
 - `docs/source/` rebuilds the README images and the docs site: `make_demo.py`
   (the skirt, the bake and the renders, run in Blender), `make_svgs.py`
-  (banner, icon and diagrams) and `build_site.py` (writes `site/` from
-  `docs/content/`, published by GitHub Pages).
+  (banner, icon and diagrams), `proof/` (the toon shots on the proof board) and
+  `build_site.py` (writes `site/` from `docs/content/`, published by GitHub
+  Pages).
 
 ## License
 
 [GPL-3.0-or-later](./LICENSE) © 2026 Rizum
+
+The add-on's icons (`rizum_pattern_masks/icons.npz`, drawn by
+`tools/make_icons.py`) are released under
+[CC0-1.0](https://creativecommons.org/publicdomain/zero/1.0/).

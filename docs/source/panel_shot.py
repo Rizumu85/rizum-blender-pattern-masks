@@ -1,5 +1,5 @@
 """Screenshot Blender with the demo skirt and the add-on's panel, for the
-extension listing. Run with a config that skips the splash screen:
+extension listing (with Blender's user folders in a scratch folder):
 
 blender --enable-event-simulate <demo.blend> -P docs/source/panel_shot.py -- <out.png> <layer> [tab_x tab_y]
 
@@ -30,10 +30,17 @@ def setup():
     bpy.context.view_layer.objects.active = ob
     s = ob.stitch_gen
     s.line_index = next(i for i, l in enumerate(s.lines) if l.name == layer)
-    # plain cloth (the demo material shows the baked result); previews on top
-    mat = ob.active_material
-    mat.use_nodes = False
-    mat.diffuse_color = (0.86, 0.80, 0.70, 1.0)
+    # plain cream cloth (the demo material shows the baked result); previews on
+    # top. Materials always have nodes since Blender 5.0: colour the Principled one.
+    cloth = (0.86, 0.80, 0.70, 1.0)
+    mat = bpy.data.materials.new("cloth_plain")
+    mat.diffuse_color = cloth
+    if mat.node_tree is not None:
+        for n in mat.node_tree.nodes:
+            if n.type == 'BSDF_PRINCIPLED':
+                n.inputs["Base Color"].default_value = cloth
+                n.inputs["Roughness"].default_value = 0.8
+    ob.material_slots[0].material = mat
     for o in bpy.data.objects:
         if o.type in {'CAMERA', 'LIGHT'}:
             o.hide_set(True)
@@ -65,6 +72,10 @@ def setup():
         r3d.view_location = (0.0, 0.0, -0.26)
         r3d.view_distance = 1.15
     sg.regenerate(ob, create=True)
+    # a fresh config opens with the first-start splash: Esc closes it, nothing saved
+    w.event_simulate(type='MOUSEMOVE', value='NOTHING', x=900, y=700)
+    w.event_simulate(type='ESC', value='PRESS')
+    w.event_simulate(type='ESC', value='RELEASE')
     if tab is not None:
         for t, v in (('MOUSEMOVE', 'NOTHING'), ('LEFTMOUSE', 'PRESS'), ('LEFTMOUSE', 'RELEASE')):
             w.event_simulate(type=t, value=v, x=tab[0], y=tab[1])

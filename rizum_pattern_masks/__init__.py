@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Rizum
 """Rizum Pattern Masks: stitches, line art and grids that follow the mesh from
 marked edges, baked to UV masks."""
 
@@ -138,6 +140,8 @@ def _show_preview(ob, scene):
     """A button was pressed: show the preview (operators only). It can have
     been deleted from the scene or hidden, and so can the collection it is in;
     otherwise the button rebuilds stitches nobody sees."""
+    if not ob.get(PREVIEW_PROP):
+        ob[PREVIEW_PROP] = True             # removed along with its object
     if not ob.users_collection:
         _preview_collection(scene).objects.link(ob)
     ob.hide_viewport = False
@@ -297,13 +301,26 @@ def _grid_geometry(obj, scene):
         return None
     topo = entry["topo"]
     lift = max(topo.mean_edge / 60.0, topo.span * 2e-5)
-    cos, tris, vss, owner, base = [], [], [], [], 0
-    for li, (attr, cell, angle, off_y, off_x, wobble, mode, attrs) in enumerate(grids):
+    kept = entry.setdefault("grid_preview", {})     # per layer: (settings, coords, result)
+    parts = []
+    for li, g in enumerate(grids):
+        attr, cell, angle, off_y, off_x, wobble, mode, attrs = g
         if mode == "unrolled" and not _unrolled_ready(obj, scene, entry, attrs):
             continue                       # being worked out; shown when done
-        lay = core.grid_coords(entry, attrs).layout(cell, angle, mode)
-        co, t, vs = grid.preview(topo, lay, lift, off_x, off_y,
-                                 grid.Wobble(attr, cell, wobble))
+        gc = core.grid_coords(entry, attrs)
+        hit = kept.get(attr)
+        if hit is None or hit[0] != (g, lift) or hit[1] is not gc:
+            lay = gc.layout(cell, angle, mode)
+            hit = kept[attr] = ((g, lift), gc, grid.preview(topo, lay, lift, off_x, off_y,
+                                                            grid.Wobble(attr, cell, wobble)))
+        parts.append((li, hit[2]))
+    # the same pieces as last time: the same result (so its mesh is not rewritten)
+    last = entry.get("grid_geo")
+    if last is not None and len(last[0]) == len(parts) and all(
+            a[0] == b[0] and a[1] is b[1] for a, b in zip(last[0], parts)):
+        return last[1]
+    cos, tris, vss, owner, base = [], [], [], [], 0
+    for li, (co, t, vs) in parts:
         if not len(t):
             continue
         cos.append(co)
@@ -311,9 +328,10 @@ def _grid_geometry(obj, scene):
         vss.append(vs)
         owner.append(np.full(len(t), li, np.int64))
         base += len(co)
-    if not tris:
-        return np.zeros((0, 3)), np.zeros((0, 3), np.int64), np.zeros((0, 3, 2)), np.zeros(0, np.int64)
-    return np.vstack(cos), np.vstack(tris), np.vstack(vss), np.concatenate(owner)
+    out = ((np.vstack(cos), np.vstack(tris), np.vstack(vss), np.concatenate(owner)) if tris else
+           (np.zeros((0, 3)), np.zeros((0, 3), np.int64), np.zeros((0, 3, 2)), np.zeros(0, np.int64)))
+    entry["grid_geo"] = (parts, out)
+    return out
 
 
 _unroll_jobs = {}        # object name -> the Unrolled flattening being worked out
@@ -499,6 +517,30 @@ def _write_grid(go, gdata, mats):
 
 
 SIG_PROP = "stitch_gen_built_from"
+
+# what each preview mesh was last written from: (object, preview) -> (pieces,
+# mesh state after writing). Undo and loading files clear it.
+_written = {}
+
+
+def _write_needed(obj, which, me, pieces):
+    """False when the mesh already holds exactly these pieces (the same cached
+    arrays, material names equal) and nothing changed it since: other materials
+    in its slots, other sizes; a preview seen in Edit or Sculpt Mode is
+    forgotten (_sync_previews), so edits by hand are written over too."""
+    hit = _written.get((obj.name_full, which))
+    return not (hit is not None and len(hit[0]) == len(pieces)
+                and all(a is b or (isinstance(a, str) and a == b) for a, b in zip(hit[0], pieces))
+                and hit[1] == _mesh_state(me))
+
+
+def _mesh_state(me):
+    return (me.as_pointer(), len(me.vertices), len(me.polygons),
+            tuple(_mat_name(m) for m in me.materials))
+
+
+def _mat_name(m):
+    return m.name_full if m is not None else None
 
 
 def _params_sig(p):
@@ -949,19 +991,41 @@ def regenerate(obj, scene=None, create=False):
     if create and s.ribbon is None and s.line_preview is None and s.grid_preview is None:
         _inherit_bake_settings(obj, scene)        # first set-up of this object
     sig = _params_sig(_last_params[obj.name_full])
+    # each preview is only rewritten when what it shows changed
     rib = _ribbon_object(obj, scene, create and data.dash_count > 0)
     if rib is not None:
-        _write_ribbon(rib, data, _stitch_materials(obj, create))
-        rib.data[SIG_PROP] = sig
+        mats = _stitch_materials(obj, create)
+        pieces = [r for _attr, r in data.stitches] + [_mat_name(m) for m in mats]
+        if _write_needed(obj, "ribbon", rib.data, pieces):
+            _write_ribbon(rib, data, mats)
+            _written[(obj.name_full, "ribbon")] = (pieces, _mesh_state(rib.data))
+        elif rib.matrix_world != Matrix.Identity(4):
+            rib.matrix_world = Matrix.Identity(4)
+        if rib.data.get(SIG_PROP) != sig:
+            rib.data[SIG_PROP] = sig
     lo = _line_object(obj, scene, create and len(data.line_quads) > 0)
     if lo is not None:
-        _write_lines(lo, data, _layer_materials(obj, create))
-        lo.data[SIG_PROP] = sig
+        mats = _layer_materials(obj, create)
+        pieces = [data.line_co, data.line_quads, data.line_layer] + [_mat_name(m) for m in mats]
+        if _write_needed(obj, "lines", lo.data, pieces):
+            _write_lines(lo, data, mats)
+            _written[(obj.name_full, "lines")] = (pieces, _mesh_state(lo.data))
+        elif lo.matrix_world != Matrix.Identity(4):
+            lo.matrix_world = Matrix.Identity(4)
+        if lo.data.get(SIG_PROP) != sig:
+            lo.data[SIG_PROP] = sig
     gdata = _grid_geometry(obj, scene)
     go = _grid_object(obj, scene, create and gdata is not None and len(gdata[1]) > 0)
     if go is not None:
-        _write_grid(go, gdata, _grid_materials(obj, create))
-        go.data[SIG_PROP] = sig
+        mats = _grid_materials(obj, create)
+        pieces = [gdata] + [_mat_name(m) for m in mats]
+        if _write_needed(obj, "grid", go.data, pieces):
+            _write_grid(go, gdata, mats)
+            _written[(obj.name_full, "grid")] = (pieces, _mesh_state(go.data))
+        elif go.matrix_world != Matrix.Identity(4):
+            go.matrix_world = Matrix.Identity(4)
+        if go.data.get(SIG_PROP) != sig:
+            go.data[SIG_PROP] = sig
     if create:
         _apply_colors(obj)
     return data
@@ -1007,6 +1071,7 @@ def _MUTE_SET(s):
 @bpy.app.handlers.persistent
 def _on_load(_dummy):
     _baking["name"] = None
+    _written.clear()
     for ob in bpy.data.objects:
         if ob.type == 'MESH' and len(ob.stitch_gen.lines) > 1:
             _migrate_line_layers(ob)
@@ -1074,6 +1139,31 @@ def _flush():
 
 
 _SYNCING = [False]
+PREVIEW_PROP = "stitch_gen_preview"
+
+
+def _drop_orphan_previews():
+    """Deleting an object leaves its previews behind: remove the ones nothing
+    points at any more. Ones selected or active in any view layer, or in Edit
+    Mode, are left alone (a move or an edit can be using them)."""
+    owned = _previews()
+    layers = [vl for sc in bpy.data.scenes for vl in sc.view_layers]
+
+    def in_use(o):
+        if o.mode != 'OBJECT':
+            return True
+        for vl in layers:
+            if o.name in vl.objects and (vl.objects.active == o or o.select_get(view_layer=vl)):
+                return True
+        return False
+    for o in [o for o in bpy.data.objects
+              if o.get(PREVIEW_PROP) and o.library is None and o.name_full not in owned
+              and not in_use(o)]:
+        me = o.data
+        bpy.data.objects.remove(o)
+        if me is not None and me.users == 0:
+            bpy.data.meshes.remove(me)
+    return None
 
 
 @bpy.app.handlers.persistent
@@ -1098,14 +1188,20 @@ def _sync_previews(_scene, _depsgraph=None):
                     spaces.append(sp)
     _SYNCING[0] = True
     try:
+        owned, tagged = set(), False
         for ob in vl.objects:
             if ob.type != 'MESH':
                 continue
+            tagged = tagged or PREVIEW_PROP in ob
             st = ob.stitch_gen
             previews = [o for o in (st.ribbon, st.line_preview, st.grid_preview)
                         if o is not None and o.name in vl.objects]
+            owned.update(o.name for o in previews)
             if not previews:
                 continue
+            if any(o.mode != 'OBJECT' for o in previews):    # edited by hand: write anew
+                for which in ("ribbon", "lines", "grid"):
+                    _written.pop((ob.name_full, which), None)
             hidden = ob.hide_get()
             for o in previews:
                 if o.hide_get() != hidden:
@@ -1114,6 +1210,9 @@ def _sync_previews(_scene, _depsgraph=None):
                     want = ob.local_view_get(sp)
                     if o.local_view_get(sp) != want:
                         o.local_view_set(sp, want)
+        if tagged and any(PREVIEW_PROP in o and o.name not in owned for o in vl.objects):
+            if not bpy.app.timers.is_registered(_drop_orphan_previews):
+                bpy.app.timers.register(_drop_orphan_previews, first_interval=0.0)
     except (ReferenceError, RuntimeError):
         pass
     finally:
@@ -1126,6 +1225,7 @@ def _on_undo_redo(scene, _depsgraph=None):
     preview is rebuilt (that waits a moment), so a step can hold new settings
     with the old preview. Each preview records the settings it was built
     from: rebuild the ones that don't match after undo / redo."""
+    _written.clear()
     for ob in bpy.data.objects:
         if ob.type != 'MESH':
             continue
@@ -3339,6 +3439,8 @@ def unregister():
         bpy.app.timers.unregister(_migrate_open_file)
     if _sync_previews in bpy.app.handlers.depsgraph_update_post:
         bpy.app.handlers.depsgraph_update_post.remove(_sync_previews)
+    if bpy.app.timers.is_registered(_drop_orphan_previews):
+        bpy.app.timers.unregister(_drop_orphan_previews)
     if _on_load in bpy.app.handlers.load_post:
         bpy.app.handlers.load_post.remove(_on_load)
     for lst in (bpy.app.handlers.undo_post, bpy.app.handlers.redo_post):

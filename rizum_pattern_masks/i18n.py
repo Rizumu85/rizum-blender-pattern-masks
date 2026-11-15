@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Rizum
 """Hand-written UI translations (Simplified Chinese, Japanese).
 
 Blender looks strings up by (context, message). Property names, panel titles

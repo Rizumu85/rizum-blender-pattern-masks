@@ -1,4 +1,4 @@
-"""Build the demo skirt used for the README images, set up the add-on's
+"""Build the demo skirt used for the README images and the listing's panel shot, set up the add-on's
 layers on it, bake the masks, render the skirt textured with them, and
 compose the masks into one UV image.
 
@@ -25,31 +25,29 @@ import rizum_pattern_masks as sg  # noqa: E402
 
 os.makedirs(out_dir, exist_ok=True)
 
-# -- the skirt: pleated, flared, scalloped hem, one UV strip ------------------
-SEG = 200                      # columns around the waist (20 hem verts per scallop)
-FOLDS = 10
-SCALLOPS = 20                  # two per fold
+# -- the skirt: an A-line with a scalloped hem, one UV strip ------------------
+# The same shape as the docs' toon skirt (docs/source/site_layers3d.js), scaled
+# to 0.30 m from waist to hem: waist radius 0.42, hem 0.98, length 1.05 there.
+SEG = 200                      # columns around the waist (40 hem verts per scallop)
+FOLDS = 10                     # soft ripples, one per scallop
+SCALLOPS = 10
 LENGTH = 0.30
+R0, R1 = 0.12, 0.28            # waist and hem radius
 ROWS = [-0.0125 * i for i in range(22)]       # waist (0) down to -0.2625
 HEM_TOP, HEM_LOW = -0.275, -0.305
 
 
 def radius(z):
-    return 0.10 + 0.10 * (-z / LENGTH)        # an A-line: the hem twice the waist
-
-
-def fold_depth(z):
-    return 0.26 * min(1.0, (-z / LENGTH) ** 1.25)
+    return R0 + (R1 - R0) * (-z / LENGTH) ** 0.8
 
 
 TURN = math.radians(float(os.environ.get("DEMO_TURN", "54")))   # keeps the grid's forks off the front
 
 
 def pos(theta, z):
-    d = fold_depth(z)
-    th = theta + 0.08 * math.sin(FOLDS * theta) * (d / 0.26)
-    r = radius(z) * (1.0 - d * 0.5 * (1.0 + math.cos(FOLDS * theta)))
-    return (r * math.cos(th + TURN), r * math.sin(th + TURN), z)
+    # the ripples dip in at the scallop points, as on the toon skirt
+    r = radius(z) * (1.0 - 0.045 * (-z / LENGTH) * math.cos(FOLDS * theta))
+    return (r * math.cos(theta + TURN), r * math.sin(theta + TURN), z)
 
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -139,7 +137,7 @@ def mark(row, pick):
 
 bpy.ops.stitch_gen.stitch_add()
 mark(0, lambda zs: all(z < HEM_TOP + 0.001 for z in zs))         # the scalloped hem
-s.inset, s.length, s.gap, s.width, s.smooth = 9.0, 7.0, 4.0, 2.6, 3.0
+s.inset, s.length, s.gap, s.width, s.smooth = 14.0, 14.0, 8.0, 3.6, 3.0
 
 bpy.ops.stitch_gen.line_add()                                      # hem outline
 trim = s.lines[s.line_index]
@@ -157,7 +155,7 @@ bpy.ops.stitch_gen.grid_add()                                      # gingham fro
 g = s.lines[s.line_index]
 g.name = "gingham"
 g.ref_attr = band.edge_attr
-g.grid_cell, g.grid_wobble = 22.0, 0.25
+g.grid_cell, g.grid_wobble = 30.0, 0.25
 sg.regenerate(ob, create=True)
 print("RESULT layers", [(l.name, l.edge_attr, l.ref_attr) for l in s.lines], "status", s.status or "ok",
       "stitches", s.dash_count)

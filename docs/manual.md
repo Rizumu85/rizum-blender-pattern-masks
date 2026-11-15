@@ -8,7 +8,7 @@ real width) and checkerboards along edges you pick on a mesh. Everything is meas
 the surface in millimetres. The result is baked into the mesh's UV space as
 16-bit mask PNGs for Substance 3D Painter or a 2D app such as Clip Studio.
 
-Requires Blender 4.2 or newer (tested on 5.0.1).
+Requires Blender 4.4 or newer (tested on 4.4 and 5.0).
 
 ## Install
 

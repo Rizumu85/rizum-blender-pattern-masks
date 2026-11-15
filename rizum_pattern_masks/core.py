@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Rizum
 """Geometry core for the stitch generator.
 
 Everything is computed in world space with numpy:
@@ -86,11 +88,10 @@ def pick_uv(me, uv_name):
 
 
 def mesh_signature(me, mw, uv_name):
-    """(everything the stitches depend on, the line art edges)."""
+    """(the shape and its UVs, the marked corners, each layer's marked edges)."""
     nv = len(me.vertices)
     co = np.empty(nv * 3, np.float32)
     me.vertices.foreach_get("co", co)
-    path = read_path_edges(me)
     nl = len(me.loops)
     lv = np.empty(nl, np.int32)
     me.loops.foreach_get("vertex_index", lv)
@@ -100,16 +101,11 @@ def mesh_signature(me, mw, uv_name):
         uv = np.empty(nl * 2, np.float32)
         uvl.data.foreach_get("uv", uv)
         uv_hash = hash(uv.tobytes())
-    return (
-        nv, len(me.edges), len(me.polygons), nl,
-        hash(co.tobytes()),
-        hash(path.tobytes()), hash(read_path_edges(me, PATH_ATTR, -1).tobytes()),
-        hash(read_corner_verts(me).tobytes()),
-        hash(lv.tobytes()), uv_hash,
-        tuple(round(x, 9) for row in mw for x in row),
-        uv_name,
-    ), hash(tuple((n, hash(read_path_edges(me, n).tobytes()),
-                   hash(read_path_edges(me, n, -1).tobytes())) for n in line_attr_names(me)))
+    geo = (nv, len(me.edges), len(me.polygons), nl, hash(co.tobytes()), hash(lv.tobytes()),
+           uv_hash, tuple(round(x, 9) for row in mw for x in row), uv_name)
+    marks = {n: (hash(read_path_edges(me, n).tobytes()), hash(read_path_edges(me, n, -1).tobytes()))
+             for n in [PATH_ATTR] + line_attr_names(me)}
+    return geo, hash(read_corner_verts(me).tobytes()), marks
 
 
 def _consistent_orientation(tri, nbr):
@@ -1112,6 +1108,7 @@ def _append_zigzag(cl, step, W, A, pad, verts, uvs, dims, quads, base):
             return c - _perp(d) * H, c + _perp(d) * H
 
         cuts = [cut(j) for j in range(n)]
+        legs_at = []                             # each leg's samples, in the run's coordinates
         for i in range(legs):
             if Ls[i] <= 1e-12:
                 continue
@@ -1120,17 +1117,28 @@ def _append_zigzag(cl, step, W, A, pad, verts, uvs, dims, quads, base):
             fr = np.linspace(0.0, 1.0, M)[:, None]
             left = s_l + (e_l - s_l) * fr
             right = s_r + (e_r - s_r) * fr
-            uvb = (left[:, None, :] + (right - left)[:, None, :] * cols[None, :, None]).reshape(-1, 2)
+            legs_at.append((i, M, (left[:, None, :] + (right - left)[:, None, :]
+                                   * cols[None, :, None]).reshape(-1, 2)))
+        if not legs_at:
+            continue
+        # onto the surface in one go for the whole run (one lookup, not one per leg)
+        allb = np.vstack([b for _i, _M, b in legs_at])
+        co_all = f.point(allb[:, 0], allb[:, 1])
+        _, T_all, B_all, N_all = f.frame(allb[:, 0])
+        off = 0
+        for i, M, uvb in legs_at:
+            at = slice(off, off + len(uvb))
+            off += len(uvb)
             C = (V[i] + V[i + 1]) / 2.0
             d, p = dirs[i], _perp(dirs[i])
             rel = uvb - C
             uv = np.stack([rel @ d, rel @ p], 1)
-            co = f.point(uvb[:, 0], uvb[:, 1])
+            co = co_all[at].copy()
             for row, jj in ((0, i), (M - 1, i + 1)):
                 e3 = cut3(jj)
                 if e3 is not None:          # a corner: the same points for both runs
                     co[row * 3:row * 3 + 3] = [e3[0], (e3[0] + e3[1]) / 2.0, e3[1]]
-            _, T_, B_, N_ = f.frame(uvb[:, 0])
+            T_, B_, N_ = T_all[at], B_all[at], N_all[at]
             across = _normalize(B_ * d[0] - T_ * d[1])          # the leg's own side
             j = np.arange(M - 1)
             c = np.arange(2)
@@ -1407,30 +1415,42 @@ def generate(key_obj, me, mw, p):
     p: dict with flip, offset, resolution, uv_name, stitch_layers (see
     _stitch_ribbons), lines and grids. Returns (RibbonData, Topology): the
     stitches of each stitch layer in .stitches, the line art strips on it."""
-    sig, line_sig = mesh_signature(me, mw, p["uv_name"])
+    geo, corners, marks = mesh_signature(me, mw, p["uv_name"])
     entry = _cache.get(key_obj)
-    if entry is not None and entry["sig"] == sig and entry.get("line_sig") != line_sig:
-        # only the line art edges changed: keep the mesh data and the stitches
-        entry["line_pairs"] = {n: entry["topo"].path_pairs(me, (n,)) for n in line_attr_names(me)}
-        entry["excl"] = {n: v for n, v in entry["excl"].items() if n == PATH_ATTR}
-        entry["excl"].update({n: entry["topo"].path_pairs(me, (n,), -1)
-                              for n in line_attr_names(me)})
-        entry["line_chains"] = {}
-        entry["grid_coords"] = {}
-        for c in entry["stitch"].values():
-            if any(a != PATH_ATTR for a in spec_attrs(c.get("spec"))):
-                c["cl_key"] = None          # stitches on line art style edges
-        entry["line_key"] = None
-        entry["line_sig"] = line_sig
-    if entry is None or entry["sig"] != sig:
-        topo = Topology(me, mw, p["uv_name"])
-        pairs = topo.path_pairs(me)
-        line_pairs = {n: topo.path_pairs(me, (n,)) for n in line_attr_names(me)}
-        excl = {n: topo.path_pairs(me, (n,), -1) for n in [PATH_ATTR] + line_attr_names(me)}
-        entry = {"sig": sig, "topo": topo, "stitch": {}, "excl": excl,
-                 "corners": topo.corner_ids(me), "pairs": pairs, "line_pairs": line_pairs,
-                 "line_chains": {}, "grid_coords": {}, "line_sig": line_sig}
+    if entry is None or entry["geo"] != geo:
+        entry = {"geo": geo, "topo": Topology(me, mw, p["uv_name"]), "stitch": {},
+                 "marks": {}, "corners_sig": None, "corners": set(), "pairs": _NO_PAIRS,
+                 "line_pairs": {}, "excl": {}, "line_chains": {}, "grid_coords": {},
+                 "line_strips": {}}
         _cache[key_obj] = entry
+    topo = entry["topo"]
+    # edges marked or cleared: only the layers using those edges are rebuilt
+    changed = {n for n in marks.keys() | entry["marks"].keys()
+               if marks.get(n) != entry["marks"].get(n)}
+    if changed:
+        for n in changed:
+            if n not in marks:
+                entry["line_pairs"].pop(n, None)
+                entry["excl"].pop(n, None)
+                continue
+            pairs = topo.path_pairs(me, (n,))
+            if n == PATH_ATTR:
+                entry["pairs"] = pairs
+            else:
+                entry["line_pairs"][n] = pairs
+            entry["excl"][n] = topo.path_pairs(me, (n,), -1)
+        _forget(entry, lambda spec: not changed.isdisjoint(spec_attrs(_as_spec(spec))))
+        entry["marks"] = marks
+    # corners marked or cleared: only the layers whose edges pass through them
+    if entry["corners_sig"] != corners:
+        new = topo.corner_ids(me)
+        moved = np.fromiter(new ^ entry["corners"], np.int64)
+        entry["corners"] = new
+        entry["corners_sig"] = corners
+        if len(moved):
+            _forget(entry, lambda spec: any(np.isin(c[0], moved).any()
+                                            for c in edge_chains(entry, spec)),
+                    keep_chains=True)
     topo = entry["topo"]
     rib = RibbonData()
     for sl in p.get("stitch_layers", ()):
@@ -1444,13 +1464,17 @@ def generate(key_obj, me, mw, p):
     line_key = (layers, p["flip"])
     if entry.get("line_key") != line_key:
         from . import lineart
+        strips = entry["line_strips"]                     # per layer: (its key, co, quads)
         cos, quads, owner, base = [], [], [], 0
         for li, l in enumerate(layers):
-            ch = line_chains(entry, l[3])
-            if not ch:
-                continue
-            co, q = lineart.strips(topo, ch, entry["corners"], p["flip"],
-                                   [(l[0], l[1], l[2], l[4])])
+            hit = strips.get(l[5])
+            if hit is None or hit[0] != (l, p["flip"]):
+                ch = line_chains(entry, l[3])
+                co, q = (lineart.strips(topo, ch, entry["corners"], p["flip"],
+                                        [(l[0], l[1], l[2], l[4])]) if ch else
+                         (np.zeros((0, 3)), np.zeros((0, 4), np.int64)))
+                hit = strips[l[5]] = ((l, p["flip"]), co, q)
+            _key, co, q = hit
             if not len(q):
                 continue
             cos.append(co)
@@ -1466,6 +1490,21 @@ def generate(key_obj, me, mw, p):
 
 
 _NO_PAIRS = np.zeros((0, 2), np.int64)
+
+
+def _forget(entry, hit, keep_chains=False):
+    """Drop what was built from the edge specs ``hit`` says yes to."""
+    if not keep_chains:
+        for k in [k for k in entry["line_chains"] if hit(k)]:
+            del entry["line_chains"][k]
+        for k in [k for k in entry["grid_coords"] if hit(k)]:
+            del entry["grid_coords"][k]
+    for k in [k for k, v in entry["line_strips"].items() if hit(v[0][0][3])]:
+        del entry["line_strips"][k]
+    for c in entry["stitch"].values():
+        if c.get("spec") is not None and hit(c["spec"]):
+            c["cl_key"] = None
+    entry["line_key"] = None
 
 
 def spec_attrs(spec):
@@ -1543,10 +1582,19 @@ def _stitch_ribbons(entry, topo, chains, p, sl, cache):
         cache["cls"] = build_lines(topo, [c for c in chains if len(c[0]) >= 2], inset, smooth,
                                    p["flip"], ds, entry["corners"], corner_inset)
         cache["cl_key"] = cl_key
+        cache["cl_ver"] = cache.get("cl_ver", 0) + 1    # its edges may change, the key not
         cache["spec"] = spec
         cache["band"] = {}
-    return build_ribbons(topo, cache["cls"], length, gap, width, roundness,
-                         p["offset"], even, p["resolution"], cache["band"], zigzag=zigzag)
+    # the stitches themselves: only rebuilt when this layer's line or settings
+    # change (an edit to another layer leaves them as they are)
+    rib_key = (cache["cl_ver"], length, gap, width, roundness, even, zigzag,
+               p["offset"], p["resolution"])
+    if cache.get("rib_key") != rib_key:
+        cache["rib"] = build_ribbons(topo, cache["cls"], length, gap, width, roundness,
+                                     p["offset"], even, p["resolution"], cache["band"],
+                                     zigzag=zigzag)
+        cache["rib_key"] = rib_key
+    return cache["rib"]
 
 
 def drop_cache(obj=None):

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Rizum
 """The stitch line as a distance contour.
 
 The stitch line is where the distance to the hem equals the inset - the same

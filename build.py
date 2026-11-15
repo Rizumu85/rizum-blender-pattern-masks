@@ -32,6 +32,7 @@ def main():
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
         for f in files:
             z.write(os.path.join(PKG, f), f)
+        z.write(os.path.join(HERE, "LICENSE"), "LICENSE")     # the GPL text goes with the code
     print("built", out, os.path.getsize(out), "bytes")
     if "--install" in sys.argv:
         dst = os.path.join(os.environ["APPDATA"], "Blender Foundation", "Blender", BLENDER,

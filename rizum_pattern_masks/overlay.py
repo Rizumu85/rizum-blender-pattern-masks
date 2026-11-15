@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Rizum
 """Viewport overlay, in the 3D view and in the UV editor:
 
 * the marked edges of each layer whose marks are shown: stitch layers'
@@ -60,16 +62,16 @@ def _shown(ob):
 def _marks(ob):
     """Shown layers' edges and the marked corners, in world space (lifted
     along the normal) and in UV space."""
-    hit = _cache.get(ob.name_full)
-    if hit is not None:
-        return hit
     me = ob.data
+    hit = _cache.get(ob.name_full)
+    if hit is not None and hit["edit"] == me.is_editmode:
+        return hit
     mw = ob.matrix_world
     nmat = mw.to_3x3().inverted_safe().transposed()
     s = ob.stitch_gen
     uv_name = s.uv_map
     shown = _shown(ob)
-    out = {"dots": [], "dots_uv": [], "edges": [], "edges_uv": []}
+    out = {"dots": [], "dots_uv": [], "edges": [], "edges_uv": [], "edit": me.is_editmode}
 
     def lifted(co, normal):
         return tuple(mw @ co + (nmat @ normal).normalized() * LIFT)
@@ -103,35 +105,27 @@ def _marks(ob):
                     if uvl is not None:
                         out["dots_uv"] += [tuple(lp[uvl].uv) + (0.0,) for lp in v.link_loops]
     else:
-        uvl = core.pick_uv(me, uv_name)
-        verts = me.vertices
-        keys = {}
-        for k, (name, col, sign) in enumerate(shown):
+        # Object Mode: every vertex lifted at once. (The UV editor shows marks
+        # in Edit Mode only, which reads the BMesh above.)
+        nv = len(me.vertices)
+        co = np.empty(nv * 3, np.float32)
+        no = np.empty(nv * 3, np.float32)
+        me.vertices.foreach_get("co", co)
+        me.vertices.foreach_get("normal", no)
+        M, Nm = np.array(mw, np.float64), np.array(nmat, np.float64)
+        n = no.reshape(-1, 3) @ Nm.T
+        n /= np.maximum(np.linalg.norm(n, axis=1, keepdims=True), 1e-30)
+        P = co.reshape(-1, 3) @ M[:3, :3].T + M[:3, 3] + n * LIFT
+        on_path = np.zeros(nv, bool)
+        for name, col, sign in shown:
             pairs = core.read_path_edges(me, name, sign)
-            pts = []
-            for a, b in pairs.tolist():
-                pts += [lifted(verts[a].co, verts[a].normal),
-                        lifted(verts[b].co, verts[b].normal)]
-                if sign > 0:
-                    on_path.update((a, b))
-                keys.setdefault((min(a, b), max(a, b)), []).append(k)
-            out["edges"].append((pts, col))
+            if sign > 0:
+                on_path[pairs.ravel()] = True
+            out["edges"].append((P[pairs.ravel()].tolist(), col))
             out["edges_uv"].append(([], col))
-        idx = []
         if s.show_corners:
-            idx = [i for i in core.read_corner_verts(me).tolist() if i in on_path]
-            out["dots"] += [lifted(verts[i].co, verts[i].normal) for i in idx]
-        if uvl is not None and (keys or idx):
-            wanted = set(idx)
-            for poly in me.polygons:
-                li = list(poly.loop_indices)
-                for la, lb in zip(li, li[1:] + li[:1]):
-                    va, vb = me.loops[la].vertex_index, me.loops[lb].vertex_index
-                    for k in keys.get((min(va, vb), max(va, vb)), ()):
-                        out["edges_uv"][k][0].extend((tuple(uvl.data[la].uv) + (0.0,),
-                                                      tuple(uvl.data[lb].uv) + (0.0,)))
-                    if va in wanted:
-                        out["dots_uv"].append(tuple(uvl.data[la].uv) + (0.0,))
+            idx = core.read_corner_verts(me)
+            out["dots"] = P[idx[on_path[idx]]].tolist()
     _cache[ob.name_full] = out
     return out
 
@@ -145,22 +139,46 @@ def _objects(context):
     return out
 
 
-def _lines(coords, width, color=PURPLE):
-    if not coords:
+def _point_shader():
+    """Points in one colour: their own shader since Blender 4.5, the plain
+    uniform colour one before."""
+    try:
+        return gpu.shader.from_builtin('POINT_UNIFORM_COLOR')
+    except ValueError:
+        return gpu.shader.from_builtin('UNIFORM_COLOR')
+
+
+def _batches(m, key):
+    """GPU batches of a cached marks entry, made on first draw."""
+    b = m.get("_b_" + key)
+    if b is None:
+        if key.startswith("edges"):
+            shader = gpu.shader.from_builtin('POLYLINE_UNIFORM_COLOR')
+            b = [(batch_for_shader(shader, 'LINES', {"pos": pts}), col) for pts, col in m[key] if pts]
+        else:
+            shader = _point_shader()
+            b = [batch_for_shader(shader, 'POINTS', {"pos": m[key]})] if m[key] else []
+        m["_b_" + key] = b
+    return b
+
+
+def _lines(batches, width):
+    if not batches:
         return
     shader = gpu.shader.from_builtin('POLYLINE_UNIFORM_COLOR')
     region = bpy.context.region
     shader.uniform_float("viewportSize", (region.width, region.height))
     shader.uniform_float("lineWidth", width)
-    shader.uniform_float("color", color)
-    batch_for_shader(shader, 'LINES', {"pos": coords}).draw(shader)
+    for batch, color in batches:
+        shader.uniform_float("color", color)
+        batch.draw(shader)
 
 
-def _dots(coords, size):
-    if not coords:
+def _dots(batches, size):
+    if not batches:
         return
-    shader = gpu.shader.from_builtin('POINT_UNIFORM_COLOR')
-    batch = batch_for_shader(shader, 'POINTS', {"pos": coords})
+    shader = _point_shader()
+    batch = batches[0]
     gpu.state.point_size_set(size + 4)
     shader.uniform_float("color", OUTLINE)
     batch.draw(shader)
@@ -183,9 +201,8 @@ def _draw_3d():
     gpu.state.blend_set('ALPHA')
     for ob in obs:
         m = _marks(ob)
-        for pts, col in m["edges"]:
-            _lines(pts, 2.0, col)
-        _dots(m["dots"], 6.0)
+        _lines(_batches(m, "edges"), 2.0)
+        _dots(_batches(m, "dots"), 6.0)
     gpu.state.depth_test_set('NONE')
     gpu.state.blend_set('NONE')
     gpu.state.point_size_set(1.0)
@@ -202,9 +219,8 @@ def _draw_uv():
     gpu.state.blend_set('ALPHA')
     for ob in obs:
         m = _marks(ob)
-        for pts, col in m["edges_uv"]:
-            _lines(pts, 2.0, col)
-        _dots(m["dots_uv"], 6.0)
+        _lines(_batches(m, "edges_uv"), 2.0)
+        _dots(_batches(m, "dots_uv"), 6.0)
     gpu.state.blend_set('NONE')
     gpu.state.point_size_set(1.0)
 
