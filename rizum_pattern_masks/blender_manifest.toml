@@ -1,7 +1,7 @@
 schema_version = "1.0.0"
 
 id = "rizum_pattern_masks"
-version = "0.4.0"
+version = "0.4.1"
 name = "Rizum Pattern Masks"
 tagline = "Patterns that follow the mesh, baked to UV masks"
 maintainer = "Rizum"

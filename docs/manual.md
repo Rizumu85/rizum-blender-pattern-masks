@@ -13,7 +13,7 @@ Requires Blender 4.4 or newer (tested on 4.4 and 5.0).
 ## Install
 
 Edit > Preferences > Get Extensions > ⌄ (top right) > **Install from Disk…** >
-`rizum_pattern_masks-0.4.0.zip`.
+`rizum_pattern_masks-0.4.1.zip`.
 
 The panel is in the 3D View sidebar (N) under **Pattern Masks**.
 
