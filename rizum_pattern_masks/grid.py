@@ -893,7 +893,9 @@ def raster(topo, lay, faces, res, tile, cell, off_x, off_y, wobble=None, block=8
         if x1 < x0 or y1 < y0:
             continue
         gx_, gy_ = np.meshgrid(np.arange(x0, x1 + 1, block), np.arange(y0, y1 + 1, block))
-        bx.append(gx_.ravel()); by.append(gy_.ravel()); bt.append(np.full(gx_.size, i))
+        bx.append(gx_.ravel())
+        by.append(gy_.ravel())
+        bt.append(np.full(gx_.size, i))
     if not bt:
         return black, white
     bx, by, bt = np.concatenate(bx), np.concatenate(by), np.concatenate(bt)

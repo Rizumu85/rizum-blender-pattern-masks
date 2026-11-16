@@ -218,8 +218,10 @@ def _inner_sdf(topo, field, cls, b, res, tile, texel):
         # not across a UV seam
         d3 = np.linalg.norm(P[j] - P[i], axis=1) / np.maximum(texel[T[i]], 1e-12)
         keep = np.linalg.norm(d, axis=1) <= 4.0 * d3 + 3.0
-        segs_a.append(px[i][keep]); segs_b.append(px[j][keep])
-        segs_fa.append(f[i][keep]); segs_fb.append(f[j][keep])
+        segs_a.append(px[i][keep])
+        segs_b.append(px[j][keep])
+        segs_fa.append(f[i][keep])
+        segs_fb.append(f[j][keep])
     if not segs_a:
         return np.zeros(0, np.int64), np.zeros(0), dev
     A, B = np.vstack(segs_a), np.vstack(segs_b)
@@ -243,7 +245,8 @@ def _inner_sdf(topo, field, cls, b, res, tile, texel):
         rx, ry = cx - (a0[:, 0:1] + t * d[:, 0:1]), cy - (a0[:, 1:2] + t * d[:, 1:2])
         dist = np.sqrt(rx * rx + ry * ry)
         ok = (dist <= R) & (cx >= 0) & (cx < res) & (cy >= 0) & (cy < res)
-        keys.append((cy * res + cx)[ok]); dists.append(dist[ok])
+        keys.append((cy * res + cx)[ok])
+        dists.append(dist[ok])
         vals.append(np.broadcast_to(fa + t * (fb - fa), dist.shape)[ok])
     keys, dists, vals = np.concatenate(keys), np.concatenate(dists), np.concatenate(vals)
     order = np.lexsort((dists, keys))                # per pixel, the nearest segment first
@@ -293,7 +296,9 @@ def raster(topo, field, faces, res, tile, layers, inner=None, block=8):
         gx = np.arange(x0, x1 + 1, block)
         gy = np.arange(y0, y1 + 1, block)
         X, Y = np.meshgrid(gx, gy)
-        bx.append(X.ravel()); by.append(Y.ravel()); bt.append(np.full(X.size, t))
+        bx.append(X.ravel())
+        by.append(Y.ravel())
+        bt.append(np.full(X.size, t))
     if not bt:
         return imgs
     bx, by, bt = np.concatenate(bx), np.concatenate(by), np.concatenate(bt)
@@ -383,8 +388,11 @@ def _on_open_border(topo, open_edges, T, px, py, tile, res, reach=0.75):
         C = U[:, i]
         e = B - A
         L = np.maximum(np.linalg.norm(e, axis=1), 1e-12)
-        # signed distance of the centre from the edge line, positive towards C
-        side = lambda x, y: (e[:, 0] * (y - A[:, 1]) - e[:, 1] * (x - A[:, 0])) / L  # noqa: E731
+
+        def side(x, y):
+            """Signed distance from the edge line, positive towards C."""
+            return (e[:, 0] * (y - A[:, 1]) - e[:, 1] * (x - A[:, 0])) / L
+
         sc = np.sign(side(C[:, 0], C[:, 1]))
         d = side(px.astype(np.float64), py.astype(np.float64)) * sc
         off = d < -1e-9                                              # beyond this edge

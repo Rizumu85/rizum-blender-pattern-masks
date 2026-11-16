@@ -86,7 +86,7 @@ for level in (0, 1, 2):
     mark(o, waist.edge_attr, lambda z: z > -0.01)
     mark(o, grid.edge_attr, lambda z: z > -0.01)
     core.drop_cache(o)
-    regen = lambda: sg.regenerate(o, bpy.context.scene, create=True)  # noqa: E731
+    regen = lambda: sg.regenerate(o, bpy.context.scene)  # noqa: E731
     r = {"mesh": o.name, "faces": len(o.data.polygons)}
     r["first"] = ms(regen)
     r["dashes"] = sum(l.dash_count for l in sg._stitch_items(s))

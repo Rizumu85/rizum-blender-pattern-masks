@@ -37,7 +37,8 @@ def own_layer_mask(rib, tile, res, pad_px=1.5):
         f = (np.arange(len(i)) - np.repeat(np.cumsum(n) - n, n)) / np.repeat(n, n)
         xy = np.vstack([xy[i] + f[:, None] * (xy[i + 1] - xy[i]), xy[-1:]])
         R = np.concatenate([R[i] + f * (R[i + 1] - R[i]), R[-1:]])
-    inside = (xy[:, 0] > -R - 1) & (xy[:, 0] < res + R) & (xy[:, 1] > -R - 1) & (xy[:, 1] < res + R)
+    inside = ((xy[:, 0] > -R - 1) & (xy[:, 0] < res + R)
+              & (xy[:, 1] > -R - 1) & (xy[:, 1] < res + R))
     xy, R = xy[inside], R[inside]
     if not len(xy):
         return keep
@@ -146,7 +147,8 @@ def _island_mask(tris, x0, y0, w, h):
         if xa > xb or ya > yb:
             continue
         X, Y = np.meshgrid(np.arange(xa, xb + 1), np.arange(ya, yb + 1))
-        area = (t[1, 0] - t[0, 0]) * (t[2, 1] - t[0, 1]) - (t[1, 1] - t[0, 1]) * (t[2, 0] - t[0, 0])
+        area = ((t[1, 0] - t[0, 0]) * (t[2, 1] - t[0, 1])
+                - (t[1, 1] - t[0, 1]) * (t[2, 0] - t[0, 0]))
         if abs(area) < 1e-12:
             continue
         sgn = 1.0 if area > 0 else -1.0
@@ -278,7 +280,8 @@ class BakeSession:
             raise RuntimeError(rpt("No stitches to bake"))
         self.folder = bpy.path.abspath(settings.output_dir)
         if settings.output_dir.startswith("//") and not bpy.data.filepath:
-            raise RuntimeError(rpt("Save the .blend file first, or pick an absolute output folder"))
+            raise RuntimeError(
+                rpt("Save the .blend file first, or pick an absolute output folder"))
         me = obj.data
         uvl = core.pick_uv(me, settings.uv_map)
         uv_name = uvl.name if uvl is not None else ""
@@ -336,7 +339,7 @@ class BakeSession:
             "threads_mode": scene.render.threads_mode,
             "threads": scene.render.threads,
             "active": vl.objects.active,
-            "selected": [o for o in vl.objects if o.select_get()],
+            "selected": [o for o in vl.objects if o is not None and o.select_get()],
         }
         scene.render.engine = 'CYCLES'
         scene.cycles.samples = s.samples
@@ -388,7 +391,8 @@ class BakeSession:
             bpy.data.materials.remove(self._mat)
             self._mat = None
         for o in vl.objects:
-            o.select_set(False)
+            if o is not None:            # removed objects linger until the view layer updates
+                o.select_set(False)
         for o in st["selected"]:
             if o.name in vl.objects:
                 o.select_set(True)
@@ -459,7 +463,8 @@ class BakeSession:
         me.update()
         vl = self.context.view_layer
         for o in vl.objects:
-            o.select_set(False)
+            if o is not None:
+                o.select_set(False)
         self.ribbons[li].select_set(True)
         tmp.select_set(True)
         vl.objects.active = tmp

@@ -16,6 +16,7 @@ import numpy as np
 out_dir = sys.argv[sys.argv.index("--") + 1]
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import rizum_pattern_masks as sg  # noqa: E402
+from tests import _preview as pv  # noqa: E402
 from rizum_pattern_masks import core  # noqa: E402
 
 sg.register()
@@ -54,7 +55,7 @@ mark(1, lambda zs: all(z > -0.01 for z in zs))
 print("RESULT layers after marking line edges", [l.name for l in s.lines])
 sg.regenerate(ob)
 print("RESULT stitches before/after line edges", n0, s.dash_count)
-stitch_z = np.array([v.co.z for v in s.ribbon.data.vertices])
+stitch_z = pv.stitch_co(ob)[:, 2]
 print("RESULT stitch z range %.3f..%.3f" % (stitch_z.min(), stitch_z.max()))
 bpy.ops.stitch_gen.line_add()
 print("RESULT new layer edges", s.lines[2].edge_attr, "own edges before marking",
@@ -63,24 +64,20 @@ s.lines[2].ref_attr = ""                         # follows only its own edges
 mark(2, lambda zs: all(z > -0.01 for z in zs))     # line2's own edges: the waist
 s.lines[2].color = (1.0, 0.0, 0.0, 1.0)
 sg.regenerate(ob)
-lme = s.line_preview.data
-mi = np.zeros(len(lme.polygons), np.int32)
-lme.polygons.foreach_get("material_index", mi)
-print("RESULT line slots", [tuple(round(c, 2) for c in m.diffuse_color[:3]) for m in lme.materials],
-      "quads per slot", np.bincount(mi).tolist())
+print("RESULT line layers shown", pv.line_faces(ob),
+      "colors", {k: tuple(round(c, 2) for c in v[:3]) for k, v in sg._layer_colors(ob).items()})
 from rizum_pattern_masks import overlay  # noqa: E402
 print("RESULT overlay shown", [a for a, _, _ in overlay._shown(ob)])
 s.lines[1].show_marks = False
 print("RESULT overlay shown, line marks hidden", [a for a, _, _ in overlay._shown(ob)])
 s.lines[1].show_marks = True
-lz = np.array([v.co.z for v in s.line_preview.data.vertices])
+lz = pv.line_co(ob)[:, 2]
 print("RESULT line preview z: below hem-ish %d, near waist %d" % ((lz < -0.2).sum(), (lz > -0.05).sum()))
 s.lines[1].enabled = False                              # only line2 left
 sg.regenerate(ob)
-lz = np.array([v.co.z for v in s.line_preview.data.vertices])
+lz = pv.line_co(ob)[:, 2]
 print("RESULT line off: below hem-ish %d, near waist %d" % ((lz < -0.2).sum(), (lz > -0.05).sum()))
-lme = s.line_preview.data
-print("RESULT line off slots", [tuple(round(c, 2) for c in m.diffuse_color[:3]) for m in lme.materials])
+print("RESULT line off layers", pv.line_faces(ob))
 s.lines[1].enabled = True
 s.output_dir = out_dir
 s.resolution = '2048'

@@ -51,7 +51,7 @@ for name, raw in stored.items():
         check(f"{name}: style kept", st.style == ('DASH', 'ZIGZAG')[raw["style"]], st.style)
     shown = raw.get("stitches") is None or bool(raw["stitches"])
     check(f"{name}: eye kept", st.enabled == shown, st.enabled)
-    data = sg.regenerate(ob, bpy.context.scene, create=True)
+    data = sg.regenerate(ob, bpy.context.scene)
     if shown:
         check(f"{name}: makes its stitches", data is not None and data.dash_count > 0,
               s.status, data.dash_count if data else None)

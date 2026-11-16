@@ -37,7 +37,7 @@ bm.select_flush_mode()
 bmesh.update_edit_mesh(ob.data)
 bpy.ops.stitch_gen.path_add()
 bpy.ops.object.mode_set(mode='OBJECT')
-sg.regenerate(ob, create=True)
+sg.regenerate(ob)
 
 s.output_dir = out_dir
 s.resolution = '1024'

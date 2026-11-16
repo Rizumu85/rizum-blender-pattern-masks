@@ -12,6 +12,7 @@ import numpy as np
 out_dir = sys.argv[sys.argv.index("--") + 1]
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import rizum_pattern_masks as sg  # noqa: E402
+from tests import _preview as pv  # noqa: E402
 
 sg.register()
 os.makedirs(out_dir, exist_ok=True)
@@ -34,11 +35,8 @@ bm.select_flush_mode()
 bmesh.update_edit_mesh(ob.data)
 bpy.ops.stitch_gen.path_add()
 bpy.ops.object.mode_set(mode='OBJECT')
-sg.regenerate(ob, create=True)
-go = s.grid_preview
-print("RESULT preview", go.name if go else None, "faces", len(go.data.polygons) if go else 0,
-      "slots", [m.name for m in go.data.materials] if go else [],
-      "status", s.status or "ok")
+sg.regenerate(ob)
+print("RESULT preview faces", pv.grid_faces(ob), "status", s.status or "ok")
 s.output_dir = out_dir
 s.resolution = '2048'
 s.transparent = False
@@ -57,8 +55,8 @@ for f in files:
 # the other layouts of the same layer: each bakes, and differs
 for mode in ('UNROLLED',):
     g.grid_layout = mode
-    sg.regenerate(ob, create=True)
-    print("RESULT", mode, "preview faces", len(s.grid_preview.data.polygons), "status",
+    sg.regenerate(ob)
+    print("RESULT", mode, "preview faces", pv.grid_faces(ob), "status",
           s.status or "ok")
     sub = os.path.join(out_dir, mode.lower())
     os.makedirs(sub, exist_ok=True)

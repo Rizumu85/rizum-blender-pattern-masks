@@ -12,6 +12,7 @@ import numpy as np
 out_dir = sys.argv[sys.argv.index("--") + 1]
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import rizum_pattern_masks as sg  # noqa: E402
+from tests import _preview as pv  # noqa: E402
 
 sg.register()
 os.makedirs(out_dir, exist_ok=True)
@@ -39,7 +40,7 @@ print("RESULT dashed stitches", dash.dash_count)
 s.style = 'ZIGZAG'
 s.length, s.zigzag_height = 3.0, 3.0
 zz = sg.regenerate(ob)
-print("RESULT zigzag legs", zz.dash_count, "faces", len(s.ribbon.data.polygons),
+print("RESULT zigzag legs", zz.dash_count, "faces", pv.stitch_faces(ob),
       "status", s.status or "ok")
 s.output_dir = out_dir
 s.resolution = '4096'

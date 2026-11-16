@@ -146,7 +146,7 @@ for layout in ("LOOPS", "UNROLLED"):
     for f in os.listdir(masks):
         os.remove(os.path.join(masks, f))
     g.grid_layout = layout
-    sg.regenerate(ob, create=True)
+    sg.regenerate(ob)
     s.output_dir = masks
     s.resolution = '2048'
     print("RESULT bake", layout, bpy.ops.stitch_gen.bake(), sorted(os.listdir(masks)))

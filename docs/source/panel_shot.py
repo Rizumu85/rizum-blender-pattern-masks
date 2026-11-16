@@ -71,7 +71,7 @@ def setup():
         r3d.view_rotation = cam.matrix_world.to_quaternion()
         r3d.view_location = (0.0, 0.0, -0.26)
         r3d.view_distance = 1.15
-    sg.regenerate(ob, create=True)
+    sg.regenerate(ob)
     # a fresh config opens with the first-start splash: Esc closes it, nothing saved
     w.event_simulate(type='MOUSEMOVE', value='NOTHING', x=900, y=700)
     w.event_simulate(type='ESC', value='PRESS')

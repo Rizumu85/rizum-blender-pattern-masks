@@ -57,7 +57,7 @@ FUNCTIONAL = [
     ("zigzag_test", SKIRT, False, "dir"),
     ("scaled_object_test", SKIRT, False, "dir"),
     ("stray_mark_test", SKIRT, False, None),
-    ("preview_cache_test", SKIRT, False, None),
+    ("preview_test", SKIRT, False, None),
     ("undo_layers_test", SKIRT, True, "log"),
     ("undo_test", SKIRT, True, "log"),
     ("preset_default_test", SKIRT, True, "log"),
@@ -163,7 +163,7 @@ def stability(out, seeds, steps):
         why = [f"{exc} exceptions"] if exc else []
         if not done:
             why.append(f"stopped early (exit {code}): crash or hang")
-        info = [ln for ln in text.splitlines() if re.match(r"(panel|overlay) draws|steps ", ln)]
+        info = [ln for ln in text.splitlines() if re.match(r"(panel|overlay|preview) draws|steps ", ln)]
         slow = sorted(re.findall(r"^\d+ (\w+)\n    took (\d+)ms", text, re.M),
                       key=lambda x: -int(x[1]))[:3]
         if slow:
@@ -174,7 +174,9 @@ def stability(out, seeds, steps):
 
 def _perf_run(out, d, tag):
     log = os.path.join(d, f"out{tag}.txt")
-    code, _s = blender(out, ["-b", SKIRT, "-P", "perf_suite.py"], log)
+    # its own user folders: the other tests leave presets saved as defaults,
+    # and new layers would start from those instead of what the baseline timed
+    code, _s = blender(d, ["-b", SKIRT, "-P", "perf_suite.py"], log)
     text = read(log)
     runs = {r["mesh"]: r for r in (json.loads(m) for m in re.findall(r"^PERF (\{.*\})$", text, re.M))}
     return code, runs

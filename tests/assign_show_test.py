@@ -21,6 +21,7 @@ import bmesh
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import rizum_pattern_masks as sg  # noqa: E402
+from tests import _preview as pv  # noqa: E402
 
 sg.register()
 PATH = bpy.data.filepath
@@ -64,10 +65,7 @@ def select(ob, pick, first_only=False):
 
 
 def shown(ob):
-    rib = ob.stitch_gen.ribbon
-    vl = bpy.context.view_layer
-    return (rib is not None and len(rib.data.polygons) > 0 and rib.name in vl.objects
-            and rib.visible_get())
+    return pv.stitch_faces(ob) > 0
 
 
 def stitch_rows(ob):
@@ -91,38 +89,6 @@ def layer_collection(name):
     return walk(bpy.context.view_layer.layer_collection)
 
 
-# the preview's collection hidden in three ways
-for how in ("exclude", "collection", "eye"):
-    ob = fresh()
-    first_assign(ob)
-    bpy.ops.object.mode_set(mode='OBJECT')
-    if how == "exclude":
-        layer_collection(sg.COLLECTION).exclude = True
-    elif how == "collection":
-        bpy.data.collections[sg.COLLECTION].hide_viewport = True
-    else:
-        layer_collection(sg.COLLECTION).hide_viewport = True
-    hidden = not shown(ob)
-    bpy.ops.object.mode_set(mode='EDIT')
-    select(ob, WAIST)
-    r = bpy.ops.stitch_gen.path_add()
-    check(f"collection hidden ({how}): + shows it", hidden and r == {'FINISHED'} and shown(ob),
-          hidden, r)
-
-# the preview object hidden or deleted
-for how in ("hide", "delete"):
-    ob = fresh()
-    first_assign(ob)
-    bpy.ops.object.mode_set(mode='OBJECT')
-    if how == "hide":
-        ob.stitch_gen.ribbon.hide_set(True)
-    else:
-        bpy.data.objects.remove(ob.stitch_gen.ribbon)
-    bpy.ops.object.mode_set(mode='EDIT')
-    select(ob, WAIST)
-    bpy.ops.stitch_gen.path_add()
-    check(f"preview {how}: + shows it", shown(ob))
-
 # the stitch layer's eye off
 ob = fresh()
 first_assign(ob)
@@ -138,9 +104,8 @@ ob.stitch_gen.lines[ob.stitch_gen.line_index].enabled = False
 bpy.ops.object.mode_set(mode='EDIT')
 select(ob, WAIST)
 bpy.ops.stitch_gen.path_add()
-lo = ob.stitch_gen.line_preview
 check("line eye off: + turns it on", ob.stitch_gen.lines[ob.stitch_gen.line_index].enabled
-      and lo is not None and len(lo.data.polygons) > 0 and lo.visible_get())
+      and sum(pv.line_faces(ob).values()) > 0)
 
 # no layer selected in the list
 ob = fresh()
@@ -204,22 +169,10 @@ bpy.ops.stitch_gen.path_add()
 s2 = ob2.stitch_gen
 twin = [l for l in s2.lines if l.name == name and l.kind == 'LINE']
 check("two objects: the line layer is matched by name", len(twin) == 1
-      and s2.line_preview is not None and len(s2.line_preview.data.polygons) > 0,
+      and sum(pv.line_faces(ob2).values()) > 0,
       [(l.name, l.kind) for l in s2.lines])
 bpy.ops.object.mode_set(mode='OBJECT')
 
-# the preview active in Edit Mode
-ob = fresh()
-first_assign(ob)
-bpy.ops.object.mode_set(mode='OBJECT')
-rib = ob.stitch_gen.ribbon
-for o in bpy.context.selected_objects:
-    o.select_set(False)
-bpy.context.view_layer.objects.active = rib
-rib.select_set(True)
-bpy.ops.object.mode_set(mode='EDIT')
-check("preview in Edit Mode: + is off", not bpy.ops.stitch_gen.path_add.poll()
-      and len(rib.stitch_gen.lines) == 0)
 
 # applying a preset: nothing to adjust afterwards
 check("preset: no redo panel", 'REGISTER' not in sg.STITCHGEN_OT_apply_preset.bl_options

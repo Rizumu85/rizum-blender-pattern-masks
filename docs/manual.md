@@ -13,7 +13,7 @@ Requires Blender 4.4 or newer (tested on 4.4 and 5.0).
 ## Install
 
 Edit > Preferences > Get Extensions > ⌄ (top right) > **Install from Disk…** >
-`rizum_pattern_masks-0.4.1.zip`.
+`rizum_pattern_masks-0.5.0.zip`.
 
 The panel is in the 3D View sidebar (N) under **Pattern Masks**.
 
@@ -29,7 +29,8 @@ of each as you like. Until there is a layer, the panel
 shows nothing else, and selecting an object never changes it. **The row you select is the
 one you work on**: the section below the list is titled with its name and holds,
 in working order, its **Edges** row, the **Sharp Corners** row, then its
-settings.
+settings. In the 3D view a layer higher in the list is drawn over the ones
+below it; **▲ ▼** next to the list move the selected layer.
 
 1. Select the object and go to Edit Mode.
 2. Add a layer with **+** (or select an existing row).
@@ -37,17 +38,16 @@ settings.
    clean loops: Alt+click loops, click / Shift+click single edges, Ctrl+click
    for the shortest path between two vertices, or a loop-select add-on.
    Connected edges are joined into lines automatically.
-4. Press **+** in its **Edges** row. The preview appears in the *Stitch Preview*
-   collection and updates a moment after you stop changing a value.
+4. Press **+** in its **Edges** row. The preview is drawn over the 3D view
+   (nothing is added to the scene) and updates a moment after you stop
+   changing a value.
 5. Tune the settings, then **Bake Masks**.
 
 Each row of the list has, from left to right:
 
 - the name (double-click a line art layer to rename it; a name you type goes
   into the file name of its mask),
-- the preview color in the viewport (Solid mode with the shading color set to
-  Material, Blender's default, and Material Preview; it does not change the
-  masks),
+- the preview color in the viewport (it does not change the masks),
 - the edge icon: show or hide the layer's marked edges in the viewport (stitch
   edges purple, line art edges green, the selected row brightest). This is
   display only; it is turned back on when you edit that row's edges,
@@ -299,19 +299,24 @@ so Painter picks up the change.
   curled lace) are ignored rather than stitched as little rings.
 - Stitches are kept on the same layer of fabric by walking across connected
   faces, so folds that touch each other are not mixed up.
-- The previews (stitches, line art, grid) are objects of their own but show and
-  hide with their object: Shift+H, H and local view take them along. Turn a
-  preview off in the add-on's panel.
+- The previews (stitches, line art, grid) are drawn over the 3D view, not
+  objects of their own: they show and hide with their object (Shift+H, H,
+  local view). Turn a layer's preview off in the add-on's panel. Files saved
+  with versions before 0.5.0 had preview objects; they are removed when the
+  file is opened.
+- Vertices moved by hand in Edit Mode update the preview when you leave Edit
+  Mode (the add-on's own buttons update it at once). An object linked into two
+  scenes with different Unit Scales shows one scene's preview at a time.
 - An 8192 bake needs about 2 GB of free memory for the image buffers.
 - A single face whose UVs cross a UDIM tile border is baked into one tile only.
 - A grid is worked out again when its Cell Size or Angle changes: about a
   quarter of a second for a 4,000-triangle piece, a second and a half for
   30,000 triangles.
 - Unrolled first lays the piece out flat, which takes a second or two on a
-  4,000-triangle piece (longer on bigger ones). That runs in the background
-  with a progress bar under Layout; the preview appears when it is done, and
-  it is kept until the mesh or the marked edge changes, so Cell Size, Angle
-  and the offsets stay quick afterwards.
+  4,000-triangle piece (longer on bigger ones). Press **Unroll** under Layout
+  to work it out; the preview appears when it is done, and it is kept until
+  the mesh or the marked edge changes, so Cell Size, Angle and the offsets
+  stay quick afterwards. Baking works it out by itself.
 - The viewport preview draws the Wobble's bows straight across each mesh
   triangle (the bake is smooth per texel): on a coarse mesh with large
   squares a bow can show a slight corner at a triangle edge in the preview

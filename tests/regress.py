@@ -114,13 +114,9 @@ for cl in cls:
 hairpins.sort()
 
 # stitches across the air
-me = s.ribbon.data
-co = np.empty(len(me.vertices) * 3, np.float32)
-me.vertices.foreach_get("co", co)
-co = co.reshape(-1, 3)
-lv = np.empty(len(me.loops), np.int32)
-me.loops.foreach_get("vertex_index", lv)
-q = lv.reshape(-1, 4)
+from rizum_pattern_masks import preview  # noqa: E402
+rib = preview.geometry(ob)["stitches"][0][1]
+co, q = rib.co, rib.quads
 E = np.stack([np.linalg.norm(co[q[:, (k + 1) % 4]] - co[q[:, k]], axis=1) for k in range(4)], 1)
 air = int((E.max(1) > 0.004).sum())
 

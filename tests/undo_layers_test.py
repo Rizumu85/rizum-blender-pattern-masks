@@ -14,6 +14,7 @@ import bmesh
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import rizum_pattern_masks as sg  # noqa: E402
+from tests import _preview as pv  # noqa: E402
 from rizum_pattern_masks import core  # noqa: E402
 
 log_path = sys.argv[sys.argv.index("--") + 1]
@@ -43,21 +44,22 @@ def state():
         attr = l.edge_attr or core.LINE_ATTR
         n = len(core.read_path_edges(ob.data, attr)) if attr in ob.data.attributes else 0
         rows.append((l.name, l.enabled, n, tuple(round(c, 2) for c in l.color[:3])))
-    lo = s.line_preview
-    rib = s.ribbon
-    mats = ([tuple(round(c, 2) for c in m.diffuse_color[:3]) if m else None
-             for m in lo.data.materials] if lo else [])
     return {
         "rows": rows, "sel": s.line_index,
-        "line_faces": len(lo.data.polygons) if lo else 0,
-        "stitch_faces": len(rib.data.polygons) if rib else 0,
-        "line_mats": mats,
+        "line_faces": sum(pv.line_faces(ob).values()),
+        "stitch_faces": pv.stitch_faces(ob),
+        "line_colors": sorted(tuple(round(c, 2) for c in v[:3])
+                              for k, v in sg._layer_colors(ob).items()),
     }
 
 
 def settle():
-    """Let the debounced rebuild after undo run (it waits for 0.15 s)."""
+    """Let the rebuild after undo run: a redraw finds the preview out of date
+    and asks for one (debounced, 0.15 s), which runs here at once."""
     bpy.context.view_layer.update()
+    w = bpy.context.window_manager.windows[0]
+    with bpy.context.temp_override(window=w):
+        bpy.ops.wm.redraw_timer(type='DRAW_WIN', iterations=1)
     sg._flush()
     for name in list(sg._pending):
         ob = bpy.data.objects.get(name)

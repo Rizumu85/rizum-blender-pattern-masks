@@ -325,8 +325,14 @@ class _Segments:
                     t_dir = fans.direction(v, fan, half)
                     if t_dir is not None:
                         self.corners.append((topo.co[v].copy(), t_dir[0], t_dir[1], apex))
-            A.append(pa); B.append(pb); W.append(w); tri.append(et)
-            s_end.append(se); e_end.append(ee); IA.append(a); IB.append(b)
+            A.append(pa)
+            B.append(pb)
+            W.append(w)
+            tri.append(et)
+            s_end.append(se)
+            e_end.append(ee)
+            IA.append(a)
+            IB.append(b)
             EA.append(vextra[:-1] if not closed else vextra)
             EB.append(vextra[1:] if not closed else np.roll(vextra, -1))
             base += n
@@ -538,7 +544,8 @@ def _visible(topo, segs, reach, charts):
     val = _pair_value(segs, rows, np.arange(len(f)), c, charts.uv(c, f) if uv else None)
     boost = 1.0
     if uv and len(segs.fA):
-        boost = max(1.0, float(np.max(np.r_[segs.fA, segs.fB])) / max(float(charts.scale_f.max()), 1e-30))
+        boost = max(1.0, float(np.max(np.r_[segs.fA, segs.fB]))
+                    / max(float(charts.scale_f.max()), 1e-30))
     r = topo.radius[f] * charts.stretch[f] * boost
     lo = val - r - np.maximum(segs.eA[k], segs.eB[k])
     hi = val + r - np.minimum(segs.eA[k], segs.eB[k])
@@ -599,7 +606,9 @@ class _Field:
                 owner[[m[col] for m in segs.mSeg]] = np.arange(nM)
                 m = owner[k]
                 sel = np.nonzero(m >= 0)[0]
-                r_all.append(sel); m_all.append(m[sel]); out_all.append(np.full(len(sel), is_out))
+                r_all.append(sel)
+                m_all.append(m[sel])
+                out_all.append(np.full(len(sel), is_out))
             r_all, m_all, out_all = (np.concatenate(x) for x in (r_all, m_all, out_all))
             key = f[r_all] * nM + m_all
             _, first = np.unique(key, return_index=True)     # outgoing rows come first

@@ -13,6 +13,7 @@ args = sys.argv[sys.argv.index("--") + 1:]
 obj_name, out_dir = args[0], args[1]
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import rizum_pattern_masks as sg  # noqa: E402
+from tests import _preview as pv  # noqa: E402
 from rizum_pattern_masks import core  # noqa: E402
 
 sg.register()
@@ -42,8 +43,7 @@ bpy.ops.stitch_gen.line_add()
 print("RESULT second layer offset", round(s.lines[2].offset, 2), "names", [l.name for l in s.lines])
 s.lines[2].width = 0.5
 sg.regenerate(ob)
-lo = s.line_preview
-print("RESULT preview", lo.name if lo else None, "quads", len(lo.data.polygons) if lo else 0)
+print("RESULT preview quads", pv.line_faces(ob))
 
 s.output_dir = out_dir
 s.resolution = '4096'
@@ -63,7 +63,7 @@ for f in files:
 # stitches off: only the line masks are made
 s.stitches = False
 sg.regenerate(ob)
-print("RESULT stitches off: ribbon faces", len(s.ribbon.data.polygons) if s.ribbon else None)
+print("RESULT stitches off: stitch faces", pv.stitch_faces(ob))
 for f in files:
     os.remove(os.path.join(out_dir, f))
 res = bpy.ops.stitch_gen.bake()

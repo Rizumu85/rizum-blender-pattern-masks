@@ -27,16 +27,15 @@ ZH = {
     "Select Edges": "选择边",
     "Clear Edges": "清空边",
     "Works in Edit Mode": "在编辑模式下使用",
-    "Edit the mesh, not its preview": "请编辑模型本身，不是它的预览",
     "No edges selected": "没有选中的边",
     "Choose Folder": "选择文件夹",
     "Choose the folder for the mask PNGs": "选择保存遮罩 PNG 的文件夹",
     "Keep the folder relative to the .blend file": "按相对 .blend 文件的路径保存",
     "Clear All Layers": "清空所有图层",
-    "Remove all layers, with their marked edges and corners, and the previews from every object in the scene":
-        "删除场景里所有物体的图层，连同标记的边、尖角和预览",
-    "Remove all layers, marked edges, corners and previews from every object in this scene?":
-        "删除这个场景里所有物体的图层、标记的边、尖角和预览？",
+    "Remove all layers, with their marked edges and corners, from every object in the scene":
+        "删除场景里所有物体的图层，连同标记的边和尖角",
+    "Remove all layers, marked edges and corners from every object in this scene?":
+        "删除这个场景里所有物体的图层、标记的边和尖角？",
     "Clear": "清空",
     "Nothing to clear": "没有可以清空的内容",
     "Cleared {} objects": "已清空 {} 个物体",
@@ -84,7 +83,13 @@ ZH = {
     "Share of CPU cores the bake may use; the rest keeps Blender responsive":
         "烘焙可以使用的 CPU 核心比例，剩下的留给 Blender 保持流畅",
     "Baking {}/{}": "烘焙中 {}/{}",
-    "Unrolling {}/{}": "展开中 {}/{}",
+    "Unroll": "展开",
+    "Move Layer": "移动图层",
+    "Move the selected layer up or down the list. In the viewport, a layer higher up is drawn over the ones below":
+        "把所选图层在列表里上移或下移。视图里，排在上面的图层会盖住下面的",
+    "Mark this grid's edge first": "请先为这个格纹标记边",
+    "Work out the Unrolled layout of the selected grid layer's piece (a few seconds on a big piece)":
+        "计算所选格纹图层这块布的“展开”布局（较大的模型需要几秒）",
     "Baking stopped": "烘焙已停止",
 
     # tooltips of the settings
@@ -276,16 +281,15 @@ JA = {
     "Select Edges": "辺を選択",
     "Clear Edges": "辺をクリア",
     "Works in Edit Mode": "編集モードで使えます",
-    "Edit the mesh, not its preview": "プレビューではなくメッシュ本体を編集してください",
     "No edges selected": "辺が選択されていません",
     "Choose Folder": "フォルダーを選択",
     "Choose the folder for the mask PNGs": "マスク PNG の保存先フォルダーを選びます",
     "Keep the folder relative to the .blend file": ".blend ファイルからの相対パスで保存します",
     "Clear All Layers": "すべてのレイヤーをクリア",
-    "Remove all layers, with their marked edges and corners, and the previews from every object in the scene":
-        "シーン内のすべてのオブジェクトから、レイヤーとそのマークした辺・角、プレビューを削除します",
-    "Remove all layers, marked edges, corners and previews from every object in this scene?":
-        "このシーンのすべてのオブジェクトから、レイヤー、マークした辺と角、プレビューを削除しますか？",
+    "Remove all layers, with their marked edges and corners, from every object in the scene":
+        "シーン内のすべてのオブジェクトから、レイヤーとそのマークした辺・角を削除します",
+    "Remove all layers, marked edges and corners from every object in this scene?":
+        "このシーンのすべてのオブジェクトから、レイヤー、マークした辺と角を削除しますか？",
     "Clear": "クリア",
     "Nothing to clear": "クリアするものがありません",
     "Cleared {} objects": "{} 個のオブジェクトをクリアしました",
@@ -333,7 +337,13 @@ JA = {
     "Share of CPU cores the bake may use; the rest keeps Blender responsive":
         "ベイクに使える CPU コアの割合。残りは Blender の操作用に空けておきます",
     "Baking {}/{}": "ベイク中 {}/{}",
-    "Unrolling {}/{}": "展開中 {}/{}",
+    "Unroll": "展開",
+    "Move Layer": "レイヤーを移動",
+    "Move the selected layer up or down the list. In the viewport, a layer higher up is drawn over the ones below":
+        "選択したレイヤーをリスト内で上下に移動します。ビューポートでは、上にあるレイヤーが下のレイヤーの上に描かれます",
+    "Mark this grid's edge first": "先にこのグリッドの辺をマークしてください",
+    "Work out the Unrolled layout of the selected grid layer's piece (a few seconds on a big piece)":
+        "選択したグリッドレイヤーのパーツの「展開」レイアウトを計算します（大きなモデルでは数秒かかります）",
     "Baking stopped": "ベイクを中止しました",
 
     # tooltips of the settings

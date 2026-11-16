@@ -103,7 +103,8 @@ def mesh_signature(me, mw, uv_name):
         uv_hash = hash(uv.tobytes())
     geo = (nv, len(me.edges), len(me.polygons), nl, hash(co.tobytes()), hash(lv.tobytes()),
            uv_hash, tuple(round(x, 9) for row in mw for x in row), uv_name)
-    marks = {n: (hash(read_path_edges(me, n).tobytes()), hash(read_path_edges(me, n, -1).tobytes()))
+    marks = {n: (hash(read_path_edges(me, n).tobytes()),
+                 hash(read_path_edges(me, n, -1).tobytes()))
              for n in [PATH_ATTR] + line_attr_names(me)}
     return geo, hash(read_corner_verts(me).tobytes()), marks
 
@@ -1082,7 +1083,9 @@ def _append_zigzag(cl, step, W, A, pad, verts, uvs, dims, quads, base):
                 return None
             if j == 0:
                 prev = (k - 1) % nruns
-                return corner_cuts[prev][2] if (k > 0 or cl.closed) and prev in corner_cuts else None
+                if (k > 0 or cl.closed) and prev in corner_cuts:
+                    return corner_cuts[prev][2]
+                return None
             return corner_cuts[k][2] if k in corner_cuts else None
 
         def cut(j):

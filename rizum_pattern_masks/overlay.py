@@ -10,13 +10,15 @@
 
 Drawing only; nothing is stored in the file or baked."""
 
+import time
+
 import bpy
 import bmesh
 import numpy as np
 import gpu
 from gpu_extras.batch import batch_for_shader
 
-from . import core
+from . import core, preview
 
 YELLOW = (1.0, 0.8, 0.1, 1.0)
 OUTLINE = (0.08, 0.06, 0.02, 0.9)
@@ -25,6 +27,7 @@ GREEN = (0.3, 1.0, 0.35, 0.55)    # not cyan: Blender draws sharp edges in cyan
 RED = (1.0, 0.25, 0.2, 0.75)      # edges the selected layer takes out
 DIM = 0.18                        # alpha of the layers not selected in the list
 LIFT = 0.0004            # metres off the surface, so the marks are not hidden by it
+EDIT_REFRESH = 0.25      # seconds: in Edit Mode the marks are read again at most this often
 
 _cache = {}              # object name -> dict of point/line coordinates
 _handles = []
@@ -59,19 +62,33 @@ def _shown(ob):
     return [(attr, col, sign) for _, attr, col, sign in out]
 
 
+def _key(ob):
+    """What the marks were read from: the mesh (undo brings back another),
+    the mode, where the object is, and which layers' marks show how."""
+    me = ob.data
+    s = ob.stitch_gen
+    return (me.as_pointer(), me.is_editmode, tuple(v for row in ob.matrix_world for v in row),
+            s.line_index, s.show_corners, s.uv_map,
+            tuple((l.show_marks, l.edge_attr, l.ref_attr, l.kind) for l in s.lines))
+
+
 def _marks(ob):
     """Shown layers' edges and the marked corners, in world space (lifted
-    along the normal) and in UV space."""
+    along the normal) and in UV space. Read again when the add-on changes
+    them (invalidate), when the key changes, and in Edit Mode, where the
+    mesh is being worked on, at most every EDIT_REFRESH seconds."""
     me = ob.data
     hit = _cache.get(ob.name_full)
-    if hit is not None and hit["edit"] == me.is_editmode:
+    if hit is not None and hit["key"] == _key(ob) and (
+            not me.is_editmode or time.monotonic() - hit["at"] < EDIT_REFRESH):
         return hit
     mw = ob.matrix_world
     nmat = mw.to_3x3().inverted_safe().transposed()
     s = ob.stitch_gen
     uv_name = s.uv_map
     shown = _shown(ob)
-    out = {"dots": [], "dots_uv": [], "edges": [], "edges_uv": [], "edit": me.is_editmode}
+    out = {"dots": [], "dots_uv": [], "edges": [], "edges_uv": [], "key": _key(ob),
+           "at": time.monotonic()}
 
     def lifted(co, normal):
         return tuple(mw @ co + (nmat @ normal).normalized() * LIFT)
@@ -131,12 +148,8 @@ def _marks(ob):
 
 
 def _objects(context):
-    out = []
-    for ob in context.view_layer.objects:
-        if ob.type == 'MESH' and ob.visible_get() and (
-                core.PATH_ATTR in ob.data.attributes or core.line_attr_names(ob.data)):
-            out.append(ob)
-    return out
+    space = context.space_data if getattr(context.space_data, "type", "") == 'VIEW_3D' else None
+    return [ob for ob in preview.objects(context) if ob.visible_get(viewport=space)]
 
 
 def _point_shader():
@@ -154,7 +167,8 @@ def _batches(m, key):
     if b is None:
         if key.startswith("edges"):
             shader = gpu.shader.from_builtin('POLYLINE_UNIFORM_COLOR')
-            b = [(batch_for_shader(shader, 'LINES', {"pos": pts}), col) for pts, col in m[key] if pts]
+            b = [(batch_for_shader(shader, 'LINES', {"pos": pts}), col)
+                 for pts, col in m[key] if pts]
         else:
             shader = _point_shader()
             b = [batch_for_shader(shader, 'POINTS', {"pos": m[key]})] if m[key] else []
@@ -225,39 +239,15 @@ def _draw_uv():
     gpu.state.point_size_set(1.0)
 
 
-@bpy.app.handlers.persistent
-def _on_depsgraph(scene, depsgraph):
-    for upd in depsgraph.updates:
-        idb = upd.id
-        if isinstance(idb, bpy.types.Object):
-            _cache.pop(idb.original.name_full, None)
-        elif isinstance(idb, bpy.types.Mesh):
-            for ob in list(_cache):
-                o = bpy.data.objects.get(ob)
-                if o is None or o.data == idb.original:
-                    _cache.pop(ob, None)
-
-
-@bpy.app.handlers.persistent
-def _on_load(_dummy):
-    _cache.clear()
-
-
 def register():
     _handles.append((bpy.types.SpaceView3D, bpy.types.SpaceView3D.draw_handler_add(
         _draw_3d, (), 'WINDOW', 'POST_VIEW')))
     _handles.append((bpy.types.SpaceImageEditor, bpy.types.SpaceImageEditor.draw_handler_add(
         _draw_uv, (), 'WINDOW', 'POST_VIEW')))
-    bpy.app.handlers.depsgraph_update_post.append(_on_depsgraph)
-    bpy.app.handlers.load_post.append(_on_load)
 
 
 def unregister():
     for space, h in _handles:
         space.draw_handler_remove(h, 'WINDOW')
     _handles.clear()
-    for lst, fn in ((bpy.app.handlers.depsgraph_update_post, _on_depsgraph),
-                    (bpy.app.handlers.load_post, _on_load)):
-        if fn in lst:
-            lst.remove(fn)
     _cache.clear()

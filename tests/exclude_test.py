@@ -17,6 +17,7 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import rizum_pattern_masks as sg  # noqa: E402
+from tests import _preview as pv  # noqa: E402
 from rizum_pattern_masks import core, overlay  # noqa: E402
 
 sg.register()
@@ -65,12 +66,13 @@ bpy.ops.stitch_gen.line_add()
 edit(1, WAIST, bpy.ops.stitch_gen.path_add)
 st, line = s.lines[0], s.lines[1]
 st.ref_attr = line.edge_attr
-sg.regenerate(ob, create=True)
+sg.regenerate(ob)
 n_all = s.dash_count
-waist_right = lambda o: int(sum(1 for v in o.data.vertices                          # noqa: E731
-                                if v.co.z > -0.1 and v.co.x > 0.02))
+def waist_right(co):
+    return int(((co[:, 2] > -0.1) & (co[:, 0] > 0.02)).sum())
 
-check("stitches on the whole waist", waist_right(s.ribbon) > 0, n_all)
+
+check("stitches on the whole waist", waist_right(pv.stitch_co(ob)) > 0, n_all)
 
 # take the right half of the waist out of the stitches
 edit(0, HALF, bpy.ops.stitch_gen.path_remove)
@@ -80,11 +82,11 @@ check("taken-out edges marked -1 on the stitches", len(out) > 0 and len(own) > 0
       len(out), len(own))
 check("line layer untouched", len(core.read_path_edges(ob.data, line.edge_attr, -1)) == 0
       and len(core.read_path_edges(ob.data, line.edge_attr)) == 64)
-sg.regenerate(ob, create=True)
-check("stitches leave that half", waist_right(s.ribbon) == 0 and 0 < s.dash_count < n_all,
-      waist_right(s.ribbon), s.dash_count)
-lz = [v for v in s.line_preview.data.vertices if v.co.z > -0.1 and v.co.x > 0.02]
-check("line keeps the whole waist", len(lz) > 0, len(lz))
+sg.regenerate(ob)
+check("stitches leave that half", waist_right(pv.stitch_co(ob)) == 0 and 0 < s.dash_count < n_all,
+      waist_right(pv.stitch_co(ob)), s.dash_count)
+lz = waist_right(pv.line_co(ob))
+check("line keeps the whole waist", lz > 0, lz)
 
 # overlay: the selected layer's taken-out edges in red
 s.line_index = 0
@@ -133,7 +135,7 @@ bpy.ops.stitch_gen.path_clear('EXEC_DEFAULT')
 bpy.ops.object.mode_set(mode='OBJECT')
 check("× clears both", len(core.read_path_edges(ob.data, core.PATH_ATTR)) == 0
       and len(core.read_path_edges(ob.data, core.PATH_ATTR, -1)) == 0)
-sg.regenerate(ob, create=True)
-check("after ×: stitches follow the whole referred waist", waist_right(s.ribbon) > 0)
+sg.regenerate(ob)
+check("after ×: stitches follow the whole referred waist", waist_right(pv.stitch_co(ob)) > 0)
 
 print("RESULT", "ALL PASS" if not fails else "FAILED: " + ", ".join(fails))

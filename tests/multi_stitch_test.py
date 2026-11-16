@@ -17,6 +17,7 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import rizum_pattern_masks as sg  # noqa: E402
+from tests import _preview as pv  # noqa: E402
 from rizum_pattern_masks import bake  # noqa: E402
 
 out_dir = sys.argv[sys.argv.index("--") + 1]
@@ -82,7 +83,7 @@ waist.thread_width = 0.5
 waist.color = (0.1, 0.4, 1.0, 1.0)
 mark(ob, lambda z: z > -0.01)
 
-data = sg.regenerate(ob, bpy.context.scene, create=True)
+data = sg.regenerate(ob, bpy.context.scene)
 check("each stitch layer makes its own stitches",
       len(data.stitches) == 2 and all(r.dash_count > 0 for _a, r in data.stitches),
       [r.dash_count for _a, r in data.stitches])
@@ -90,16 +91,11 @@ zs = [np.asarray(r.co)[:, 2].mean() for _a, r in data.stitches]
 check("on its own edges (hem low, waist high)", zs[0] < -0.2 and zs[1] > -0.05, zs)
 check("the layers' counts", hem.dash_count > 0 and waist.dash_count > 0,
       hem.dash_count, waist.dash_count)
-rib = s.ribbon
-mats = list(rib.data.materials)
-check("one preview, a material per stitch layer", len(mats) == 2 and mats[0] != mats[1],
-      [m.name if m else None for m in mats])
-mi = np.empty(len(rib.data.polygons), np.int32)
-rib.data.polygons.foreach_get("material_index", mi)
-check("both layers in the preview", set(mi.tolist()) == {0, 1}, np.bincount(mi))
-check("each in its own color", tuple(mats[1].diffuse_color)[:3] == (0.1, 0.4, 1.0)
-      or np.allclose(mats[1].diffuse_color[:3], (0.1, 0.4, 1.0), atol=1e-4),
-      tuple(mats[1].diffuse_color))
+check("both layers in the preview", pv.stitch_layers(ob) == [hem.edge_attr, waist.edge_attr],
+      pv.stitch_layers(ob))
+cols = sg._layer_colors(ob)
+check("each in its own color", np.allclose(cols[waist.edge_attr][:3], (0.1, 0.4, 1.0), atol=1e-4),
+      cols)
 
 # the object's stitch settings stand for the selected stitch layer
 s.line_index = 0
@@ -111,7 +107,7 @@ check("and read it", s.style == 'ZIGZAG' and abs(s.width - 0.5) < 1e-6, s.style,
 
 # hiding one leaves the other
 waist.enabled = False
-data = sg.regenerate(ob, bpy.context.scene, create=True)
+data = sg.regenerate(ob, bpy.context.scene)
 check("a hidden stitch layer makes nothing", len(data.stitches) == 1, len(data.stitches))
 waist.enabled = True
 
@@ -146,8 +142,7 @@ attr = waist.edge_attr
 bpy.ops.stitch_gen.line_remove()
 check("stitch layer removed with its edges",
       len(sg._stitch_items(s)) == 1 and attr not in ob.data.attributes, attr)
-sg.regenerate(ob, bpy.context.scene, create=True)
-check("preview back to one layer", len(s.ribbon.data.materials) == 1,
-      len(s.ribbon.data.materials))
+sg.regenerate(ob, bpy.context.scene)
+check("preview back to one layer", len(pv.stitch_layers(ob)) == 1, pv.stitch_layers(ob))
 
 print("ALL PASS" if not fails else f"FAILED: {fails}")

@@ -20,6 +20,7 @@ import numpy as np
 out_dir = sys.argv[sys.argv.index("--") + 1]
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import rizum_pattern_masks as sg  # noqa: E402
+from tests import _preview as pv  # noqa: E402
 from rizum_pattern_masks import core  # noqa: E402
 
 sg.register()
@@ -64,13 +65,13 @@ st, line = s.lines[0], s.lines[1]
 check("new layer refers to nothing", line.ref_attr == "")
 sg.regenerate(ob)
 n_hem = s.dash_count
-z = zs(s.line_preview)
+z = pv.line_co(ob)[:, 2]
 check("line alone: waist only", len(z) and z.min() > -0.1, round(float(z.min()), 3))
 
 # stitches refer to the line layer: stitches along the waist too
 st.ref_attr = line.edge_attr
 sg.regenerate(ob)
-z = zs(s.ribbon)
+z = pv.stitch_co(ob)[:, 2]
 check("stitches follow the line's edges", s.dash_count > n_hem and z.max() > -0.1,
       n_hem, s.dash_count)
 st.ref_attr = ""
@@ -78,7 +79,7 @@ st.ref_attr = ""
 # line refers to the stitches: covers the hem too
 line.ref_attr = core.PATH_ATTR
 sg.regenerate(ob)
-z = zs(s.line_preview)
+z = pv.line_co(ob)[:, 2]
 check("line follows the stitch edges", z.min() < -0.2 and z.max() > -0.1)
 
 # a loop of references stops
@@ -97,10 +98,8 @@ check("chain", sg._edge_set(s, g) == tuple(sorted((core.PATH_ATTR, line.edge_att
       sg._edge_set(s, g))
 line.ref_attr = ""
 g.grid_cell = 20.0
-sg.regenerate(ob, create=True)          # may add the grid preview object
-check("grid with no own edges, from its reference", s.grid_preview is not None
-      and len(s.grid_preview.data.polygons) > 0,
-      len(s.grid_preview.data.polygons) if s.grid_preview else None)
+sg.regenerate(ob)
+check("grid with no own edges, from its reference", pv.grid_faces(ob) > 0, pv.grid_faces(ob))
 
 # eyedropper: picking the stitch row while the line layer is edited
 s.line_index = 1

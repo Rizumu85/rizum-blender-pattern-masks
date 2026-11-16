@@ -24,10 +24,10 @@ def setup():
     s.style = 'ZIGZAG'
     s.inset, s.width, s.length, s.zigzag_height = vals
     with bpy.context.temp_override(window=bpy.context.window_manager.windows[0]):
-        sg.regenerate(ob, bpy.context.scene, create=True)
-    rib = s.ribbon
+        sg.regenerate(ob, bpy.context.scene)
+    from rizum_pattern_masks import preview
     # look at a stretch of the zigzag from the front, close
-    co = [rib.matrix_world @ v.co for v in rib.data.vertices]
+    co = [Vector(c) for c in preview.geometry(ob)["stitches"][0][1].co.tolist()]
     target = min(co, key=lambda p: abs(p.x - 0.02) + abs(p.z + 0.27) * 3)
     for area in bpy.context.screen.areas:
         if area.type == 'VIEW_3D':

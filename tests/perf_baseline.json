@@ -1,41 +1,41 @@
 {
  "Skirt_sub0": {
   "dashes": 514,
-  "edge": 498.3,
+  "edge": 423.8,
   "faces": 320,
-  "first": 1242.8,
-  "grid_cell": 19.7,
-  "inset": 361.1,
-  "length": 124.4,
-  "line_width": 172.4,
+  "first": 772.7,
+  "grid_cell": 16.2,
+  "inset": 228.5,
+  "length": 54.9,
+  "line_width": 125.3,
   "mesh": "Skirt_sub0",
-  "overlay": 0.5
+  "overlay": 0.7
  },
  "Skirt_sub1": {
   "dashes": 516,
-  "edge": 1016.6,
+  "edge": 550.5,
   "faces": 1344,
-  "first": 1893.5,
-  "grid_cell": 37.5,
-  "inset": 462.2,
-  "length": 111.7,
-  "line_width": 404.9,
+  "first": 1310.9,
+  "grid_cell": 21.3,
+  "inset": 325.9,
+  "length": 63.3,
+  "line_width": 273.8,
   "mesh": "Skirt_sub1",
-  "overlay": 2.1
+  "overlay": 1.2
  },
  "Skirt_sub2": {
   "dashes": 515,
-  "edge": 1267.6,
+  "edge": 1081.2,
   "faces": 5376,
-  "first": 3352.0,
-  "grid_cell": 71.3,
-  "inset": 656.0,
-  "length": 120.0,
-  "line_width": 833.7,
+  "first": 2339.8,
+  "grid_cell": 44.6,
+  "inset": 455.4,
+  "length": 80.8,
+  "line_width": 637.3,
   "mesh": "Skirt_sub2",
-  "overlay": 8.1
+  "overlay": 5.3
  },
  "_machine": {
-  "busy": 2.7
+  "busy": 2.2
  }
 }

@@ -7,7 +7,6 @@ import hashlib
 import math
 import os
 import re
-import threading
 import time
 import traceback
 
@@ -15,25 +14,17 @@ import numpy as np
 import bpy
 import bpy.utils.previews
 import bmesh
-from mathutils import Matrix
 from bl_operators.presets import AddPresetBase
 from bl_ui.utils import PresetPanel
 from bpy.props import (BoolProperty, CollectionProperty, EnumProperty, FloatProperty,
                        IntProperty, PointerProperty, StringProperty)
 
-from . import core, bake, grid, i18n, overlay
+from . import core, bake, grid, i18n, overlay, preview
 from .i18n import iface, rpt
 
-COLLECTION = "Stitch Preview"
-MATERIAL = "StitchGen_Mask"
-LINE_MATERIAL = "StitchGen_LinePreview"
-GRID_MATERIAL = "StitchGen_GridPreview"
+MATERIAL = "StitchGen_Mask"           # the stitch shader the bake renders
 
-_last = {}   # object name -> RibbonData of the last generation
-_last_params = {}   # object name -> settings of the last generation
-
-
-# -- ribbon object -------------------------------------------------------------
+# -- the stitch shader (bake) -----------------------------------------------------
 
 def _mask_material():
     mat = bpy.data.materials.get(MATERIAL)
@@ -73,11 +64,14 @@ def _mask_material():
     uv = attr("stitch_uv", -1400, 200)
     dims = attr("stitch_dims", -1400, -100)
     pxa = attr("stitch_aa", -1400, -400)
-    sep_a = N("ShaderNodeSeparateXYZ"); sep_a.location = (-1200, -400)
+    sep_a = N("ShaderNodeSeparateXYZ")
+    sep_a.location = (-1200, -400)
     L(pxa.outputs["Vector"], sep_a.inputs[0])
-    sep_uv = N("ShaderNodeSeparateXYZ"); sep_uv.location = (-1200, 200)
+    sep_uv = N("ShaderNodeSeparateXYZ")
+    sep_uv.location = (-1200, 200)
     L(uv.outputs["Vector"], sep_uv.inputs[0])
-    sep_d = N("ShaderNodeSeparateXYZ"); sep_d.location = (-1200, -100)
+    sep_d = N("ShaderNodeSeparateXYZ")
+    sep_d.location = (-1200, -100)
     L(dims.outputs["Vector"], sep_d.inputs[0])
     hl, hw, r = sep_d.outputs[0], sep_d.outputs[1], sep_d.outputs[2]
     # rounded-rectangle signed distance
@@ -95,246 +89,59 @@ def _mask_material():
     cov = math('SUBTRACT', 0.5, math('DIVIDE', sd, sep_a.outputs[0], x=300, y=0),
                x=450, y=0, clamp=True)
 
-    emit = N("ShaderNodeEmission"); emit.location = (600, 200)
+    emit = N("ShaderNodeEmission")
+    emit.location = (600, 200)
     emit.inputs["Color"].default_value = (1, 1, 1, 1)
     emit.inputs["Strength"].default_value = 1.0
-    transp = N("ShaderNodeBsdfTransparent"); transp.location = (600, 350)
-    mix = N("ShaderNodeMixShader"); mix.location = (800, 200)
+    transp = N("ShaderNodeBsdfTransparent")
+    transp.location = (600, 350)
+    mix = N("ShaderNodeMixShader")
+    mix.location = (800, 200)
     L(cov, mix.inputs[0])
     L(transp.outputs[0], mix.inputs[1])
     L(emit.outputs[0], mix.inputs[2])
-    out = N("ShaderNodeOutputMaterial"); out.location = (1000, 200)
+    out = N("ShaderNodeOutputMaterial")
+    out.location = (1000, 200)
     L(mix.outputs[0], out.inputs["Surface"])
     return mat
 
 
-def _preview_collection(scene):
-    col = bpy.data.collections.get(COLLECTION)
-    if col is None:
-        col = bpy.data.collections.new(COLLECTION)
-    if col.name not in scene.collection.children:
-        scene.collection.children.link(col)
-    return col
-
-
-def _unhide_in(lc, ob, chain=()):
-    """Clear one thing that keeps ``ob`` out of view below this layer
-    collection: its collection left out of the view layer, or a collection on
-    the way down hidden. True when something was changed."""
-    chain += (lc,)
-    if ob.name in lc.collection.objects:
-        if lc.exclude:
-            lc.exclude = False
-            return True
-        for a in chain:
-            if a.hide_viewport:
-                a.hide_viewport = False
-                return True
-            if a.collection.hide_viewport:
-                a.collection.hide_viewport = False
-                return True
-    return any(_unhide_in(c, ob, chain) for c in lc.children)
-
-
-def _show_preview(ob, scene):
-    """A button was pressed: show the preview (operators only). It can have
-    been deleted from the scene or hidden, and so can the collection it is in;
-    otherwise the button rebuilds stitches nobody sees."""
-    if not ob.get(PREVIEW_PROP):
-        ob[PREVIEW_PROP] = True             # removed along with its object
-    if not ob.users_collection:
-        _preview_collection(scene).objects.link(ob)
-    ob.hide_viewport = False
-    if bpy.context.scene != scene:
-        return
-    vl = bpy.context.view_layer
-    # one change at a time (each can move the others); each clears one of at
-    # most three flags per collection, so this ends even if a flag won't change
-    for _ in range(3 * len(bpy.data.collections) + 4):
-        inside = ob.name in vl.objects
-        if inside and ob.hide_get():
-            ob.hide_set(False)
-        if inside and ob.visible_get():
-            return
-        if _unhide_in(vl.layer_collection, ob):
-            continue
-        col = _preview_collection(scene)   # only in other scenes: into this one too
-        if inside or ob.name in col.objects:
-            return
-        col.objects.link(ob)
-
-
-def _ribbon_object(obj, scene, create):
-    """The preview object. Only operators may create it (create=True): creating or
-    deleting data-blocks from a property update callback breaks undo."""
-    s = obj.stitch_gen
-    rib = s.ribbon
-    if rib is not None and rib.name in bpy.data.objects and rib.type == 'MESH':
-        if create:
-            _show_preview(rib, scene)
-        return rib
-    if not create:
-        return None
-    me = bpy.data.meshes.new(obj.name + "_Stitches")
-    me.materials.append(_mask_material())
-    rib = bpy.data.objects.new(obj.name + "_Stitches", me)
-    rib.hide_render = True
-    s.ribbon = rib
-    _show_preview(rib, scene)
-    return rib
-
-
-def _line_material():
-    mat = bpy.data.materials.get(LINE_MATERIAL)
-    if mat is None:
-        mat = bpy.data.materials.new(LINE_MATERIAL)
-        mat.diffuse_color = (0.0, 0.0, 0.0, 1.0)
-    _ensure_emission(mat)
-    return mat
-
-
-def _ensure_emission(mat):
-    """A flat emission shader, so the preview color also shows in Material
-    Preview and Rendered mode (operators only: it may add nodes)."""
-    if hasattr(mat, "use_nodes") and not mat.use_nodes:
-        mat.use_nodes = True
-    nt = mat.node_tree
-    if nt is None or any(n.type == 'EMISSION' for n in nt.nodes):
-        return
-    nt.nodes.clear()
-    emit = nt.nodes.new("ShaderNodeEmission")
-    emit.inputs["Color"].default_value = mat.diffuse_color
-    out = nt.nodes.new("ShaderNodeOutputMaterial")
-    out.location = (250, 0)
-    nt.links.new(emit.outputs[0], out.inputs["Surface"])
-
-
-def _apply_colors(ob):
-    """Preview colors into the preview materials (display color and shader)."""
-    s = ob.stitch_gen
-    pairs = [(l.material, l.color) for l in _stitch_items(s)]
-    pairs += [(l.material, l.color) for l in _line_items(s)]
-    pairs += [(l.material, l.color) for l in _grid_items(s)]
-    for l in _grid_items(s):                      # the grid shader's own color
-        nt = l.material.node_tree if l.material is not None else None
-        if nt is not None and nt.nodes.get("color") is not None:
-            nt.nodes["color"].outputs[0].default_value = l.color
-    for mat, col in pairs:
-        if mat is None:
-            continue
-        mat.diffuse_color = col
-        if mat.node_tree is not None:
-            for n in mat.node_tree.nodes:
-                if n.type == 'EMISSION':
-                    n.inputs["Color"].default_value = col
-
-
-def _preview_materials(ob, create, items, new, fallback):
-    """Preview material of each shown layer of ``items``, in the order of the
-    preview's material slots. Only operators create new materials."""
-    out = []
-    for l in items:
-        if not l.enabled:
-            continue
-        mat = l.material
-        if create:
-            shared = mat is not None and any(          # a duplicated object
-                o != ob and o.type == 'MESH' and any(x.material == mat for x in o.stitch_gen.lines)
-                for o in bpy.data.objects)
-            if mat is None or shared:
-                mat = mat.copy() if shared else new()
-                mat.diffuse_color = l.color
-                l.material = mat
-            _ensure_emission(mat)
-        out.append(mat if mat is not None else bpy.data.materials.get(fallback))
-    return out
-
-
-def _layer_materials(ob, create):
-    """Preview material of each shown line art layer."""
-    return _preview_materials(ob, create, _line_items(ob.stitch_gen),
-                              lambda: bpy.data.materials.new(LINE_MATERIAL), LINE_MATERIAL)
-
-
-def _stitch_materials(ob, create):
-    """Preview material of each shown stitch layer: the stitch shader, in the
-    layer's color."""
-    return _preview_materials(ob, create, _stitch_items(ob.stitch_gen),
-                              lambda: _mask_material().copy(), MATERIAL)
-
-
 def _on_color(self, context):
-    ob = self.id_data
-    if isinstance(ob, bpy.types.Object):
-        _apply_colors(ob)
+    preview.redraw()
 
 
-def _line_object(obj, scene, create):
-    """The line art preview object; like the stitch preview, only operators
-    create it."""
+def _grid_parts(obj, scene):
+    """[(attribute, cell size, corner positions, fabric coordinates per corner)]
+    of the shown grid layers (preview.put). An Unrolled layer shows once it is
+    worked out (the Unroll button; scripts work it out straight away)."""
     s = obj.stitch_gen
-    lo = s.line_preview
-    if lo is not None and lo.name in bpy.data.objects and lo.type == 'MESH':
-        if create:
-            for mat in lo.data.materials:
-                if mat is not None:
-                    _ensure_emission(mat)
-            _show_preview(lo, scene)
-        return lo
-    if not create:
-        return None
-    me = bpy.data.meshes.new(obj.name + "_LineArt")
-    me.materials.append(_line_material())
-    lo = bpy.data.objects.new(obj.name + "_LineArt", me)
-    lo.hide_render = True
-    s.line_preview = lo
-    _show_preview(lo, scene)
-    return lo
-
-
-def _grid_geometry(obj, scene):
-    """(co, tris, vs per corner, layer per tri) of the shown grid layers, or None."""
-    s = obj.stitch_gen
-    grids = _params(s, scene)["grids"]
+    p = _params(s, scene)
     entry = core._cache.get(obj.name_full)
-    if not grids or entry is None:
-        return None
+    if not p["grids"] or entry is None:
+        return []
     topo = entry["topo"]
     lift = max(topo.mean_edge / 60.0, topo.span * 2e-5)
     kept = entry.setdefault("grid_preview", {})     # per layer: (settings, coords, result)
-    parts = []
-    for li, g in enumerate(grids):
+    out = []
+    for g in p["grids"]:
         attr, cell, angle, off_y, off_x, wobble, mode, attrs = g
-        if mode == "unrolled" and not _unrolled_ready(obj, scene, entry, attrs):
-            continue                       # being worked out; shown when done
         gc = core.grid_coords(entry, attrs)
+        if mode == "unrolled" and not unrolled(gc) and not bpy.app.background:
+            continue
         hit = kept.get(attr)
         if hit is None or hit[0] != (g, lift) or hit[1] is not gc:
             lay = gc.layout(cell, angle, mode)
             hit = kept[attr] = ((g, lift), gc, grid.preview(topo, lay, lift, off_x, off_y,
                                                             grid.Wobble(attr, cell, wobble)))
-        parts.append((li, hit[2]))
-    # the same pieces as last time: the same result (so its mesh is not rewritten)
-    last = entry.get("grid_geo")
-    if last is not None and len(last[0]) == len(parts) and all(
-            a[0] == b[0] and a[1] is b[1] for a, b in zip(last[0], parts)):
-        return last[1]
-    cos, tris, vss, owner, base = [], [], [], [], 0
-    for li, (co, t, vs) in parts:
-        if not len(t):
-            continue
-        cos.append(co)
-        tris.append(t + base)
-        vss.append(vs)
-        owner.append(np.full(len(t), li, np.int64))
-        base += len(co)
-    out = ((np.vstack(cos), np.vstack(tris), np.vstack(vss), np.concatenate(owner)) if tris else
-           (np.zeros((0, 3)), np.zeros((0, 3), np.int64), np.zeros((0, 3, 2)), np.zeros(0, np.int64)))
-    entry["grid_geo"] = (parts, out)
+        co, tris, vs = hit[2]
+        if len(tris):
+            out.append((attr, cell, co[tris].reshape(-1, 3), vs.reshape(-1, 2)))
     return out
 
 
-_unroll_jobs = {}        # object name -> the Unrolled flattening being worked out
+def unrolled(gc):
+    """Is the Unrolled flattening of a grid's piece worked out?"""
+    return getattr(gc, "_flat_log", None) is not None
 
 
 def _redraw_views():
@@ -344,258 +151,9 @@ def _redraw_views():
                 area.tag_redraw()
 
 
-def _unrolled_ready(obj, scene, entry, attrs):
-    """Is the Unrolled flattening of this layer's piece at hand? If not, it
-    is worked out in the background (a few seconds on a big piece) with a
-    progress bar in the panel, and the preview is rebuilt when it is done."""
-    fld = core.grid_coords(entry, attrs)
-    if getattr(fld, "_flat_log", None) is not None:
-        return True
-    if bpy.app.background:
-        return True                        # scripts: straight away
-    name = obj.name_full
-    job = _unroll_jobs.get(name)
-    if job is not None and job["thread"].is_alive():
-        return False
-    job = {"thread": None, "round": (0, grid.FLAT_ROUNDS), "error": None}
-
-    def progress(k, n):
-        job["round"] = (k, n)
-
-    fld.progress = progress
-
-    def work():
-        try:
-            fld._unrolled()
-        except Exception as e:             # shown in the panel instead
-            job["error"] = f"{type(e).__name__}: {e}"
-
-    scene_name = scene.name if scene else ""
-    job["thread"] = threading.Thread(target=work, daemon=True)
-    _unroll_jobs[name] = job
-    job["thread"].start()
-
-    def poll():
-        if job["thread"].is_alive():
-            _redraw_views()
-            return 0.25
-        _unroll_jobs.pop(name, None)
-        ob = bpy.data.objects.get(name)
-        if ob is not None and ob.type == 'MESH':
-            if job["error"]:
-                ob.stitch_gen.status = job["error"]
-            else:
-                regenerate(ob, bpy.data.scenes.get(scene_name))
-        _redraw_views()
-        return None
-
-    bpy.app.timers.register(poll, first_interval=0.25)
-    return False
-
-
-def _grid_object(obj, scene, create):
-    """The grid preview object; like the other previews, only operators create it."""
-    s = obj.stitch_gen
-    go = s.grid_preview
-    if go is not None and go.name in bpy.data.objects and go.type == 'MESH':
-        if create:
-            _show_preview(go, scene)
-        return go
-    if not create:
-        return None
-    me = bpy.data.meshes.new(obj.name + "_Grid")
-    go = bpy.data.objects.new(obj.name + "_Grid", me)
-    go.hide_render = True
-    s.grid_preview = go
-    _show_preview(go, scene)
-    return go
-
-
-def _grid_shader(mat):
-    """Squares drawn from the per-corner fabric coordinates (operators only:
-    adds nodes): the black squares in the layer's color, the white ones clear.
-    The square size lives in a Value node named cell."""
-    if hasattr(mat, "use_nodes") and not mat.use_nodes:
-        mat.use_nodes = True
-    if hasattr(mat, "surface_render_method"):
-        mat.surface_render_method = 'DITHERED'
-    nt = mat.node_tree
-    if nt is None or nt.nodes.get("checker") is not None:
-        return
-    nt.nodes.clear()
-    N, L = nt.nodes.new, nt.links.new
-    attr = N("ShaderNodeAttribute")
-    attr.attribute_name = "grid_vs"
-    sep = N("ShaderNodeSeparateXYZ")
-    L(attr.outputs["Vector"], sep.inputs[0])
-    cell = N("ShaderNodeValue")
-    cell.name = cell.label = "cell"
-
-    def math_(op, a_, b_):
-        n = N("ShaderNodeMath")
-        n.operation = op
-        for i, x in enumerate((a_, b_)):
-            if isinstance(x, (int, float)):
-                n.inputs[i].default_value = x
-            else:
-                L(x, n.inputs[i])
-        return n.outputs[0]
-
-    fx = math_('FLOOR', math_('DIVIDE', sep.outputs[0], cell.outputs[0]), 0.0)
-    fy = math_('FLOOR', math_('DIVIDE', sep.outputs[1], cell.outputs[0]), 0.0)
-    parity = math_('MODULO', math_('ADD', math_('ADD', fx, fy), 2000000.0), 2.0)
-    black = math_('LESS_THAN', parity, 0.5)
-    mark = N("ShaderNodeValue")
-    mark.name = "checker"                     # this is the checker version of the shader
-    rgb = N("ShaderNodeRGB")
-    rgb.name = "color"
-    emit = N("ShaderNodeEmission")
-    L(rgb.outputs[0], emit.inputs["Color"])
-    transp = N("ShaderNodeBsdfTransparent")
-    mix = N("ShaderNodeMixShader")
-    L(black, mix.inputs[0])
-    L(transp.outputs[0], mix.inputs[1])
-    L(emit.outputs[0], mix.inputs[2])
-    out = N("ShaderNodeOutputMaterial")
-    L(mix.outputs[0], out.inputs["Surface"])
-
-
-def _grid_values(mat, layer, k):
-    nt = mat.node_tree if mat is not None else None
-    if nt is None or nt.nodes.get("checker") is None:
-        return
-    nt.nodes["cell"].outputs[0].default_value = layer.grid_cell * k
-    c = nt.nodes.get("color")
-    if c is not None:
-        c.outputs[0].default_value = layer.color
-
-
-def _grid_materials(ob, create):
-    """Preview material of each shown grid layer, in slot order."""
-    s = ob.stitch_gen
-    k = 0.001 / (bpy.context.scene.unit_settings.scale_length or 1.0)
-    out = []
-    for l in _grid_items(s):
-        if not l.enabled:
-            continue
-        mat = l.material
-        if create:
-            shared = mat is not None and any(
-                o != ob and o.type == 'MESH' and any(x.material == mat for x in o.stitch_gen.lines)
-                for o in bpy.data.objects)
-            if mat is None or shared:
-                mat = mat.copy() if shared else bpy.data.materials.new(GRID_MATERIAL)
-                mat.diffuse_color = l.color
-                l.material = mat
-            _grid_shader(mat)
-        _grid_values(mat, l, k)
-        out.append(mat)
-    return out
-
-
-def _write_grid(go, gdata, mats):
-    me = go.data
-    me.clear_geometry()
-    if list(me.materials) != mats:
-        me.materials.clear()
-        for mat in mats:
-            me.materials.append(mat)
-    if gdata is not None and len(gdata[1]):
-        co, tris, vs, owner = gdata
-        me.vertices.add(len(co))
-        me.vertices.foreach_set("co", co.astype(np.float32).ravel())
-        me.loops.add(len(tris) * 3)
-        me.loops.foreach_set("vertex_index", tris.astype(np.int32).ravel())
-        me.polygons.add(len(tris))
-        me.polygons.foreach_set("loop_start", np.arange(len(tris), dtype=np.int32) * 3)
-        me.polygons.foreach_set("material_index", owner.astype(np.int32))
-        a = me.attributes.new("grid_vs", 'FLOAT2', 'CORNER')
-        a.data.foreach_set("vector", vs.astype(np.float32).ravel())
-    me.update()
-    if go.matrix_world != Matrix.Identity(4):
-        go.matrix_world = Matrix.Identity(4)
-
-
-SIG_PROP = "stitch_gen_built_from"
-
-# what each preview mesh was last written from: (object, preview) -> (pieces,
-# mesh state after writing). Undo and loading files clear it.
-_written = {}
-
-
-def _write_needed(obj, which, me, pieces):
-    """False when the mesh already holds exactly these pieces (the same cached
-    arrays, material names equal) and nothing changed it since: other materials
-    in its slots, other sizes; a preview seen in Edit or Sculpt Mode is
-    forgotten (_sync_previews), so edits by hand are written over too."""
-    hit = _written.get((obj.name_full, which))
-    return not (hit is not None and len(hit[0]) == len(pieces)
-                and all(a is b or (isinstance(a, str) and a == b) for a, b in zip(hit[0], pieces))
-                and hit[1] == _mesh_state(me))
-
-
-def _mesh_state(me):
-    return (me.as_pointer(), len(me.vertices), len(me.polygons),
-            tuple(_mat_name(m) for m in me.materials))
-
-
-def _mat_name(m):
-    return m.name_full if m is not None else None
-
-
 def _params_sig(p):
     """Short fingerprint of the settings a preview was built from."""
     return hashlib.md5(repr(sorted(p.items())).encode()).hexdigest()[:16]
-
-
-def _write_lines(lo, data, mats):
-    """Rewrite the line art preview; material slot i is the i-th shown layer."""
-    me = lo.data
-    me.clear_geometry()
-    if list(me.materials) != mats:
-        me.materials.clear()
-        for mat in mats:
-            me.materials.append(mat)
-    co, quads = data.line_co, data.line_quads
-    if len(quads):
-        me.vertices.add(len(co))
-        me.vertices.foreach_set("co", co.astype(np.float32).ravel())
-        me.loops.add(len(quads) * 4)
-        me.loops.foreach_set("vertex_index", quads.astype(np.int32).ravel())
-        me.polygons.add(len(quads))
-        me.polygons.foreach_set("loop_start", np.arange(len(quads), dtype=np.int32) * 4)
-        me.polygons.foreach_set("material_index", data.line_layer.astype(np.int32))
-    me.update()
-    if lo.matrix_world != Matrix.Identity(4):
-        lo.matrix_world = Matrix.Identity(4)
-
-
-def _write_ribbon(rib_obj, data, mats):
-    """Rewrite the stitch preview in place (no new data-blocks, undo-safe):
-    material slot i is the i-th shown stitch layer."""
-    me = rib_obj.data
-    if list(me.materials) != mats:
-        me.materials.clear()
-        for mat in mats:
-            me.materials.append(mat)
-    bake.write_ribbon_mesh(me, [r for _attr, r in data.stitches])
-    if rib_obj.matrix_world != Matrix.Identity(4):
-        rib_obj.matrix_world = Matrix.Identity(4)
-
-
-def _release_shared_previews(obj):
-    """A duplicated or split-off object still points at the original's preview
-    objects; let go of them, so each object gets (and writes) its own."""
-    s = obj.stitch_gen
-    for prop, suffix in (("ribbon", "_Stitches"), ("line_preview", "_LineArt"),
-                         ("grid_preview", "_Grid")):
-        prev = getattr(s, prop)
-        if prev is None:
-            continue
-        others = [o for o in bpy.data.objects
-                  if o != obj and o.type == 'MESH' and getattr(o.stitch_gen, prop) == prev]
-        if others and not prev.name.startswith(obj.name + suffix):
-            setattr(s, prop, None)
 
 
 def _inherit_bake_settings(obj, scene):
@@ -693,10 +251,7 @@ def _stitches_on(s):
 
 
 def _uses_addon(ob):
-    s = ob.stitch_gen
-    return bool(len(s.lines) or s.ribbon is not None or s.line_preview is not None
-                or s.grid_preview is not None
-                or core.PATH_ATTR in ob.data.attributes)
+    return preview.uses(ob)
 
 
 STITCH_COLOR = (1.0, 0.35, 0.05, 1.0)
@@ -953,8 +508,8 @@ def _line_layers(s, scene):
             if l.enabled and l.width > 0]
 
 
-def regenerate(obj, scene=None, create=False):
-    """Rebuild the stitches. ``create`` is only allowed from operators."""
+def regenerate(obj, scene=None):
+    """Rebuild the stitches, line art and grids, and their viewport preview."""
     scene = scene or bpy.context.scene
     s = obj.stitch_gen
     _migrate_units(s)
@@ -969,66 +524,65 @@ def regenerate(obj, scene=None, create=False):
             src = obj.to_mesh(preserve_all_data_layers=True)
             me = src
         data, _topo = core.generate(obj.name_full, me, obj.matrix_world, _params(s, scene))
-    except ValueError as e:  # expected limits: show the message only
-        tpl = getattr(e, "template", None)
-        s.status = rpt(tpl).format(**e.kw) if tpl else str(e)
-        return None
-    except Exception as e:  # keep the UI alive, show the error in the panel
-        traceback.print_exc()
-        s.status = f"{type(e).__name__}: {e}"
+    except Exception as e:
+        if isinstance(e, ValueError):        # expected limits: show the message only
+            tpl = getattr(e, "template", None)
+            s.status = rpt(tpl).format(**e.kw) if tpl else str(e)
+        else:                                # keep the UI alive, show the error in the panel
+            traceback.print_exc()
+            s.status = f"{type(e).__name__}: {e}"
+        # nothing to show, for these settings: the drawing doesn't ask again
+        preview.put(obj, _preview_key(obj, scene), [], [], [])
         return None
     finally:
         if src is not None:
             obj.to_mesh_clear()
-    _last[obj.name_full] = data
-    _last_params[obj.name_full] = _params(s, scene)
     overlay.invalidate(obj)
     s.status = ""
     s.dash_count = data.dash_count
     for l, (_attr, r) in zip([l for l in _stitch_items(s) if l.enabled], data.stitches):
         l.dash_count = r.dash_count
-    _release_shared_previews(obj)
-    if create and s.ribbon is None and s.line_preview is None and s.grid_preview is None:
-        _inherit_bake_settings(obj, scene)        # first set-up of this object
-    sig = _params_sig(_last_params[obj.name_full])
-    # each preview is only rewritten when what it shows changed
-    rib = _ribbon_object(obj, scene, create and data.dash_count > 0)
-    if rib is not None:
-        mats = _stitch_materials(obj, create)
-        pieces = [r for _attr, r in data.stitches] + [_mat_name(m) for m in mats]
-        if _write_needed(obj, "ribbon", rib.data, pieces):
-            _write_ribbon(rib, data, mats)
-            _written[(obj.name_full, "ribbon")] = (pieces, _mesh_state(rib.data))
-        elif rib.matrix_world != Matrix.Identity(4):
-            rib.matrix_world = Matrix.Identity(4)
-        if rib.data.get(SIG_PROP) != sig:
-            rib.data[SIG_PROP] = sig
-    lo = _line_object(obj, scene, create and len(data.line_quads) > 0)
-    if lo is not None:
-        mats = _layer_materials(obj, create)
-        pieces = [data.line_co, data.line_quads, data.line_layer] + [_mat_name(m) for m in mats]
-        if _write_needed(obj, "lines", lo.data, pieces):
-            _write_lines(lo, data, mats)
-            _written[(obj.name_full, "lines")] = (pieces, _mesh_state(lo.data))
-        elif lo.matrix_world != Matrix.Identity(4):
-            lo.matrix_world = Matrix.Identity(4)
-        if lo.data.get(SIG_PROP) != sig:
-            lo.data[SIG_PROP] = sig
-    gdata = _grid_geometry(obj, scene)
-    go = _grid_object(obj, scene, create and gdata is not None and len(gdata[1]) > 0)
-    if go is not None:
-        mats = _grid_materials(obj, create)
-        pieces = [gdata] + [_mat_name(m) for m in mats]
-        if _write_needed(obj, "grid", go.data, pieces):
-            _write_grid(go, gdata, mats)
-            _written[(obj.name_full, "grid")] = (pieces, _mesh_state(go.data))
-        elif go.matrix_world != Matrix.Identity(4):
-            go.matrix_world = Matrix.Identity(4)
-        if go.data.get(SIG_PROP) != sig:
-            go.data[SIG_PROP] = sig
-    if create:
-        _apply_colors(obj)
+    lines = []
+    shown = [l for l in _line_items(s) if l.enabled]
+    for li, l in enumerate(shown):
+        q = data.line_quads[data.line_layer == li]
+        if len(q):
+            lines.append((_layer_attr(l), data.line_co,
+                          np.vstack([q[:, [0, 1, 2]], q[:, [0, 2, 3]]])))
+    preview.put(obj, _preview_key(obj, scene), list(data.stitches), lines, _grid_parts(obj, scene))
     return data
+
+
+def _preview_key(ob, scene=None):
+    """What a preview is built from: the settings, the mesh and its marks
+    (undo reads them in again: their data moves), Edit Mode or not, and the
+    object's scale (sizes are real)."""
+    me = ob.data
+    sc = ob.matrix_world.to_scale()
+    attrs = me.attributes
+    marks = tuple(attrs[n].as_pointer() for n in
+                  (core.PATH_ATTR, core.CORNER_ATTR, *core.line_attr_names(me)) if n in attrs)
+    return (_params_sig(_params(ob.stitch_gen, scene or bpy.context.scene)), me.as_pointer(),
+            marks, me.is_editmode, tuple(round(x, 6) for x in sc))
+
+
+def _shown_layers(ob):
+    """[(edge attribute, color)] of the shown layers, in the list's order
+    (the preview draws the ones higher up over those below)."""
+    return [(_layer_attr(l), tuple(l.color)) for l in ob.stitch_gen.lines if l.enabled]
+
+
+def _layer_colors(ob):
+    """{edge attribute: color} of the shown layers."""
+    return dict(_shown_layers(ob))
+
+
+def _request(ob):
+    """A drawn preview is out of date (after undo, in or out of Edit Mode) or
+    not built yet (a file just opened): rebuild it once, a moment later. Out
+    of date and not live: it waits for Update."""
+    if ob.stitch_gen.live or not preview.has(ob):
+        _schedule(ob, bpy.context.scene, restart=False)
 
 
 _MUTE = False
@@ -1068,10 +622,51 @@ def _MUTE_SET(s):
         _MUTE = False
 
 
+OLD_COLLECTION = "Stitch Preview"        # held the preview objects before 0.5.0
+OLD_PREVIEW_TAG = "stitch_gen_preview"
+
+
+def _drop_old_previews():
+    """Before 0.5.0 the previews were objects of their own (with their own
+    materials): remove them; the previews are drawn now."""
+    olds = {o.name_full for o in bpy.data.objects if o.get(OLD_PREVIEW_TAG)}
+    mats = set()
+    for ob in [o for o in bpy.data.objects if o.type == 'MESH']:
+        s = ob.stitch_gen
+        for prop in ("ribbon", "line_preview", "grid_preview"):
+            o = getattr(s, prop)
+            if o is not None:
+                olds.add(o.name_full)
+                setattr(s, prop, None)
+        for l in s.lines:
+            if l.material is not None:
+                mats.add(l.material.name_full)
+                l.material = None
+    meshes = set()
+    for name in olds:
+        o = bpy.data.objects.get(name)
+        if o is not None and o.library is None:
+            if o.type == 'MESH':
+                meshes.add(o.data.name_full)
+                mats.update(m.name_full for m in o.data.materials if m is not None)
+            bpy.data.objects.remove(o)
+    col = bpy.data.collections.get(OLD_COLLECTION)
+    if col is not None and col.library is None and not col.all_objects and not col.children:
+        bpy.data.collections.remove(col)
+    # only the previews' own data, once nothing else uses it
+    for coll, names in ((bpy.data.meshes, meshes), (bpy.data.materials, mats)):
+        for name in names:
+            d = coll.get(name)
+            if d is not None and d.users == 0 and d.library is None and name != MATERIAL:
+                coll.remove(d)
+
+
 @bpy.app.handlers.persistent
 def _on_load(_dummy):
     _baking["name"] = None
-    _written.clear()
+    preview.forget()
+    preview.rescan()
+    overlay.invalidate()
     for ob in bpy.data.objects:
         if ob.type == 'MESH' and len(ob.stitch_gen.lines) > 1:
             _migrate_line_layers(ob)
@@ -1095,10 +690,10 @@ def _on_load(_dummy):
                                   or core.PATH_ATTR in ob.data.attributes):
             _ensure_layers(ob)
     _pending.clear()
-    _last_params.clear()
     for ob in bpy.data.objects:
         if ob.type == 'MESH' and ob.stitch_gen.ribbon is not None:
             _migrate_units(ob.stitch_gen)
+    _drop_old_previews()          # last: the steps above tell old files by them
 
 
 _DEBOUNCE = 0.15         # seconds without changes before rebuilding
@@ -1117,7 +712,11 @@ def _on_change(self, context):
     _schedule(obj, context.scene)
 
 
-def _schedule(obj, scene):
+def _schedule(obj, scene, restart=True):
+    """Rebuild a moment after the last change; restart=False leaves a rebuild
+    already waiting where it is (the preview asks on every redraw)."""
+    if not restart and obj.name_full in _pending:
+        return
     _pending[obj.name_full] = (time.monotonic(), scene.name if scene else "")
     if not bpy.app.timers.is_registered(_flush):
         bpy.app.timers.register(_flush, first_interval=_DEBOUNCE)
@@ -1133,113 +732,9 @@ def _flush():
             continue
         del _pending[name]
         ob = bpy.data.objects.get(name)
-        if ob is not None and ob.type == 'MESH' and ob.stitch_gen.live:
+        if ob is not None and ob.type == 'MESH' and (ob.stitch_gen.live or not preview.has(ob)):
             regenerate(ob, bpy.data.scenes.get(scene_name))
     return wait if _pending else None
-
-
-_SYNCING = [False]
-PREVIEW_PROP = "stitch_gen_preview"
-
-
-def _drop_orphan_previews():
-    """Deleting an object leaves its previews behind: remove the ones nothing
-    points at any more. Ones selected or active in any view layer, or in Edit
-    Mode, are left alone (a move or an edit can be using them)."""
-    owned = _previews()
-    layers = [vl for sc in bpy.data.scenes for vl in sc.view_layers]
-
-    def in_use(o):
-        if o.mode != 'OBJECT':
-            return True
-        for vl in layers:
-            if o.name in vl.objects and (vl.objects.active == o or o.select_get(view_layer=vl)):
-                return True
-        return False
-    for o in [o for o in bpy.data.objects
-              if o.get(PREVIEW_PROP) and o.library is None and o.name_full not in owned
-              and not in_use(o)]:
-        me = o.data
-        bpy.data.objects.remove(o)
-        if me is not None and me.users == 0:
-            bpy.data.meshes.remove(me)
-    return None
-
-
-@bpy.app.handlers.persistent
-def _sync_previews(_scene, _depsgraph=None):
-    """The previews (stitches, line art, grid) are objects of their own, but
-    show and hide with the object they belong to: hiding the others
-    (Shift+H) or the object itself (H) takes its previews along, and so does
-    local view. Turning a preview off is done in the add-on's panel."""
-    if _SYNCING[0]:
-        return
-    ctx = bpy.context
-    vl = getattr(ctx, "view_layer", None)
-    if vl is None:
-        return
-    spaces = []
-    wm = getattr(ctx, "window_manager", None)
-    for win in (wm.windows if wm else ()):
-        for area in win.screen.areas:
-            if area.type == 'VIEW_3D':
-                sp = area.spaces.active
-                if sp.local_view is not None:
-                    spaces.append(sp)
-    _SYNCING[0] = True
-    try:
-        owned, tagged = set(), False
-        for ob in vl.objects:
-            if ob.type != 'MESH':
-                continue
-            tagged = tagged or PREVIEW_PROP in ob
-            st = ob.stitch_gen
-            previews = [o for o in (st.ribbon, st.line_preview, st.grid_preview)
-                        if o is not None and o.name in vl.objects]
-            owned.update(o.name for o in previews)
-            if not previews:
-                continue
-            if any(o.mode != 'OBJECT' for o in previews):    # edited by hand: write anew
-                for which in ("ribbon", "lines", "grid"):
-                    _written.pop((ob.name_full, which), None)
-            hidden = ob.hide_get()
-            for o in previews:
-                if o.hide_get() != hidden:
-                    o.hide_set(hidden)
-                for sp in spaces:
-                    want = ob.local_view_get(sp)
-                    if o.local_view_get(sp) != want:
-                        o.local_view_set(sp, want)
-        if tagged and any(PREVIEW_PROP in o and o.name not in owned for o in vl.objects):
-            if not bpy.app.timers.is_registered(_drop_orphan_previews):
-                bpy.app.timers.register(_drop_orphan_previews, first_interval=0.0)
-    except (ReferenceError, RuntimeError):
-        pass
-    finally:
-        _SYNCING[0] = False
-
-
-@bpy.app.handlers.persistent
-def _on_undo_redo(scene, _depsgraph=None):
-    """Blender stores an undo step right after a value changes, before the
-    preview is rebuilt (that waits a moment), so a step can hold new settings
-    with the old preview. Each preview records the settings it was built
-    from: rebuild the ones that don't match after undo / redo."""
-    _written.clear()
-    for ob in bpy.data.objects:
-        if ob.type != 'MESH':
-            continue
-        s = ob.stitch_gen
-        if not s.live:
-            continue
-        sig = None
-        for prev in (s.ribbon, s.line_preview, s.grid_preview):
-            if prev is None or prev.type != 'MESH':
-                continue
-            sig = sig or _params_sig(_params(s, scene))
-            if prev.data.get(SIG_PROP) != sig:
-                _schedule(ob, scene)
-                break
 
 
 _baking = {"name": None}  # object being baked: the bake makes a temporary copy active
@@ -1251,13 +746,7 @@ def _source_object(context):
         if ob is not None:
             return ob
     ob = context.active_object
-    if ob is None:
-        return None
-    for o in bpy.data.objects:
-        if o.type == 'MESH' and ob in (o.stitch_gen.ribbon, o.stitch_gen.line_preview,
-                                       o.stitch_gen.grid_preview):
-            return o
-    return ob if ob.type == 'MESH' else None
+    return ob if ob is not None and ob.type == 'MESH' else None
 
 
 # -- settings ------------------------------------------------------------------
@@ -1339,6 +828,7 @@ class StitchGenLine(bpy.types.PropertyGroup):
         name="Color", subtype='COLOR', size=4, min=0.0, max=1.0,
         default=(0.0, 0.0, 0.0, 1.0), update=_on_color,
         description="Color of this layer's preview in the viewport (not baked)")
+    # the preview material before 0.5.0 (_drop_old_previews)
     material: PointerProperty(type=bpy.types.Material, options={'HIDDEN'})
     width: _mm("Width", 0.5, "Width of the line, the same real size everywhere",
                minv=0.0, soft_max=10.0)
@@ -1434,7 +924,9 @@ def _stand_in(name):
         t = _stitch_item(self)
         if t is not None:
             v = getattr(t, iname)
-            return _STYLES.index(v) if name == "style" else tuple(v) if name == "stitch_color" else v
+            if name == "style":
+                return _STYLES.index(v)
+            return tuple(v) if name == "stitch_color" else v
         v = self.get(name)
         return default() if v is None else (tuple(v) if name == "stitch_color" else v)
 
@@ -1459,9 +951,10 @@ def _stand_in(name):
 
 
 class StitchGenSettings(bpy.types.PropertyGroup):
-    ribbon: PointerProperty(type=bpy.types.Object)
-    line_preview: PointerProperty(type=bpy.types.Object)
-    grid_preview: PointerProperty(type=bpy.types.Object)
+    # the preview objects before 0.5.0 (_drop_old_previews)
+    ribbon: PointerProperty(type=bpy.types.Object, options={'HIDDEN'})
+    line_preview: PointerProperty(type=bpy.types.Object, options={'HIDDEN'})
+    grid_preview: PointerProperty(type=bpy.types.Object, options={'HIDDEN'})
     line_color: bpy.props.FloatVectorProperty(       # before 0.3.0: one for all layers
         subtype='COLOR', size=4, min=0.0, max=1.0, default=(0.0, 0.0, 0.0, 1.0),
         options={'HIDDEN'})
@@ -1493,8 +986,10 @@ class StitchGenSettings(bpy.types.PropertyGroup):
     even: _stand_in("even")
     stitches: _stand_in("stitches")
     stitch_color: _stand_in("stitch_color")
-    resolution: EnumProperty(name="Size", description="Size of the baked mask PNGs, in pixels", items=[
-        ('1024', "1024", ""), ('2048', "2048", ""), ('4096', "4096", ""), ('8192', "8192", "")],
+    resolution: EnumProperty(
+        name="Size", description="Size of the baked mask PNGs, in pixels",
+        items=[('1024', "1024", ""), ('2048', "2048", ""), ('4096', "4096", ""),
+               ('8192', "8192", "")],
         default='4096', update=_on_size)
     uv_map: StringProperty(name="UV Map", update=_on_change,
                            description="UV map to bake into; empty follows the mesh's active "
@@ -1519,8 +1014,9 @@ class StitchGenSettings(bpy.types.PropertyGroup):
                              setattr(self, "invert", v == 1)) and None,
         description="Background of the saved mask PNGs")
     # a plain field: the folder button next to it is the add-on's own
-    output_dir: StringProperty(name="Folder", default="//stitch_masks/",
-                               description="Folder for the mask PNGs; baking again overwrites them")
+    output_dir: StringProperty(
+        name="Folder", default="//stitch_masks/",
+        description="Folder for the mask PNGs; baking again overwrites them")
     samples: IntProperty(name="Samples", default=16, min=1, max=256,
                          description="Bake samples per texel")
     device: EnumProperty(name="Device", default='CPU', items=[
@@ -1539,24 +1035,12 @@ class StitchGenSettings(bpy.types.PropertyGroup):
 
 # -- operators -----------------------------------------------------------------
 
-def _previews():
-    """Names of every preview object."""
-    out = set()
-    for o in bpy.data.objects:
-        if o.type == 'MESH':
-            st = o.stitch_gen
-            out.update(x.name_full for x in (st.ribbon, st.line_preview, st.grid_preview)
-                       if x is not None)
-    return out
-
-
 def _edited(context, main):
-    """The meshes in Edit Mode, the one the panel shows first (not the
-    previews, and each mesh once)."""
-    previews = _previews()
+    """The meshes in Edit Mode, the one the panel shows first (each mesh
+    once)."""
     out, seen = [main], {main.data.name_full}
     for o in getattr(context, "objects_in_mode_unique_data", None) or []:
-        if o.type == 'MESH' and o.name_full not in previews and o.data.name_full not in seen:
+        if o.type == 'MESH' and o.data.name_full not in seen:
             out.append(o)
             seen.add(o.data.name_full)
     return out
@@ -1606,6 +1090,15 @@ def _select_twin(context, ob, spec, create):
     return True
 
 
+def _shared_mesh_changed(ob):
+    """Its marks changed: the other objects that share its mesh (linked
+    duplicates) are rebuilt when next drawn."""
+    for o in bpy.data.objects:
+        if o.data == ob.data and o != ob:
+            preview.forget(o)
+            overlay.invalidate(o)
+
+
 def _has_selected_edges(ob):
     return any(e.select for e in bmesh.from_edit_mesh(ob.data).edges)
 
@@ -1620,11 +1113,7 @@ class _EditPathBase:
         ob = _source_object(context)
         if ob is not None and ob.mode == 'EDIT':
             return True
-        act = context.active_object
-        if act is not None and act != ob and act.mode == 'EDIT':
-            cls.poll_message_set(rpt("Edit the mesh, not its preview"))
-        else:
-            cls.poll_message_set(rpt("Works in Edit Mode"))
+        cls.poll_message_set(rpt("Works in Edit Mode"))
         return False
 
     def _layer(self, bm, name, create=True):
@@ -1663,6 +1152,7 @@ class _EditPathBase:
         return {'FINISHED'}
 
     def _edit(self, context, ob, adds):
+        _shared_mesh_changed(ob)
         s = ob.stitch_gen
         item = s.lines[s.line_index] if 0 <= s.line_index < len(s.lines) else None
         if item is not None and not item.show_marks:
@@ -1692,7 +1182,7 @@ class _EditPathBase:
                 item.enabled = True
             finally:
                 _MUTE = False
-        regenerate(ob, context.scene, create=True)
+        regenerate(ob, context.scene)
         return True
 
 
@@ -1844,7 +1334,8 @@ class _EditCornerBase(_EditPathBase):
                 if v.select and (v in on_path or self.value == 0):   # only path vertices get marks
                     v[lay] = self.value
             bmesh.update_edit_mesh(me, loop_triangles=False, destructive=False)
-            regenerate(ob, context.scene, create=True)
+            _shared_mesh_changed(ob)
+            regenerate(ob, context.scene)
         return {'FINISHED'}
 
 
@@ -1879,7 +1370,8 @@ class STITCHGEN_OT_corner_detect(_EditPathBase, bpy.types.Operator):
                 continue
             n += _detect_and_mark(ob, bm, select=True)
             bmesh.update_edit_mesh(ob.data, loop_triangles=False, destructive=False)
-            regenerate(ob, context.scene, create=True)
+            _shared_mesh_changed(ob)
+            regenerate(ob, context.scene)
         self.report({'INFO'}, rpt("Marked {} corners").format(n))
         return {'FINISHED'}
 
@@ -1913,7 +1405,7 @@ class STITCHGEN_OT_update(bpy.types.Operator):
     def execute(self, context):
         ob = _source_object(context)
         core.drop_cache(ob)
-        regenerate(ob, context.scene, create=True)
+        regenerate(ob, context.scene)
         if ob.stitch_gen.status:
             self.report({'ERROR'}, ob.stitch_gen.status)
             return {'CANCELLED'}
@@ -1934,6 +1426,7 @@ class STITCHGEN_OT_line_add(bpy.types.Operator):
         ob = _source_object(context)
         global _MUTE
         _ensure_layers(ob)
+        first = not _uses_addon(ob)
         _MUTE = True
         try:
             _new_line_layer(ob)
@@ -1941,7 +1434,10 @@ class STITCHGEN_OT_line_add(bpy.types.Operator):
             ob.stitch_gen.ui_version = UI_VERSION
         finally:
             _MUTE = False
-        regenerate(ob, context.scene, create=True)
+        if first:
+            _inherit_bake_settings(ob, context.scene)
+        preview.note(ob)
+        regenerate(ob, context.scene)
         return {'FINISHED'}
 
 
@@ -1959,6 +1455,7 @@ class STITCHGEN_OT_grid_add(bpy.types.Operator):
         ob = _source_object(context)
         global _MUTE
         _ensure_layers(ob)
+        first = not _uses_addon(ob)
         _MUTE = True
         try:
             _new_line_layer(ob, 'GRID')
@@ -1966,7 +1463,10 @@ class STITCHGEN_OT_grid_add(bpy.types.Operator):
             ob.stitch_gen.ui_version = UI_VERSION
         finally:
             _MUTE = False
-        regenerate(ob, context.scene, create=True)
+        if first:
+            _inherit_bake_settings(ob, context.scene)
+        preview.note(ob)
+        regenerate(ob, context.scene)
         return {'FINISHED'}
 
 
@@ -1985,6 +1485,7 @@ class STITCHGEN_OT_stitch_add(bpy.types.Operator):
         s = ob.stitch_gen
         global _MUTE
         _ensure_layers(ob)
+        first = not _uses_addon(ob)
         _MUTE = True
         try:
             _new_stitch_layer(ob)
@@ -1992,7 +1493,47 @@ class STITCHGEN_OT_stitch_add(bpy.types.Operator):
             s.ui_version = UI_VERSION
         finally:
             _MUTE = False
-        regenerate(ob, context.scene, create=True)
+        if first:
+            _inherit_bake_settings(ob, context.scene)
+        preview.note(ob)
+        regenerate(ob, context.scene)
+        return {'FINISHED'}
+
+
+class STITCHGEN_OT_unroll(bpy.types.Operator):
+    """Work out the Unrolled layout of the selected grid layer's piece (a few seconds on a big piece)"""
+    bl_idname = "stitch_gen.unroll"
+    bl_label = "Unroll"
+    bl_options = {'REGISTER'}
+
+    @classmethod
+    def poll(cls, context):
+        _ob, item = _selected_layer(context)
+        return item is not None and _is_grid(item) and item.grid_layout == 'UNROLLED'
+
+    def execute(self, context):
+        ob, item = _selected_layer(context)
+        s = ob.stitch_gen
+        if regenerate(ob, context.scene) is None:
+            self.report({'ERROR'}, s.status)
+            return {'CANCELLED'}
+        gc = core.grid_coords(core._cache[ob.name_full], _edge_spec(s, item))
+        if not len(gc.faces):
+            self.report({'WARNING'}, rpt("Mark this grid's edge first"))
+            return {'CANCELLED'}
+        wm = context.window_manager
+        wm.progress_begin(0, grid.FLAT_ROUNDS)
+        gc.progress = lambda k, n: wm.progress_update(k)
+        try:
+            gc._unrolled()
+        except Exception as e:
+            traceback.print_exc()
+            self.report({'ERROR'}, f"{type(e).__name__}: {e}")
+            return {'CANCELLED'}
+        finally:
+            gc.progress = None
+            wm.progress_end()
+        regenerate(ob, context.scene)
         return {'FINISHED'}
 
 
@@ -2008,7 +1549,7 @@ class STITCHGEN_MT_add_layer(bpy.types.Menu):
 
 
 class STITCHGEN_OT_clear_scene(bpy.types.Operator):
-    """Remove all layers, with their marked edges and corners, and the previews from every object in the scene"""
+    """Remove all layers, with their marked edges and corners, from every object in the scene"""
     bl_idname = "stitch_gen.clear_scene"
     bl_label = "Clear All Layers"
     bl_options = {'REGISTER', 'UNDO'}
@@ -2023,25 +1564,17 @@ class STITCHGEN_OT_clear_scene(bpy.types.Operator):
     def invoke(self, context, event):
         return context.window_manager.invoke_confirm(
             self, event, title=iface("Clear All Layers"), icon='WARNING',
-            message=iface("Remove all layers, marked edges, corners and previews "
+            message=iface("Remove all layers, marked edges and corners "
                           "from every object in this scene?"),
             confirm_text=iface("Clear"))
 
     def execute(self, context):
         global _MUTE
-        previews = _previews()
-        obs = [o for o in context.scene.objects
-               if o.type == 'MESH' and o.name_full not in previews and _uses_addon(o)]
+        obs = [o for o in context.scene.objects if o.type == 'MESH' and _uses_addon(o)]
         _MUTE = True
         try:
             for ob in obs:
                 s = ob.stitch_gen
-                for prev in {p for p in (s.ribbon, s.line_preview, s.grid_preview)
-                             if p is not None}:
-                    me = prev.data if prev.type == 'MESH' else None
-                    bpy.data.objects.remove(prev)
-                    if me is not None and me.users == 0:
-                        bpy.data.meshes.remove(me)
                 s.lines.clear()
                 s.line_index = 0
                 s.status = ""
@@ -2049,13 +1582,9 @@ class STITCHGEN_OT_clear_scene(bpy.types.Operator):
                 _drop_marks(ob)
                 core.drop_cache(ob)
                 overlay.invalidate(ob)
-                _last.pop(ob.name_full, None)
-                _last_params.pop(ob.name_full, None)
+                preview.forget(ob)
         finally:
             _MUTE = False
-        col = bpy.data.collections.get(COLLECTION)
-        if col is not None and not col.all_objects and not col.children:
-            bpy.data.collections.remove(col)
         self.report({'INFO'}, rpt("Cleared {} objects").format(len(obs)))
         return {'FINISHED'}
 
@@ -2063,8 +1592,10 @@ class STITCHGEN_OT_clear_scene(bpy.types.Operator):
 def _drop_marks(ob):
     """Remove the add-on's edge and corner attributes from the mesh."""
     me = ob.data
-    ours = lambda n: n == core.PATH_ATTR or n == core.LINE_ATTR or \
-        n.startswith(core.LINE_ATTR + "_")                                   # noqa: E731
+
+    def ours(n):
+        return n == core.PATH_ATTR or n == core.LINE_ATTR or n.startswith(core.LINE_ATTR + "_")
+
     if me.is_editmode:
         bm = bmesh.from_edit_mesh(me)
         for n in [n for n in bm.edges.layers.int.keys() if ours(n)]:
@@ -2075,8 +1606,33 @@ def _drop_marks(ob):
         bmesh.update_edit_mesh(me, loop_triangles=False, destructive=False)
         return
     for n in [n for n, a in me.attributes.items()
-              if (ours(n) and a.domain == 'EDGE') or (n == core.CORNER_ATTR and a.domain == 'POINT')]:
+              if (ours(n) and a.domain == 'EDGE')
+              or (n == core.CORNER_ATTR and a.domain == 'POINT')]:
         me.attributes.remove(me.attributes[n])
+
+
+class STITCHGEN_OT_layer_move(bpy.types.Operator):
+    """Move the selected layer up or down the list. In the viewport, a layer higher up is drawn over the ones below"""
+    bl_idname = "stitch_gen.layer_move"
+    bl_label = "Move Layer"
+    bl_options = {'REGISTER', 'UNDO'}
+    direction: EnumProperty(items=[('UP', "Up", ""), ('DOWN', "Down", "")], options={'HIDDEN'})
+
+    @classmethod
+    def poll(cls, context):
+        ob = _source_object(context)
+        return ob is not None and len(ob.stitch_gen.lines) > 1
+
+    def execute(self, context):
+        s = _source_object(context).stitch_gen
+        i = s.line_index
+        j = i - 1 if self.direction == 'UP' else i + 1
+        if not (0 <= i < len(s.lines) and 0 <= j < len(s.lines)):
+            return {'CANCELLED'}
+        s.lines.move(i, j)
+        s.line_index = j
+        preview.redraw()
+        return {'FINISHED'}
 
 
 class STITCHGEN_MT_list_extras(bpy.types.Menu):
@@ -2120,8 +1676,16 @@ class STITCHGEN_OT_line_remove(bpy.types.Operator):
                     bmesh.update_edit_mesh(me, loop_triangles=False, destructive=False)
             elif name in me.attributes:
                 me.attributes.remove(me.attributes[name])
-        regenerate(ob, context.scene, create=True)
+        regenerate(ob, context.scene)
         return {'FINISHED'}
+
+
+def _unrolled_now(ob, s, item):
+    """Is the Unrolled layout of this grid layer worked out? (Only looks:
+    a panel can't work anything out.)"""
+    entry = core._cache.get(ob.name_full)
+    gc = entry["grid_coords"].get(core._as_spec(_edge_spec(s, item))) if entry else None
+    return gc is not None and unrolled(gc)
 
 
 def _bake_count(ob):
@@ -2194,7 +1758,8 @@ class STITCHGEN_OT_open_folder(bpy.types.Operator):
         return False
 
     def execute(self, context):
-        bpy.ops.wm.path_open(filepath=bpy.path.abspath(_source_object(context).stitch_gen.output_dir))
+        folder = _source_object(context).stitch_gen.output_dir
+        bpy.ops.wm.path_open(filepath=bpy.path.abspath(folder))
         return {'FINISHED'}
 
 
@@ -2542,7 +2107,7 @@ class _PresetApplyBase:
             _MUTE = False
         if not ok:
             return {'CANCELLED'}
-        regenerate(ob, context.scene, create=True)
+        regenerate(ob, context.scene)
         return {'FINISHED'}
 
 
@@ -2816,11 +2381,6 @@ class STITCHGEN_OT_edit_color(bpy.types.Operator):
         return item, "color"
 
     def invoke(self, context, event):
-        data, _prop = self._target(context)
-        if data is not None and data.material is None and not _is_grid(data):
-            # a layer from an older file has no preview material yet: make it
-            # here, so the color shows in the preview at once
-            regenerate(_source_object(context), context.scene, create=True)
         return context.window_manager.invoke_popup(self, width=200)
 
     def draw(self, context):
@@ -2889,9 +2449,7 @@ def _bake_targets(context):
     selected objects, each that has something to bake, with its own settings."""
     main = _source_object(context)
     obs = [main] if main is not None else []
-    previews = _previews()
-    obs += [o for o in context.selected_objects
-            if o.type == 'MESH' and o != main and o.name_full not in previews]
+    obs += [o for o in context.selected_objects if o.type == 'MESH' and o != main]
     return [o for o in obs if _bakeable(o, context.scene)]
 
 
@@ -2953,7 +2511,7 @@ class STITCHGEN_OT_bake(bpy.types.Operator):
         try:
             for ob in targets:
                 _baking["name"] = ob.name_full
-                data = regenerate(ob, context.scene, create=True)
+                data = regenerate(ob, context.scene)
                 if data is None:
                     self._error(ob, ob.stitch_gen.status)
                     return {'CANCELLED'}
@@ -3010,7 +2568,7 @@ class STITCHGEN_OT_bake(bpy.types.Operator):
             if ob is None:                     # deleted while the others were baking
                 continue
             _baking["name"] = ob.name_full
-            data = regenerate(ob, context.scene, create=True)
+            data = regenerate(ob, context.scene)
             if data is None:
                 self._error(ob, ob.stitch_gen.status)
                 return False
@@ -3202,12 +2760,19 @@ class VIEW3D_PT_stitch_gen(bpy.types.Panel):
         if s.ui_version < UI_VERSION and _uses_addon(ob):
             _defer_ensure(ob)          # set up by an older version: bring it up to date
 
+        # the list is as tall as the buttons beside it, whatever it holds, so
+        # the panel below doesn't move when a layer is added
         row = lay.row()
-        row.template_list("STITCHGEN_UL_lines", "", s, "lines", s, "line_index", rows=3)
+        row.template_list("STITCHGEN_UL_lines", "", s, "lines", s, "line_index", rows=5,
+                          sort_lock=True)     # the order is the drawing order: no sorting
         ops = row.column(align=True)
         ops.menu("STITCHGEN_MT_add_layer", text="", icon='ADD')
         ops.operator("stitch_gen.line_remove", text="", icon='REMOVE')
+        ops.separator()
         ops.menu("STITCHGEN_MT_list_extras", text="", icon='DOWNARROW_HLT')
+        ops.separator()
+        ops.operator("stitch_gen.layer_move", text="", icon='TRIA_UP').direction = 'UP'
+        ops.operator("stitch_gen.layer_move", text="", icon='TRIA_DOWN').direction = 'DOWN'
         if not len(s.lines):
             return                     # nothing to set up until there is a layer
         if s.status:
@@ -3270,11 +2835,8 @@ class VIEW3D_PT_stitch_gen(bpy.types.Panel):
             col.prop(item, "grid_cell")
             col.prop(item, "grid_wobble", slider=True)
             body.prop(item, "grid_layout")
-            job = _unroll_jobs.get(ob.name_full)
-            if job is not None and job["thread"].is_alive():
-                k, n = job["round"]
-                body.progress(factor=(k + 0.5) / max(n, 1), type='BAR',
-                              text=iface("Unrolling {}/{}").format(k + 1, n))
+            if item.grid_layout == 'UNROLLED' and not _unrolled_now(ob, s, item):
+                body.operator("stitch_gen.unroll", icon='UV')
         elif body:
             # Same groups, same order for all: where the line runs, then its shape.
             body = body.column()
@@ -3369,11 +2931,13 @@ classes = (
     STITCHGEN_OT_corner_mark,
     STITCHGEN_OT_corner_clear,
     STITCHGEN_OT_update,
+    STITCHGEN_OT_unroll,
     STITCHGEN_OT_line_add,
     STITCHGEN_OT_grid_add,
     STITCHGEN_OT_stitch_add,
     STITCHGEN_MT_add_layer,
     STITCHGEN_OT_line_remove,
+    STITCHGEN_OT_layer_move,
     STITCHGEN_OT_clear_scene,
     STITCHGEN_MT_list_extras,
     STITCHGEN_OT_set_uv_map,
@@ -3404,9 +2968,8 @@ classes = (
 
 
 def _migrate_open_file():
-    for ob in bpy.data.objects:
-        if ob.type == 'MESH' and _uses_addon(ob):
-            _ensure_layers(ob)
+    """Enabled with a file already open: what loading a file does."""
+    _on_load(None)
     return None
 
 
@@ -3419,33 +2982,25 @@ def register():
     bpy.types.Scene.stitch_gen_last_size = StringProperty(default="", options={'HIDDEN'})
     bpy.types.Scene.stitch_gen_marks = BoolProperty(
         name="Show Marks", default=True, update=_on_all_marks,
-        description="Show the marked edges and corners of all layers in the viewport (display only)")
+        description="Show the marked edges and corners of all layers in the viewport "
+                    "(display only)")
     wm.stitch_gen_bake_progress = FloatProperty(default=0.0, min=0.0, max=1.0)
     wm.stitch_gen_bake_label = StringProperty(default="")
     i18n.register(__package__)
     overlay.register()
+    preview.register(_preview_key, _request, _shown_layers)
     _icons["coll"] = bpy.utils.previews.new()
     bpy.app.handlers.load_post.append(_on_load)
     # enabled with a file already open: bring its objects up to date (data
     # can't be written while registering)
     bpy.app.timers.register(_migrate_open_file, first_interval=0.0)
-    bpy.app.handlers.undo_post.append(_on_undo_redo)
-    bpy.app.handlers.redo_post.append(_on_undo_redo)
-    bpy.app.handlers.depsgraph_update_post.append(_sync_previews)
 
 
 def unregister():
     if bpy.app.timers.is_registered(_migrate_open_file):
         bpy.app.timers.unregister(_migrate_open_file)
-    if _sync_previews in bpy.app.handlers.depsgraph_update_post:
-        bpy.app.handlers.depsgraph_update_post.remove(_sync_previews)
-    if bpy.app.timers.is_registered(_drop_orphan_previews):
-        bpy.app.timers.unregister(_drop_orphan_previews)
     if _on_load in bpy.app.handlers.load_post:
         bpy.app.handlers.load_post.remove(_on_load)
-    for lst in (bpy.app.handlers.undo_post, bpy.app.handlers.redo_post):
-        if _on_undo_redo in lst:
-            lst.remove(_on_undo_redo)
     if bpy.app.timers.is_registered(_flush):
         bpy.app.timers.unregister(_flush)
     _pending.clear()
@@ -3458,6 +3013,7 @@ def unregister():
             delattr(bpy.types.WindowManager, name)
     i18n.unregister(__package__)
     overlay.unregister()
+    preview.unregister()
     if _icons["coll"] is not None:
         bpy.utils.previews.remove(_icons["coll"])
         _icons["coll"] = None

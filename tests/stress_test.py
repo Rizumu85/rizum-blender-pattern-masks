@@ -11,7 +11,8 @@ references, presets, undo and redo (Object Mode only: Edit Mode undo from a
 timer hangs Blender itself), switch modes, duplicate and delete objects, a
 quick bake, Clear All Layers, turn the add-on off and on again. The log is
 written as it goes, so a crash shows the step it died on; the run ends with
-DONE and the timings of the panel and overlay draws (frame time: smoothness).
+DONE and the timings of the panel, overlay and preview draws (frame time:
+smoothness).
 
 The steps run from a modal operator, so each one has the window's own context,
 as a click has. (Run from a timer inside a Python context override instead,
@@ -32,7 +33,7 @@ import bmesh
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import rizum_pattern_masks as sg  # noqa: E402
-from rizum_pattern_masks import overlay  # noqa: E402
+from rizum_pattern_masks import overlay, preview  # noqa: E402
 
 args = sys.argv[sys.argv.index("--") + 1:]
 log_path = args[0]
@@ -53,7 +54,7 @@ def log(msg):
 
 
 # -- draw timings: the panel and the overlay, wrapped -----------------------------------
-times = {"panel": [], "overlay": []}
+times = {"panel": [], "overlay": [], "preview": []}
 
 
 def timed(kind, fn):
@@ -89,11 +90,12 @@ def wrap_draws():
                 times["panel"].append(1000 * (time.perf_counter() - t))
         draw.__wrapped__ = inner
         P.draw = draw
-    for name in dir(overlay):
-        if name.startswith("_draw") and callable(getattr(overlay, name)):
-            fn = getattr(overlay, name)
-            if not hasattr(fn, "__wrapped__"):
-                setattr(overlay, name, timed("overlay", fn))
+    for mod, kind in ((overlay, "overlay"), (preview, "preview")):
+        for name in dir(mod):
+            if name.startswith("_draw") and callable(getattr(mod, name)):
+                fn = getattr(mod, name)
+                if not hasattr(fn, "__wrapped__"):
+                    setattr(mod, name, timed(kind, fn))
 
 
 # before register: the overlay hands its draw functions to Blender there
@@ -113,9 +115,7 @@ def ob():
 
 
 def objects():
-    previews = sg._previews()
-    return [o for o in bpy.context.view_layer.objects
-            if o is not None and o.type == 'MESH' and o.name_full not in previews]
+    return [o for o in bpy.context.view_layer.objects if o is not None and o.type == 'MESH']
 
 
 def ensure_object_mode():
@@ -352,13 +352,15 @@ def step():
         sm = sorted(state["step_ms"])
         log(f"panel draws {len(p)} median {pct(p, .5):.1f}ms p95 {pct(p, .95):.1f}ms max {max(p or [0]):.1f}ms")
         log(f"overlay draws {len(o)} median {pct(o, .5):.1f}ms p95 {pct(o, .95):.1f}ms max {max(o or [0]):.1f}ms")
+        v = sorted(times["preview"])
+        log(f"preview draws {len(v)} median {pct(v, .5):.1f}ms p95 {pct(v, .95):.1f}ms max {max(v or [0]):.1f}ms")
         log(f"steps median {pct(sm, .5):.0f}ms p95 {pct(sm, .95):.0f}ms max {max(sm or [0]):.0f}ms")
         log(f"exceptions {state['exc']}  total {time.perf_counter() - state['t0']:.0f}s")
         log("DONE")
         return False
     fn = plan[i]
     state["i"] += 1
-    if ob() is None or ob().type != 'MESH' or ob().name_full in sg._previews():
+    if ob() is None or ob().type != 'MESH':
         obs = objects()                      # after an undo or a delete: a user picks one
         bpy.context.view_layer.objects.active = obs[0]
         obs[0].select_set(True)

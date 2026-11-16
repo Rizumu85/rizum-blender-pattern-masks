@@ -17,6 +17,7 @@ argv = sys.argv[sys.argv.index("--") + 1:]
 name, out = argv[0], argv[1]
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import rizum_pattern_masks as sg  # noqa: E402
+from tests import _preview as pv  # noqa: E402
 from rizum_pattern_masks import core  # noqa: E402
 
 sg.register()
@@ -82,8 +83,7 @@ bpy.ops.object.mode_set(mode='OBJECT')
 for l in sg._line_items(s):
     l.enabled = False                    # only the grid
 t0 = time.time()
-sg.regenerate(ob, create=True)
-go = s.grid_preview
-print("RESULT preview faces", len(go.data.polygons) if go else 0, "status", s.status or "ok",
+sg.regenerate(ob)
+print("RESULT preview faces", pv.grid_faces(ob), "status", s.status or "ok",
       "time %.2f" % (time.time() - t0))
 bpy.ops.wm.save_as_mainfile(filepath=out, copy=True)

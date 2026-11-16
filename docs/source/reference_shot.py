@@ -76,7 +76,7 @@ def setup():
     for l in s.lines:
         if l.name in ("waistband", "gingham", "trim"):
             l.enabled = False                    # this shot is about the stitches only
-    sg.regenerate(ob, create=True)
+    sg.regenerate(ob)
     r3d = sp.region_3d
     r3d.view_perspective = 'PERSP'
     cam = bpy.data.objects["Cam"]

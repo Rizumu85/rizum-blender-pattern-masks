@@ -156,7 +156,7 @@ g = s.lines[s.line_index]
 g.name = "gingham"
 g.ref_attr = band.edge_attr
 g.grid_cell, g.grid_wobble = 30.0, 0.25
-sg.regenerate(ob, create=True)
+sg.regenerate(ob)
 print("RESULT layers", [(l.name, l.edge_attr, l.ref_attr) for l in s.lines], "status", s.status or "ok",
       "stitches", s.dash_count)
 

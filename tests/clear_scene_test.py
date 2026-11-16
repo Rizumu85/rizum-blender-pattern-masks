@@ -79,14 +79,14 @@ def ours(o):
 
 
 def previews():
-    return sorted(o.name for o in bpy.data.objects if o.name.startswith("Skirt") and o.name not in
-                  ("Skirt", ob2.name))
+    from rizum_pattern_masks import preview
+    return sorted(o.name for o in (ob, ob2) if preview.has(o))
 
 
 before = (len(ob.stitch_gen.lines), len(ob2.stitch_gen.lines), ours(ob), ours(ob2), previews())
 check("set up: layers, attributes and previews on both",
       before[0] == 2 and before[1] == 2 and len(before[2]) == 3 and len(before[3]) == 3
-      and len(before[4]) == 4, before)
+      and len(before[4]) == 2, before)
 
 # the marks switch
 scene = bpy.context.scene
@@ -113,7 +113,8 @@ after = (len(ob.stitch_gen.lines), len(ob2.stitch_gen.lines), ours(ob), ours(ob2
 check("clear: finished", r == {'FINISHED'}, r)
 check("clear: no layers, attributes or previews",
       after == (0, 0, [], [], []), after)
-check("clear: no preview collection", sg.COLLECTION not in bpy.data.collections)
+check("clear: nothing added to the scene", sorted(o.name for o in bpy.data.objects)
+      == sorted((ob.name, ob2.name)), [o.name for o in bpy.data.objects])
 check("clear: nothing left to clear", not bpy.ops.stitch_gen.clear_scene.poll())
 check("clear: the meshes keep their faces", len(ob.data.polygons) > 0 and len(ob2.data.polygons) > 0)
 

@@ -10,6 +10,7 @@ import bpy
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import rizum_pattern_masks as sg  # noqa: E402
+from tests import _preview as pv  # noqa: E402
 
 sg.register()
 sg._on_load(None)          # the file was opened before the add-on was registered
@@ -20,7 +21,6 @@ for ob in bpy.data.objects:
     print("RESULT", ob.name, "rows", [(l.name, l.edge_attr) for l in s.lines],
           "selected", s.line_index, "old color", tuple(round(c, 2) for c in s.line_color[:3]),
           "layer colors", [tuple(round(c, 2) for c in l.color[:3]) for l in sg._line_items(s)])
-    data = sg.regenerate(ob, create=True)
-    lo = s.line_preview
+    data = sg.regenerate(ob)
     print("RESULT", ob.name, "regenerated", data is not None, "status", s.status or "ok",
-          "line slots", [m.name if m else None for m in lo.data.materials] if lo else None)
+          "line layers shown", pv.line_faces(ob))
