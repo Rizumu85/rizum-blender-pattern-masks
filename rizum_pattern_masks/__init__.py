@@ -514,6 +514,7 @@ def regenerate(obj, scene=None):
     s = obj.stitch_gen
     _migrate_units(s)
     _ensure_layers(obj)           # older files: never build from settings not yet moved
+    overlay.invalidate(obj)       # the marks may have changed, whatever the build does
     src = None
     try:
         me = obj.data
@@ -537,7 +538,6 @@ def regenerate(obj, scene=None):
     finally:
         if src is not None:
             obj.to_mesh_clear()
-    overlay.invalidate(obj)
     s.status = ""
     s.dash_count = data.dash_count
     for l, (_attr, r) in zip([l for l in _stitch_items(s) if l.enabled], data.stitches):

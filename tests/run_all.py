@@ -58,6 +58,7 @@ FUNCTIONAL = [
     ("scaled_object_test", SKIRT, False, "dir"),
     ("stray_mark_test", SKIRT, False, None),
     ("preview_test", SKIRT, False, None),
+    ("overlay_test", SKIRT, False, None),
     ("undo_layers_test", SKIRT, True, "log"),
     ("undo_test", SKIRT, True, "log"),
     ("preset_default_test", SKIRT, True, "log"),

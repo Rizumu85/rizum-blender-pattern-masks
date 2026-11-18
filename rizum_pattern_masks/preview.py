@@ -3,13 +3,19 @@
 """Viewport previews: the stitches, line art and grids each object would
 bake, drawn over the 3D view. Nothing is added to the scene.
 
-regenerate() hands each object's geometry over with put(). A draw that finds
-an object's preview out of date (its settings, mesh or mode changed, as after
-an undo) asks for one rebuild through the ``rebuild`` hook and shows the old
-preview until then. Moving or turning an object moves its preview with it;
-only a change of scale needs a rebuild (the sizes are real millimetres).
+regenerate() hands each object's geometry over with put(). The add-on's own
+changes rebuild a preview themselves. What nothing tells the add-on about (an
+undo brings settings and marks back silently) is found by comparing: while a
+view is being drawn, at most every CHECK_EVERY seconds per object, its
+preview's key is compared with the object's, and when they differ one rebuild
+is asked for through the ``rebuild`` hook; the old preview shows until then.
+Between those looks a draw only draws. Moving or turning an object moves its
+preview with it; only a change of scale needs a rebuild (the sizes are real
+millimetres).
 
 Drawing only; nothing is stored in the file."""
+
+import time
 
 import bpy
 import gpu
@@ -17,6 +23,8 @@ import numpy as np
 from gpu_extras.batch import batch_for_shader
 
 from . import core
+
+CHECK_EVERY = 0.25       # seconds between looks at whether a preview is out of date
 
 _store = {}              # object name -> preview entry (see put())
 _hooks = {"key": None, "rebuild": None, "layers": None}
@@ -66,7 +74,7 @@ def put(ob, key, stitches, lines, grids):
     coordinates per corner (n, 2))], triangles three corners each."""
     _store[ob.name_full] = {"key": key, "mw_inv": ob.matrix_world.inverted_safe(),
                             "stitches": stitches, "lines": lines, "grids": grids,
-                            "batches": None}
+                            "batches": None, "checked": time.monotonic()}
     note(ob)
     redraw()
 
@@ -193,6 +201,17 @@ def _batches(e):
     return out
 
 
+def _check(ob, e, now):
+    """Ask for a rebuild when the preview ``e`` of ``ob`` is missing or out of
+    date; an existing one is compared at most every CHECK_EVERY seconds."""
+    if e is None:
+        _hooks["rebuild"](ob)
+    elif now - e["checked"] >= CHECK_EVERY:
+        e["checked"] = now
+        if e["key"] != _hooks["key"](ob):
+            _hooks["rebuild"](ob)       # one rebuild, a moment later
+
+
 def _draw():
     context = bpy.context
     obs = objects(context)
@@ -200,12 +219,12 @@ def _draw():
         return
     space, rv3d = context.space_data, context.region_data
     drawn = False
+    now = time.monotonic()
     for ob in obs:
         if not ob.visible_get(viewport=space):
             continue
         e = _store.get(ob.name_full)
-        if e is None or e["key"] != _hooks["key"](ob):
-            _hooks["rebuild"](ob)           # one rebuild, a moment later
+        _check(ob, e, now)
         if e is None:
             continue
         shown = _hooks["layers"](ob)        # [(attribute, color)], the list's order

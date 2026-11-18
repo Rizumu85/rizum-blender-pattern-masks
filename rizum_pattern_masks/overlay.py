@@ -27,7 +27,7 @@ GREEN = (0.3, 1.0, 0.35, 0.55)    # not cyan: Blender draws sharp edges in cyan
 RED = (1.0, 0.25, 0.2, 0.75)      # edges the selected layer takes out
 DIM = 0.18                        # alpha of the layers not selected in the list
 LIFT = 0.0004            # metres off the surface, so the marks are not hidden by it
-EDIT_REFRESH = 0.25      # seconds: in Edit Mode the marks are read again at most this often
+EDIT_REFRESH = 0.25      # seconds: in Edit Mode the marked edges are followed at most this often
 
 _cache = {}              # object name -> dict of point/line coordinates
 _handles = []
@@ -72,78 +72,172 @@ def _key(ob):
             tuple((l.show_marks, l.edge_attr, l.ref_attr, l.kind) for l in s.lines))
 
 
-def _marks(ob):
+class _Stale(Exception):
+    """A kept edge is no longer marked: the mesh is looked through again."""
+
+
+def _marks(ob, uv=False):
     """Shown layers' edges and the marked corners, in world space (lifted
-    along the normal) and in UV space. Read again when the add-on changes
-    them (invalidate), when the key changes, and in Edit Mode, where the
-    mesh is being worked on, at most every EDIT_REFRESH seconds."""
+    along the normal) and, in Edit Mode when ``uv`` is asked for (the UV
+    editor), in UV space.
+
+    Read again when the add-on changes the marks (invalidate) and when the
+    key changes. In Edit Mode, where the mesh is being worked on, the whole
+    mesh is looked through only then, when its number of vertices, edges or
+    faces changed, and when a kept edge is gone or no longer marked;
+    otherwise just the marked elements are followed, at most every
+    EDIT_REFRESH seconds, so the cost goes with the marks and not with the
+    size of the mesh. (Edges marked by other tools without changing those
+    numbers show after the next look.)"""
     me = ob.data
+    key = _key(ob)
     hit = _cache.get(ob.name_full)
-    if hit is not None and hit["key"] == _key(ob) and (
-            not me.is_editmode or time.monotonic() - hit["at"] < EDIT_REFRESH):
+    if hit is not None and hit["key"] != key:
+        hit = None
+    if not me.is_editmode:
+        if hit is None:
+            hit = _cache[ob.name_full] = _read_object(ob, key)
+        return hit
+    now = time.monotonic()
+    out = hit
+    if hit is None or now - hit["at"] >= EDIT_REFRESH:
+        bm = bmesh.from_edit_mesh(me)
+        counts = (len(bm.verts), len(bm.edges), len(bm.faces))
+        # the picked elements are those of one BMesh (undo builds another) and
+        # stay valid only while its Python object lives, so that is kept too
+        same = hit is not None and hit["bm"] is bm and hit["counts"] == counts
+        picked = hit["picked"] if same else None
+        out = None
+        if picked is not None:
+            try:
+                out = _placed(ob, bm, picked, hit)
+            except (ReferenceError, _Stale):
+                picked = None
+        if out is None:
+            picked = _pick(ob, bm)
+            out = _placed(ob, bm, picked, None)
+        out.update(key=key, at=now, picked=picked, counts=counts, bm=bm)
+        _cache[ob.name_full] = out
+    if uv and now - out.get("uv_at", -EDIT_REFRESH) >= EDIT_REFRESH:
+        try:
+            _place_uv(ob, out, now)
+        except ReferenceError:          # an edge went since the last look
+            invalidate(ob)
+            return _marks(ob, uv)
+    return out
+
+
+def _pick(ob, bm):
+    """The marked elements of an Edit Mode mesh, from one look through all
+    its edges per edge attribute shown: each marked vertex once, and per
+    shown layer its edges, as positions in that list of vertices."""
+    verts, at = [], {}
+
+    def number(v):
+        i = at.get(v)
+        if i is None:
+            i = at[v] = len(verts)
+            verts.append(v)
+        return i
+
+    shown = _shown(ob)
+    marked = {}                         # edge attribute -> [(edge, value)]
+    for name in {name for name, _col, _sign in shown}:
+        path = bm.edges.layers.int.get(name)
+        marked[name] = [] if path is None else [(e, e[path]) for e in bm.edges if e[path]]
+    layers, on_path = [], set()
+    for name, col, sign in shown:
+        edges = [e for e, value in marked[name] if value * sign > 0]
+        idx = np.array([number(v) for e in edges for v in e.verts], np.intp)
+        if sign > 0:
+            on_path.update(idx.tolist())
+        layers.append((col, edges, idx, name, sign))
+    lay = bm.verts.layers.int.get(core.CORNER_ATTR)
+    corners = []
+    if ob.stitch_gen.show_corners and lay is not None:
+        corners = [i for i in sorted(on_path) if verts[i][lay]]
+    return {"verts": verts, "layers": layers, "corners": np.array(corners, np.intp)}
+
+
+def _placed(ob, bm, picked, hit):
+    """Where the picked edges and corners of an Edit Mode mesh are now;
+    ``hit`` itself when nothing moved since it was made from the same pick
+    (the batches made for it stay). Raises when a kept edge is gone
+    (ReferenceError) or no longer marked (_Stale)."""
+    for _col, edges, _idx, name, sign in picked["layers"]:
+        path = bm.edges.layers.int.get(name)
+        if edges and (path is None or not all(e[path] * sign > 0 for e in edges)):
+            raise _Stale
+    verts = picked["verts"]
+    co = np.array([v.co[:] for v in verts], np.float64).reshape(-1, 3)
+    normal = np.array([v.normal[:] for v in verts], np.float64).reshape(-1, 3)
+    if hit is not None and hit["picked"] is picked and np.array_equal(co, hit["co"]) \
+            and np.array_equal(normal, hit["normal"]):
         return hit
     mw = ob.matrix_world
+    M = np.array(mw, np.float64)
+    n = normal @ np.array(mw.to_3x3().inverted_safe().transposed(), np.float64).T
+    n /= np.maximum(np.linalg.norm(n, axis=1, keepdims=True), 1e-30)
+    P = (co @ M[:3, :3].T + M[:3, 3] + n * LIFT).astype(np.float32)
+    return {"co": co, "normal": normal,
+            "edges": [(P[layer[2]], layer[0]) for layer in picked["layers"]],
+            "edges_uv": [([], layer[0]) for layer in picked["layers"]],
+            "dots": P[picked["corners"]], "dots_uv": []}
+
+
+def _place_uv(ob, m, now):
+    """The UV points of an Edit Mode entry's edges and corners, for the UV
+    editor: worked out only when it draws."""
+    bm, picked = m["bm"], m["picked"]
+    name = ob.stitch_gen.uv_map
+    uvl = (bm.loops.layers.uv.get(name) if name else None) or bm.loops.layers.uv.active
+    edges_uv, dots = [], []
+    for col, edges, _idx, _name, _sign in picked["layers"]:
+        pts = []
+        if uvl is not None:
+            for e in edges:
+                for lp in e.link_loops:
+                    pts += [tuple(lp[uvl].uv) + (0.0,),
+                            tuple(lp.link_loop_next[uvl].uv) + (0.0,)]
+        edges_uv.append((pts, col))
+    if uvl is not None:
+        verts = picked["verts"]
+        dots = [tuple(lp[uvl].uv) + (0.0,) for i in picked["corners"].tolist()
+                for lp in verts[i].link_loops]
+    m["uv_at"] = now
+    if edges_uv != m["edges_uv"] or dots != m["dots_uv"]:
+        m["edges_uv"], m["dots_uv"] = edges_uv, dots
+        m.pop("_b_edges_uv", None)      # their batches are made again
+        m.pop("_b_dots_uv", None)
+
+
+def _read_object(ob, key):
+    """The marks of a mesh in Object Mode: every vertex lifted at once. (The
+    UV editor shows marks in Edit Mode only.)"""
+    me = ob.data
+    mw = ob.matrix_world
     nmat = mw.to_3x3().inverted_safe().transposed()
-    s = ob.stitch_gen
-    uv_name = s.uv_map
-    shown = _shown(ob)
-    out = {"dots": [], "dots_uv": [], "edges": [], "edges_uv": [], "key": _key(ob),
+    out = {"dots": [], "dots_uv": [], "edges": [], "edges_uv": [], "key": key,
            "at": time.monotonic()}
-
-    def lifted(co, normal):
-        return tuple(mw @ co + (nmat @ normal).normalized() * LIFT)
-
-    on_path = set()
-    if me.is_editmode:
-        bm = bmesh.from_edit_mesh(me)
-        uvl = (bm.loops.layers.uv.get(uv_name) if uv_name else None) or bm.loops.layers.uv.active
-        for name, col, sign in shown:
-            path = bm.edges.layers.int.get(name)
-            pts, pts_uv = [], []
-            if path is not None:
-                for e in bm.edges:
-                    if e[path] * sign <= 0:
-                        continue
-                    a, b = e.verts
-                    if sign > 0:
-                        on_path.update((a, b))
-                    pts += [lifted(a.co, a.normal), lifted(b.co, b.normal)]
-                    if uvl is not None:
-                        for lp in e.link_loops:
-                            pts_uv += [tuple(lp[uvl].uv) + (0.0,),
-                                       tuple(lp.link_loop_next[uvl].uv) + (0.0,)]
-            out["edges"].append((pts, col))
-            out["edges_uv"].append((pts_uv, col))
-        lay = bm.verts.layers.int.get(core.CORNER_ATTR)
-        if s.show_corners and lay is not None:
-            for v in on_path:
-                if v[lay]:
-                    out["dots"].append(lifted(v.co, v.normal))
-                    if uvl is not None:
-                        out["dots_uv"] += [tuple(lp[uvl].uv) + (0.0,) for lp in v.link_loops]
-    else:
-        # Object Mode: every vertex lifted at once. (The UV editor shows marks
-        # in Edit Mode only, which reads the BMesh above.)
-        nv = len(me.vertices)
-        co = np.empty(nv * 3, np.float32)
-        no = np.empty(nv * 3, np.float32)
-        me.vertices.foreach_get("co", co)
-        me.vertices.foreach_get("normal", no)
-        M, Nm = np.array(mw, np.float64), np.array(nmat, np.float64)
-        n = no.reshape(-1, 3) @ Nm.T
-        n /= np.maximum(np.linalg.norm(n, axis=1, keepdims=True), 1e-30)
-        P = co.reshape(-1, 3) @ M[:3, :3].T + M[:3, 3] + n * LIFT
-        on_path = np.zeros(nv, bool)
-        for name, col, sign in shown:
-            pairs = core.read_path_edges(me, name, sign)
-            if sign > 0:
-                on_path[pairs.ravel()] = True
-            out["edges"].append((P[pairs.ravel()].tolist(), col))
-            out["edges_uv"].append(([], col))
-        if s.show_corners:
-            idx = core.read_corner_verts(me)
-            out["dots"] = P[idx[on_path[idx]]].tolist()
-    _cache[ob.name_full] = out
+    nv = len(me.vertices)
+    co = np.empty(nv * 3, np.float32)
+    no = np.empty(nv * 3, np.float32)
+    me.vertices.foreach_get("co", co)
+    me.vertices.foreach_get("normal", no)
+    M, Nm = np.array(mw, np.float64), np.array(nmat, np.float64)
+    n = no.reshape(-1, 3) @ Nm.T
+    n /= np.maximum(np.linalg.norm(n, axis=1, keepdims=True), 1e-30)
+    P = co.reshape(-1, 3) @ M[:3, :3].T + M[:3, 3] + n * LIFT
+    on_path = np.zeros(nv, bool)
+    for name, col, sign in _shown(ob):
+        pairs = core.read_path_edges(me, name, sign)
+        if sign > 0:
+            on_path[pairs.ravel()] = True
+        out["edges"].append((P[pairs.ravel()].tolist(), col))
+        out["edges_uv"].append(([], col))
+    if ob.stitch_gen.show_corners:
+        idx = core.read_corner_verts(me)
+        out["dots"] = P[idx[on_path[idx]]].tolist()
     return out
 
 
@@ -168,10 +262,10 @@ def _batches(m, key):
         if key.startswith("edges"):
             shader = gpu.shader.from_builtin('POLYLINE_UNIFORM_COLOR')
             b = [(batch_for_shader(shader, 'LINES', {"pos": pts}), col)
-                 for pts, col in m[key] if pts]
+                 for pts, col in m[key] if len(pts)]
         else:
             shader = _point_shader()
-            b = [batch_for_shader(shader, 'POINTS', {"pos": m[key]})] if m[key] else []
+            b = [batch_for_shader(shader, 'POINTS', {"pos": m[key]})] if len(m[key]) else []
         m["_b_" + key] = b
     return b
 
@@ -232,7 +326,7 @@ def _draw_uv():
         return
     gpu.state.blend_set('ALPHA')
     for ob in obs:
-        m = _marks(ob)
+        m = _marks(ob, uv=True)
         _lines(_batches(m, "edges_uv"), 2.0)
         _dots(_batches(m, "dots_uv"), 6.0)
     gpu.state.blend_set('NONE')

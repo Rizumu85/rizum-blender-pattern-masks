@@ -182,6 +182,24 @@ gc = core._cache[ob.name_full]["grid_coords"].get(core._as_spec(sg._edge_spec(s,
 check("Unroll works it out", res == {'FINISHED'} and gc is not None and sg.unrolled(gc), res)
 check("and the grid shows it", pv.grid_faces(ob) > 0, pv.grid_faces(ob))
 
+# a draw compares a preview with its object at most every CHECK_EVERY seconds
+asked = []
+rebuild = preview._hooks["rebuild"]
+preview._hooks["rebuild"] = lambda o: asked.append(o.name)
+e = preview._store[ob.name_full]
+was = s.lines[0].inset
+s.lines[0]["inset"] = was + 1.0                  # as an undo would bring back
+t0 = e["checked"] = time.monotonic()
+preview._check(ob, e, t0 + 0.5 * preview.CHECK_EVERY)
+check("a draw soon after a look does not compare", not asked)
+preview._check(ob, e, t0 + preview.CHECK_EVERY)
+preview._check(ob, e, t0 + 1.5 * preview.CHECK_EVERY)
+check("the next look finds it out of date: one rebuild asked", asked == [ob.name], asked)
+preview._check(ob, None, t0)
+check("a missing preview is always asked for", asked == [ob.name] * 2)
+preview._hooks["rebuild"] = rebuild
+s.lines[0]["inset"] = was
+
 # the list's order is the drawing order: moving a layer needs no rebuild
 key = preview._store[ob.name_full]["key"]
 order = [a for a, _c in sg._shown_layers(ob)]

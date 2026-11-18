@@ -15,7 +15,7 @@ import bmesh
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import rizum_pattern_masks as sg  # noqa: E402
 from tests import _preview as pv  # noqa: E402
-from rizum_pattern_masks import core  # noqa: E402
+from rizum_pattern_masks import core, preview  # noqa: E402
 
 log_path = sys.argv[sys.argv.index("--") + 1]
 open(log_path, "w").close()
@@ -56,6 +56,7 @@ def state():
 def settle():
     """Let the rebuild after undo run: a redraw finds the preview out of date
     and asks for one (debounced, 0.15 s), which runs here at once."""
+    preview.CHECK_EVERY = 0.0            # look on this very redraw
     bpy.context.view_layer.update()
     w = bpy.context.window_manager.windows[0]
     with bpy.context.temp_override(window=w):
