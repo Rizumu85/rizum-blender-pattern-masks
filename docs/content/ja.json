@@ -44,7 +44,7 @@
     {
      "id": "install",
      "heading": "インストール",
-     "body": "- Blender から：編集 › プリファレンス › エクステンションを入手 で *Pattern Masks* を検索します。\n- zip から：エクステンションを入手 › ▾ › **ディスクからインストール…** を選びます。",
+     "body": "- Blender から（更新も届きます）：編集 › プリファレンス › エクステンションを入手 › **リポジトリ** › **+** › **リモートリポジトリを追加…** を選び、下のアドレスを貼り付けます。そのあと *Pattern Masks* を検索してインストールします。\n- zip から：エクステンションを入手 › ▾ › **ディスクからインストール…** を選びます。\n\n`https://rizumu85.github.io/rizum-blender-pattern-masks/extensions/index.json`",
      "table": [],
      "figure": "fig-install",
      "keys": [

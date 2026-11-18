@@ -37,7 +37,7 @@
 
 需要 Blender 4.4 或更新版本（在 4.4 和 5.0 上测试过）。
 
-- **在 Blender 里安装**：编辑 › 偏好设置 › 获取扩展，搜索 *Pattern Masks*。
+- **在 Blender 里安装**（能收到更新）：编辑 › 偏好设置 › 获取扩展 › 右上角的**存储库** › **+** › **添加远程存储库…**，粘贴 `https://rizumu85.github.io/rizum-blender-pattern-masks/extensions/index.json`。然后在"获取扩展"里搜索 *Pattern Masks* 并安装。
 - **用 zip 安装**：从 [Releases](https://github.com/Rizumu85/rizum-blender-pattern-masks/releases)下载 `rizum_pattern_masks-<版本>.zip`，然后在"获取扩展"右上角的 ⌄ 菜单里选**从磁盘安装…**。
 
 ## 快速上手

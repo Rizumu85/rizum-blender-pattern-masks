@@ -44,7 +44,7 @@
     {
      "id": "install",
      "heading": "安装",
-     "body": "- 在 Blender 里安装：编辑 › 偏好设置 › 获取扩展，搜索 *Pattern Masks*。\n- 用 zip 安装：获取扩展 › ▾ › **从磁盘安装…**",
+     "body": "- 在 Blender 里安装（能收到更新）：编辑 › 偏好设置 › 获取扩展 › **存储库** › **+** › **添加远程存储库…**，粘贴下面的地址，然后搜索 *Pattern Masks* 并安装。\n- 用 zip 安装：获取扩展 › ▾ › **从磁盘安装…**\n\n`https://rizumu85.github.io/rizum-blender-pattern-masks/extensions/index.json`",
      "table": [],
      "figure": "fig-install",
      "keys": [

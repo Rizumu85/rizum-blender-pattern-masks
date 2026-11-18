@@ -12,8 +12,14 @@ Requires Blender 4.4 or newer (tested on 4.4 and 5.0).
 
 ## Install
 
-Edit > Preferences > Get Extensions > ⌄ (top right) > **Install from Disk…** >
-`rizum_pattern_masks-0.5.0.zip`.
+From the add-on's own repository (with updates): Edit > Preferences > Get
+Extensions > **Repositories** (top right) > **+** > **Add Remote Repository…**,
+paste `https://rizumu85.github.io/rizum-blender-pattern-masks/extensions/index.json`,
+then search for *Pattern Masks* in Get Extensions and install it. This needs
+**Allow Online Access** in Blender.
+
+From a zip: Edit > Preferences > Get Extensions > ⌄ (top right) > **Install
+from Disk…** > `rizum_pattern_masks-0.5.0.zip`.
 
 The panel is in the 3D View sidebar (N) under **Pattern Masks**.
 

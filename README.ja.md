@@ -37,7 +37,7 @@ Blender でメッシュの辺をいくつか指定すると、Pattern Masks が�
 
 Blender 4.4 以降が必要です（4.4 と 5.0 で動作確認済み）。
 
-- **Blender から**：編集 › プリファレンス の **Get Extensions**（エクステンションの入手）で*Pattern Masks* を検索します。
+- **Blender から**（更新も届きます）：編集 › プリファレンス の **Get Extensions**（エクステンションを入手）› 右上の **Repositories**（リポジトリ）› **+** › **Add Remote Repository…**（リモートリポジトリを追加）を選び、`https://rizumu85.github.io/rizum-blender-pattern-masks/extensions/index.json` を貼り付けます。そのあと Get Extensions で *Pattern Masks* を検索してインストールします。
 - **zip から**：[Releases](https://github.com/Rizumu85/rizum-blender-pattern-masks/releases)から `rizum_pattern_masks-<バージョン>.zip` をダウンロードし、Get Extensions の右上の ⌄ メニューから **Install from Disk…**（ディスクからインストール）を選びます。
 
 ## クイックスタート

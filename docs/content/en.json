@@ -44,7 +44,7 @@
     {
      "id": "install",
      "heading": "Install",
-     "body": "- From Blender: Edit › Preferences › Get Extensions, search *Pattern Masks*.\n- From a zip: Get Extensions › ▾ › **Install from Disk…**",
+     "body": "- From Blender, with updates: Edit › Preferences › Get Extensions › **Repositories** › **+** › **Add Remote Repository…**, paste the address below, then search *Pattern Masks* and install.\n- From a zip: Get Extensions › ▾ › **Install from Disk…**\n\n`https://rizumu85.github.io/rizum-blender-pattern-masks/extensions/index.json`",
      "table": [],
      "figure": "fig-install",
      "keys": [

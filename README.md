@@ -56,8 +56,10 @@ the 3D surface, not in UV space.
 
 Requires Blender 4.4 or newer (tested on 4.4 and 5.0).
 
-- **From Blender**: Edit › Preferences › Get Extensions, then search for
-  *Pattern Masks*.
+- **From Blender** (with updates): Edit › Preferences › Get Extensions ›
+  **Repositories** (top right) › **+** › **Add Remote Repository…**, and paste
+  `https://rizumu85.github.io/rizum-blender-pattern-masks/extensions/index.json`.
+  Then search for *Pattern Masks* in Get Extensions and install it.
 - **From a zip**: download `rizum_pattern_masks-<version>.zip` from
   [Releases](https://github.com/Rizumu85/rizum-blender-pattern-masks/releases),
   then in Get Extensions open the ⌄ menu at the top right and choose
