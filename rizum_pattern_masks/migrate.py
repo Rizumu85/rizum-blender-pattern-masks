@@ -4,7 +4,7 @@
 
 import bpy
 
-from . import core, layers, overlay
+from . import core, layers, overlay, preview
 from .layers import (
     STITCH_COLOR, _default_name, _line_items, _new_stitch_layer, _stitch_from_stored,
     _stitch_items, _uses_addon,
@@ -97,10 +97,7 @@ def _defer_ensure(ob):
         if o is not None and o.type == 'MESH':
             _ensure_layers(o)
             overlay.invalidate(o)
-            for win in bpy.context.window_manager.windows:
-                for area in win.screen.areas:
-                    if area.type == 'VIEW_3D':
-                        area.tag_redraw()
+            preview.redraw()
         return None
     bpy.app.timers.register(run, first_interval=0.0)
 

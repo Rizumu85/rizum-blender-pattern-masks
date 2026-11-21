@@ -61,6 +61,29 @@ class STITCHGEN_OT_update(bpy.types.Operator):
         return {'FINISHED'}
 
 
+def _add_layer(context, kind):
+    """Add a layer of ``kind`` ('STITCH', 'LINE' or 'GRID') to the panel's
+    object, with that kind's default preset, and show it."""
+    ob = _source_object(context)
+    _ensure_layers(ob)
+    first = not _uses_addon(ob)
+    layers._MUTE = True
+    try:
+        if kind == 'STITCH':
+            _new_stitch_layer(ob)
+        else:
+            _new_line_layer(ob, kind)
+        _apply_default_to_new(context, ob, kind)
+        ob.stitch_gen.ui_version = UI_VERSION
+    finally:
+        layers._MUTE = False
+    if first:
+        _inherit_bake_settings(ob, context.scene)
+    preview.note(ob)
+    regenerate(ob, context.scene)
+    return {'FINISHED'}
+
+
 class STITCHGEN_OT_line_add(bpy.types.Operator):
     """Add a line art layer; while it is selected, the edge buttons mark its edges"""
     bl_idname = "stitch_gen.line_add"
@@ -72,21 +95,7 @@ class STITCHGEN_OT_line_add(bpy.types.Operator):
         return _source_object(context) is not None
 
     def execute(self, context):
-        ob = _source_object(context)
-        _ensure_layers(ob)
-        first = not _uses_addon(ob)
-        layers._MUTE = True
-        try:
-            _new_line_layer(ob)
-            _apply_default_to_new(context, ob, 'LINE')
-            ob.stitch_gen.ui_version = UI_VERSION
-        finally:
-            layers._MUTE = False
-        if first:
-            _inherit_bake_settings(ob, context.scene)
-        preview.note(ob)
-        regenerate(ob, context.scene)
-        return {'FINISHED'}
+        return _add_layer(context, 'LINE')
 
 
 class STITCHGEN_OT_grid_add(bpy.types.Operator):
@@ -100,21 +109,7 @@ class STITCHGEN_OT_grid_add(bpy.types.Operator):
         return _source_object(context) is not None
 
     def execute(self, context):
-        ob = _source_object(context)
-        _ensure_layers(ob)
-        first = not _uses_addon(ob)
-        layers._MUTE = True
-        try:
-            _new_line_layer(ob, 'GRID')
-            _apply_default_to_new(context, ob, 'GRID')
-            ob.stitch_gen.ui_version = UI_VERSION
-        finally:
-            layers._MUTE = False
-        if first:
-            _inherit_bake_settings(ob, context.scene)
-        preview.note(ob)
-        regenerate(ob, context.scene)
-        return {'FINISHED'}
+        return _add_layer(context, 'GRID')
 
 
 class STITCHGEN_OT_stitch_add(bpy.types.Operator):
@@ -128,22 +123,7 @@ class STITCHGEN_OT_stitch_add(bpy.types.Operator):
         return _source_object(context) is not None
 
     def execute(self, context):
-        ob = _source_object(context)
-        s = ob.stitch_gen
-        _ensure_layers(ob)
-        first = not _uses_addon(ob)
-        layers._MUTE = True
-        try:
-            _new_stitch_layer(ob)
-            _apply_default_to_new(context, ob, 'STITCH')
-            s.ui_version = UI_VERSION
-        finally:
-            layers._MUTE = False
-        if first:
-            _inherit_bake_settings(ob, context.scene)
-        preview.note(ob)
-        regenerate(ob, context.scene)
-        return {'FINISHED'}
+        return _add_layer(context, 'STITCH')
 
 
 class STITCHGEN_OT_unroll(bpy.types.Operator):
@@ -503,14 +483,14 @@ class STITCHGEN_OT_pick_reference(bpy.types.Operator):
         context.workspace.status_text_set(iface("Click a layer in the list") + "    Esc")
         bpy.app.timers.register(_keep_eyedropper, first_interval=_EYEDROPPER_EVERY)
         context.window_manager.modal_handler_add(self)
-        _redraw_views()
+        preview.redraw()
         return {'RUNNING_MODAL'}
 
     def _end(self, context, result):
         props._PICK.clear()
         context.window.cursor_modal_restore()
         context.workspace.status_text_set(None)
-        _redraw_views()
+        preview.redraw()
         return result
 
     def modal(self, context, event):
@@ -576,10 +556,3 @@ class STITCHGEN_MT_uv_maps(bpy.types.Menu):
                               icon='CHECKBOX_HLT' if ob.stitch_gen.uv_map == uvl.name
                               else 'BLANK1')
             op.name = uvl.name
-
-
-def _redraw_views():
-    for win in bpy.context.window_manager.windows:
-        for area in win.screen.areas:
-            if area.type == 'VIEW_3D':
-                area.tag_redraw()
