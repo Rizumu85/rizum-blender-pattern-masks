@@ -556,8 +556,8 @@ function placeBadge(hole, x, y) {
     gPat.innerHTML = "";
     if (file) drawLayer(file.L, white ? "#000" : "#fff", file.part);
     else {
-      const order = { grid: 0, line: 1, stitch: 2 };
-      [...st.layers].sort((a, b) => order[a.kind] - order[b.kind]).forEach((L) => { if (L.visible) drawLayer(L, L.color); });
+      // as in the add-on: a layer higher in the list is drawn over the ones below
+      [...st.layers].reverse().forEach((L) => { if (L.visible) drawLayer(L, L.color); });
     }
     gMarks.innerHTML = "";
     const A = activeL();
@@ -607,6 +607,8 @@ function placeBadge(hole, x, y) {
     corner: '<path d="M2.8 11.4L8 6.2l5.2 5.2"/><circle cx="8" cy="6.2" r="1.9" fill="currentColor" stroke="none"/>',
     check: '<path d="M3.2 8.6l3 3 6.6-6.8"/>',
     down: '<path d="M4.5 6.5L8 10l3.5-3.5"/>',
+    moveUp: '<path d="M8 4.8l4.2 6.2H3.8z" fill="currentColor" stroke="none"/>',
+    moveDown: '<path d="M8 11.2L3.8 5h8.4z" fill="currentColor" stroke="none"/>',
     eye: '<path d="M1.5 8s2.4-4.3 6.5-4.3S14.5 8 14.5 8s-2.4 4.3-6.5 4.3S1.5 8 1.5 8z"/><circle cx="8" cy="8" r="1.8"/>',
     shut: '<path d="M1.5 7s2.4 3.3 6.5 3.3S14.5 7 14.5 7M4 9.8l-1 1.6M8 10.3v1.9M12 9.8l1 1.6"/>',
     skip: '<path d="M2.5 4l5 4-5 4zM8.5 4l5 4-5 4z"/>',
@@ -630,7 +632,7 @@ function placeBadge(hole, x, y) {
       <i style="width:${f}%"></i><span>${shown(v, unit)}</span></div>`;
   }
   function drawPanel() {
-    const A = activeL();
+    const A = activeL(), at = st.layers.indexOf(A);
     const items = st.layers.map((L) => `<div class="bp-item${L.id === st.active ? " on" : ""}" data-act="row" data-id="${L.id}">
         ${icon(L.kind)}<span class="nm">${esc(L.name)}</span>${byId(L.ref) ? `<span class="lk">${icon("link")}</span>` : ""}<span class="sw" style="background:${L.color}"></span>
         ${btn("marks", icon("marks"), S.showEdges, `data-id="${L.id}" class="t${L.marks ? "" : " off"}"`)}
@@ -644,7 +646,9 @@ function placeBadge(hole, x, y) {
     let h = `${title}<div class="bp-top"><div class="bp-list${st.pick ? " picking" : ""}">${items}${pickNote}</div>
       ${ROWS.has("add") ? `<div class="bp-side">${btn("menu", icon("add"), S.add, st.menu ? 'class="on"' : "")}
         ${btn("remove-layer", icon("remove"), S.remove, A ? "" : "disabled")}
-        ${btn("more", icon("down"), S.more, st.more ? 'class="on"' : "")}
+        <i class="gap"></i>${btn("more", icon("down"), S.more, st.more ? 'class="on"' : "")}
+        <i class="gap"></i><div class="bp-mv">${btn("move-up", icon("moveUp"), S.moveUp, at > 0 ? "" : "disabled")}
+        ${btn("move-down", icon("moveDown"), S.moveDown, A && at < st.layers.length - 1 ? "" : "disabled")}</div>
         ${st.more ? `<div class="bp-menu more"><button type="button" data-act="clear-all"${st.layers.length ? "" : " disabled"}>${icon("clear")}${esc(S.clearAll)}</button></div>` : ""}
         ${st.menu ? `<div class="bp-menu">
           <button type="button" data-act="add-stitch">${icon("stitch")}${esc(S.stitches)}</button>
@@ -758,6 +762,7 @@ function placeBadge(hole, x, y) {
     name: ".bp-item.on .nm", color: ".bp-item.on .sw", marks: ".bp-item.on [data-act=marks]", eye: ".bp-item.on [data-act=vis]",
     "e-add": "[data-act=e-add]", "e-remove": "[data-act=e-remove]", "e-select": "[data-act=e-select]",
     "e-clear": "[data-act=e-clear]", link: "[data-act=refmenu]", allmarks: "[data-act=allmarks]", more: "[data-act=more]",
+    move: ".bp-mv",
     "c-add": "[data-act=c-add]", "c-remove": "[data-act=c-remove]", "c-select": "[data-act=c-select]",
     "c-auto": "[data-act=c-auto]", "c-marks": "[data-act=c-marks]", style: ".seg", bake: "[data-act=bake]",
     background: "[data-act=bgmenu]", "p-button": "[data-act=pmenu]", "p-default": "[data-act=p-default]",
@@ -874,6 +879,11 @@ function placeBadge(hole, x, y) {
           st.active = st.layers.length ? st.layers[st.layers.length - 1].id : null;
         }
         break;
+      case "move-up": case "move-down": {
+        const i = st.layers.indexOf(A), j = i + (a === "move-up" ? -1 : 1);
+        if (A && st.layers[j]) [st.layers[i], st.layers[j]] = [st.layers[j], A];
+        break;
+      }
       case "row": {
         const L = byId(id);
         if (st.pick && A && L && L !== A) {

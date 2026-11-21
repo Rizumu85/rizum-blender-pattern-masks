@@ -248,7 +248,8 @@ table.settings th { width: 30%; font-weight: 600; white-space: nowrap; }
 .pr-names input { width: 9em; padding: 5px 8px; border: 1px solid #364056; border-radius: 7px; background: #11151C;
                   color: #F1ECE2; font: 13px/1.2 ui-monospace, "Cascadia Mono", Consolas, monospace; }
 .pr-names input:focus { outline: 2px solid #4772B3; outline-offset: 1px; }
-.bp-side .gap { height: 6px; }
+.bp-side .gap { height: 4px; }
+.bp-mv { display: flex; flex-direction: column; gap: 2px; }
 
 /* a legend under a demo: pointing at a line spotlights its control; pointing at a
    control lights its line and shows the words beside it */
@@ -579,7 +580,7 @@ section:has(> .fig.shot) > ol.um-keys { grid-template-columns: 22px minmax(0, 1f
                justify-content: center; gap: 6px; padding: 3px 6px; border-radius: 4px; background: #1A1A1AD9;
                color: #C9C9C9; font-size: 11px; pointer-events: none; }
 .bp-picknote svg { width: 12px; height: 12px; }
-.bp-menu.more { top: 72px; right: 0; min-width: 150px; }
+.bp-menu.more { top: 80px; right: 0; min-width: 150px; }
 
 /* Background: a menu field, as in the add-on */
 .bp-dd { position: relative; min-width: 0; }

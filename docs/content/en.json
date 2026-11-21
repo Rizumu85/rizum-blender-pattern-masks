@@ -186,6 +186,11 @@
        "more",
        "**⌄**",
        "**Clear All Layers**: removes every object's layers, marked edges and previews from the scene."
+      ],
+      [
+       "move",
+       "**▲ ▼**",
+       "Move the selected layer up or down the list. In the 3D view a layer higher up is drawn over the ones below."
       ]
      ]
     },
