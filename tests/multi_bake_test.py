@@ -17,6 +17,7 @@ import bmesh
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import rizum_pattern_masks as sg  # noqa: E402
+from rizum_pattern_masks import layers, ops_bake  # noqa: E402
 
 out_dir = sys.argv[sys.argv.index("--") + 1]
 os.makedirs(out_dir, exist_ok=True)
@@ -93,8 +94,8 @@ def setup():
     check("set up: stitches on both", ob.stitch_gen.dash_count > 0 and ob2.stitch_gen.dash_count > 0,
           ob.stitch_gen.dash_count, ob2.stitch_gen.dash_count)
     check("set up: a line layer on the copy only",
-          len(sg._line_items(ob2.stitch_gen)) == 1 and not sg._line_items(ob.stitch_gen))
-    targets = [o.name for o in sg._bake_targets(bpy.context)]
+          len(layers._line_items(ob2.stitch_gen)) == 1 and not layers._line_items(ob.stitch_gen))
+    targets = [o.name for o in ops_bake._bake_targets(bpy.context)]
     check("both are bake targets, the active one first", targets == [ob.name, ob2.name], targets)
     return ob, ob2
 

@@ -20,8 +20,8 @@ import numpy as np
 out_dir = sys.argv[sys.argv.index("--") + 1]
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import rizum_pattern_masks as sg  # noqa: E402
+from rizum_pattern_masks import core, layers, migrate, ops_bake, props  # noqa: E402
 from tests import _preview as pv  # noqa: E402
-from rizum_pattern_masks import core  # noqa: E402
 
 sg.register()
 os.makedirs(out_dir, exist_ok=True)
@@ -84,8 +84,8 @@ check("line follows the stitch edges", z.min() < -0.2 and z.max() > -0.1)
 
 # a loop of references stops
 st.ref_attr = line.edge_attr
-check("loop", sg._edge_set(s, st) == sg._edge_set(s, line) ==
-      tuple(sorted((core.PATH_ATTR, line.edge_attr))), sg._edge_set(s, st))
+check("loop", layers._edge_set(s, st) == layers._edge_set(s, line) ==
+      tuple(sorted((core.PATH_ATTR, line.edge_attr))), layers._edge_set(s, st))
 sg.regenerate(ob)
 check("loop regenerates", s.status == "", s.status)
 st.ref_attr = ""
@@ -94,8 +94,9 @@ st.ref_attr = ""
 bpy.ops.stitch_gen.grid_add()
 g = s.lines[s.line_index]
 g.ref_attr = line.edge_attr
-check("chain", sg._edge_set(s, g) == tuple(sorted((core.PATH_ATTR, line.edge_attr, g.edge_attr))),
-      sg._edge_set(s, g))
+check("chain", layers._edge_set(s, g) ==
+      tuple(sorted((core.PATH_ATTR, line.edge_attr, g.edge_attr))),
+      layers._edge_set(s, g))
 line.ref_attr = ""
 g.grid_cell = 20.0
 sg.regenerate(ob)
@@ -103,11 +104,11 @@ check("grid with no own edges, from its reference", pv.grid_faces(ob) > 0, pv.gr
 
 # eyedropper: picking the stitch row while the line layer is edited
 s.line_index = 1
-sg._PICK.update(ob=ob.name_full, attr=line.edge_attr, done=False, cancel=False)
+props._PICK.update(ob=ob.name_full, attr=line.edge_attr, done=False, cancel=False)
 s.line_index = 0                                    # the click in the list
 check("eyedropper sets the reference", line.ref_attr == core.PATH_ATTR and s.line_index == 1
-      and sg._PICK.get("done"), line.ref_attr, s.line_index)
-sg._PICK.clear()
+      and props._PICK.get("done"), line.ref_attr, s.line_index)
+props._PICK.clear()
 
 # bake: the line layer (waist + hem) and the grid
 s.output_dir = out_dir
@@ -115,7 +116,7 @@ s.resolution = '1024'
 for f in os.listdir(out_dir):
     if f.endswith(".png"):
         os.remove(os.path.join(out_dir, f))
-check("bake count", sg._bake_count(ob) == 3, sg._bake_count(ob))
+check("bake count", ops_bake._bake_count(ob) == 3, ops_bake._bake_count(ob))
 print("RESULT bake", bpy.ops.stitch_gen.bake())
 for f in sorted(os.listdir(out_dir)):
     if f.endswith(".png"):
@@ -130,7 +131,7 @@ for f in sorted(os.listdir(out_dir)):
 # removing the line layer clears the grid's reference to it
 s.line_index = 1
 bpy.ops.stitch_gen.line_remove()
-g = s.lines[s.line_index] if sg._is_grid(s.lines[s.line_index]) else s.lines[-1]
+g = s.lines[s.line_index] if layers._is_grid(s.lines[s.line_index]) else s.lines[-1]
 check("removed layer's references cleared", g.ref_attr == "", g.ref_attr)
 
 # a 0.3.0 file: Include Stitch Edges on -> refers to the stitches
@@ -141,8 +142,8 @@ old.property_unset("include_stitch")               # default: on
 off = s.lines.add()
 off.edge_attr, off.include_stitch = "stitch_line_9", False
 s.ui_version = 1
-sg._ensure_layers(ob)
-check("0.3.0 file upgraded", s.ui_version == sg.UI_VERSION and old.ref_attr == core.PATH_ATTR
+migrate._ensure_layers(ob)
+check("0.3.0 file upgraded", s.ui_version == migrate.UI_VERSION and old.ref_attr == core.PATH_ATTR
       and off.ref_attr == "", old.ref_attr, off.ref_attr)
 
 print("RESULT", "ALL PASS" if not fails else "FAILED: " + ", ".join(fails))

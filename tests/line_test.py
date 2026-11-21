@@ -13,8 +13,8 @@ args = sys.argv[sys.argv.index("--") + 1:]
 obj_name, out_dir = args[0], args[1]
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import rizum_pattern_masks as sg  # noqa: E402
+from rizum_pattern_masks import core, layers  # noqa: E402
 from tests import _preview as pv  # noqa: E402
-from rizum_pattern_masks import core  # noqa: E402
 
 sg.register()
 os.makedirs(out_dir, exist_ok=True)
@@ -35,7 +35,7 @@ if core.PATH_ATTR not in ob.data.attributes:
     bpy.ops.object.mode_set(mode='OBJECT')
     s.inset, s.width = 4.0, 1.2
 
-if sg._stitch_item(s) is None:
+if layers._stitch_item(s) is None:
     bpy.ops.stitch_gen.stitch_add()
 bpy.ops.stitch_gen.line_add()
 s.lines[1].width = 0.8

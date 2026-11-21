@@ -13,6 +13,7 @@ import bpy
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import rizum_pattern_masks as sg  # noqa: E402
+from rizum_pattern_masks import presets  # noqa: E402
 
 argv = sys.argv[sys.argv.index("--") + 1:]
 log_path = argv[0]
@@ -43,7 +44,7 @@ def undo():
 
 
 def preset_dir(kind):
-    return sg._preset_dir(kind, create=True)
+    return presets._preset_dir(kind, create=True)
 
 
 def check(name, ok, *info):
@@ -97,7 +98,7 @@ def run():
     # star "Thin": Default applies it, a new line layer starts with it
     with bpy.context.temp_override(**ctx()):
         bpy.ops.stitch_gen.preset_default(kind='LINE', name="Thin")
-    check("starred", sg._default_stem('LINE') == "Thin")
+    check("starred", presets._default_stem('LINE') == "Thin")
     lay.width = 5.0
     with bpy.context.temp_override(**ctx()):
         bpy.ops.stitch_gen.reset_defaults(kind='LINE')
@@ -111,7 +112,7 @@ def run():
     with bpy.context.temp_override(**ctx()):
         bpy.ops.stitch_gen.preset_default(kind='LINE', name="Thin")
         bpy.ops.stitch_gen.reset_defaults(kind='LINE')
-    check("unstar", sg._default_stem('LINE') is None and abs(new.width - W0) < 1e-6, new.width)
+    check("unstar", presets._default_stem('LINE') is None and abs(new.width - W0) < 1e-6, new.width)
 
     # grid: starred preset for a new grid layer
     with bpy.context.temp_override(**ctx()):
@@ -140,7 +141,7 @@ def run():
     # removing the starred preset: Default falls back to the add-on's own
     with bpy.context.temp_override(**ctx()):
         bpy.ops.stitch_gen.stitch_preset_add(name="Nine", remove_name=True)
-    check("removed star ignored", sg._default_stem('STITCH') is None)
+    check("removed star ignored", presets._default_stem('STITCH') is None)
 
     # leave a grid layer selected and open its list for the screenshot
     s.line_index = len(s.lines) - 1

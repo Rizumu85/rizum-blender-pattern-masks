@@ -33,7 +33,7 @@ import bmesh
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import rizum_pattern_masks as sg  # noqa: E402
-from rizum_pattern_masks import overlay, preview  # noqa: E402
+from rizum_pattern_masks import layers, ops_edges, overlay, presets, preview, ui  # noqa: E402
 
 args = sys.argv[sys.argv.index("--") + 1:]
 log_path = args[0]
@@ -44,8 +44,8 @@ os.makedirs(out_dir, exist_ok=True)
 open(log_path, "w").close()
 
 # the panel on the tab the sidebar opens on, so it draws during the run
-sg.VIEW3D_PT_stitch_gen.bl_category = "Item"
-sg.VIEW3D_PT_stitch_gen.bl_order = -10
+ui.VIEW3D_PT_stitch_gen.bl_category = "Item"
+ui.VIEW3D_PT_stitch_gen.bl_order = -10
 
 
 def log(msg):
@@ -75,7 +75,7 @@ def timed(kind, fn):
 
 
 def wrap_draws():
-    P = sg.VIEW3D_PT_stitch_gen
+    P = ui.VIEW3D_PT_stitch_gen
     if not hasattr(P.draw, "__wrapped__"):
         inner = P.draw
 
@@ -203,7 +203,7 @@ def a_change_setting():
     if not len(s.lines):
         return
     item = s.lines[s.line_index] if 0 <= s.line_index < len(s.lines) else s.lines[0]
-    kind = sg._layer_kind(item)
+    kind = ops_edges._layer_kind(item)
     for _ in range(rng.randint(1, 6)):              # a slider drag: a few values in a row
         name, lo, hi = rng.choice(SETTINGS[kind])
         setattr(item, name, rng.uniform(lo, hi))
@@ -233,7 +233,7 @@ def a_reference():
         return
     item = s.lines[s.line_index] if 0 <= s.line_index < len(s.lines) else s.lines[0]
     other = rng.choice([l for l in s.lines if l != item])
-    attr = "" if rng.random() < 0.3 else sg._layer_attr(other)
+    attr = "" if rng.random() < 0.3 else layers._layer_attr(other)
     bpy.ops.stitch_gen.set_reference(attr=attr)
 
 
@@ -241,12 +241,12 @@ def a_preset():
     s = ob().stitch_gen
     if not len(s.lines):
         return
-    kind = sg._layer_kind(s.lines[s.line_index]) if 0 <= s.line_index < len(s.lines) else 'STITCH'
+    kind = ops_edges._layer_kind(s.lines[s.line_index]) if 0 <= s.line_index < len(s.lines) else 'STITCH'
     op = {"STITCH": bpy.ops.stitch_gen.stitch_preset_add, "LINE": bpy.ops.stitch_gen.line_preset_add,
           "GRID": bpy.ops.stitch_gen.grid_preset_add}[kind]
     if rng.random() < 0.5:
         op(name=f"stress {rng.randrange(3)}")
-    files = sg._preset_files(kind)
+    files = presets._preset_files(kind)
     if files and rng.random() < 0.7:
         bpy.ops.stitch_gen.apply_preset(kind=kind, filepath=rng.choice(files)[1])
     elif rng.random() < 0.5:

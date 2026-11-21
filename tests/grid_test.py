@@ -12,6 +12,7 @@ import numpy as np
 out_dir = sys.argv[sys.argv.index("--") + 1]
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import rizum_pattern_masks as sg  # noqa: E402
+from rizum_pattern_masks import ops_bake  # noqa: E402
 from tests import _preview as pv  # noqa: E402
 
 sg.register()
@@ -40,7 +41,7 @@ print("RESULT preview faces", pv.grid_faces(ob), "status", s.status or "ok")
 s.output_dir = out_dir
 s.resolution = '2048'
 s.transparent = False
-print("RESULT bake count", sg._bake_count(ob), bpy.ops.stitch_gen.bake())
+print("RESULT bake count", ops_bake._bake_count(ob), bpy.ops.stitch_gen.bake())
 files = sorted(f for f in os.listdir(out_dir) if f.endswith(".png"))
 print("RESULT files", files)
 for f in files:

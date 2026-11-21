@@ -17,13 +17,14 @@ obj_name, out_root = argv[0], argv[1]
 res = argv[2] if len(argv) > 2 else '4096'
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import rizum_pattern_masks as sg  # noqa: E402
+from rizum_pattern_masks import layers  # noqa: E402
 
 sg.register()
 ob = bpy.data.objects[obj_name]
 bpy.context.view_layer.objects.active = ob
 ob.select_set(True)
 s = ob.stitch_gen
-for l in sg._line_items(s):
+for l in layers._line_items(s):
     l.enabled = False                    # stitches only
 s.resolution = res
 s.device = 'CPU'

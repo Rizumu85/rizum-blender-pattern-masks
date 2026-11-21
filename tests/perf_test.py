@@ -3,6 +3,7 @@ import os, sys, time
 import bpy, bmesh
 sys.path.insert(0, os.environ.get("STITCH_PKG") or os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import rizum_pattern_masks as sg
+from rizum_pattern_masks import core
 sg.register()
 ob = bpy.data.objects["Skirt"]
 bpy.context.view_layer.objects.active = ob
@@ -10,7 +11,7 @@ m = ob.modifiers.new("s", 'SUBSURF'); m.subdivision_type = 'SIMPLE'; m.levels = 
 bpy.ops.object.modifier_apply(modifier="s")
 me = ob.data
 bm = bmesh.new(); bm.from_mesh(me)
-lay = bm.edges.layers.int.new(sg.core.PATH_ATTR)
+lay = bm.edges.layers.int.new(core.PATH_ATTR)
 for e in bm.edges:
     if e.is_boundary and all(v.co.z < -0.265 for v in e.verts):
         e[lay] = 1

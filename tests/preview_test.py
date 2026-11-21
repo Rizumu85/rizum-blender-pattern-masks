@@ -13,7 +13,7 @@ import bmesh
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import rizum_pattern_masks as sg  # noqa: E402
-from rizum_pattern_masks import core, preview  # noqa: E402
+from rizum_pattern_masks import core, layers, load, preview, rebuild  # noqa: E402
 from tests import _preview as pv  # noqa: E402
 
 sg.register()
@@ -67,17 +67,17 @@ check("the drawing knows the object", ob in preview.objects(bpy.context))
 # colors come from the layers when drawn: no rebuild for a color
 key = preview._store[ob.name_full]["key"]
 s.lines[1].color = (0.2, 0.9, 0.3, 1.0)
-col = sg._layer_colors(ob)[s.lines[1].edge_attr]
+col = rebuild._layer_colors(ob)[s.lines[1].edge_attr]
 check("a color needs no rebuild", preview._store[ob.name_full]["key"] == key
-      and sg._preview_key(ob) == key and abs(col[1] - 0.9) < 1e-6, col)
+      and rebuild._preview_key(ob) == key and abs(col[1] - 0.9) < 1e-6, col)
 
 # moved: the same preview, drawn where the object is; scaled: rebuilt
 ob.location.x += 0.3
 bpy.context.view_layer.update()
-check("moving keeps the preview", sg._preview_key(ob) == key)
+check("moving keeps the preview", rebuild._preview_key(ob) == key)
 ob.scale = (1.5, 1.5, 1.5)
 bpy.context.view_layer.update()
-check("scaling makes it out of date", sg._preview_key(ob) != key)
+check("scaling makes it out of date", rebuild._preview_key(ob) != key)
 ob.scale = (1.0, 1.0, 1.0)
 ob.location.x -= 0.3
 bpy.context.view_layer.update()
@@ -85,51 +85,52 @@ bpy.context.view_layer.update()
 # a value changed without its update (as undo brings one back): out of date,
 # and the drawing asks for one rebuild
 s.lines[0]["inset"] = 6.5
-check("undo-like change: out of date", sg._preview_key(ob) != key)
-sg._request(ob)
-sg._request(ob)
-check("one rebuild asked for", list(sg._pending) == [ob.name_full], list(sg._pending))
-time.sleep(sg._DEBOUNCE + 0.05)
-sg._flush()
-check("rebuilt for the new value", preview._store[ob.name_full]["key"] == sg._preview_key(ob)
-      and not sg._pending)
+check("undo-like change: out of date", rebuild._preview_key(ob) != key)
+rebuild._request(ob)
+rebuild._request(ob)
+check("one rebuild asked for", list(rebuild._pending) == [ob.name_full], list(rebuild._pending))
+time.sleep(rebuild._DEBOUNCE + 0.05)
+rebuild._flush()
+check("rebuilt for the new value", preview._store[ob.name_full]["key"] == rebuild._preview_key(ob)
+      and not rebuild._pending)
 
 # a rebuild that fails (far too many stitches) shows nothing and isn't asked
 # for again on every redraw
 s.lines[0]["length"], s.lines[0]["gap"] = 0.01, 0.0
 check("failed rebuild", sg.regenerate(ob) is None and s.status != "", s.status)
 check("its key is kept: no rebuild asked for again",
-      preview._store[ob.name_full]["key"] == sg._preview_key(ob) and pv.stitch_faces(ob) == 0)
+      preview._store[ob.name_full]["key"] == rebuild._preview_key(ob)
+      and pv.stitch_faces(ob) == 0)
 s.lines[0]["length"], s.lines[0]["gap"] = 4.0, 2.0
 sg.regenerate(ob)
 
 # a preview not yet built is built even when not live (a file just opened)
 s.live = False
 preview.forget(ob)
-sg._request(ob)
-time.sleep(sg._DEBOUNCE + 0.05)
-sg._flush()
+rebuild._request(ob)
+time.sleep(rebuild._DEBOUNCE + 0.05)
+rebuild._flush()
 check("first build while not live", preview.has(ob))
 s.live = True
 
 # the preview objects of older versions go when a file is opened
 me = bpy.data.meshes.new("Skirt_Stitches")
 old = bpy.data.objects.new("Skirt_Stitches", me)
-col = bpy.data.collections.new(sg.OLD_COLLECTION)
+col = bpy.data.collections.new(load.OLD_COLLECTION)
 bpy.context.scene.collection.children.link(col)
 col.objects.link(old)
 s.ribbon = old
 tagged = bpy.data.objects.new("Lost_LineArt", bpy.data.meshes.new("Lost_LineArt"))
-tagged[sg.OLD_PREVIEW_TAG] = True
+tagged[load.OLD_PREVIEW_TAG] = True
 col.objects.link(tagged)
 mat = bpy.data.materials.new("StitchGen_LinePreview")
 s.lines[1].material = mat
 bpy.data.meshes.new("Mine_Stitches")             # a user's own, unused: not ours to remove
-sg._drop_old_previews()
+load._drop_old_previews()
 check("a user's own mesh of a like name stays", "Mine_Stitches" in bpy.data.meshes)
 check("old preview objects removed", "Skirt_Stitches" not in bpy.data.objects
       and "Lost_LineArt" not in bpy.data.objects and s.ribbon is None)
-check("their collection and material removed", sg.OLD_COLLECTION not in bpy.data.collections
+check("their collection and material removed", load.OLD_COLLECTION not in bpy.data.collections
       and "StitchGen_LinePreview" not in bpy.data.materials and s.lines[1].material is None)
 
 # a linked duplicate shares the mesh: marking edges on one updates both
@@ -178,13 +179,40 @@ s.line_index = 2
 g.grid_layout = 'UNROLLED'
 with bpy.context.temp_override(active_object=ob, object=ob):
     res = bpy.ops.stitch_gen.unroll()
-gc = core._cache[ob.name_full]["grid_coords"].get(core._as_spec(sg._edge_spec(s, g)))
-check("Unroll works it out", res == {'FINISHED'} and gc is not None and sg.unrolled(gc), res)
+gc = core._cache[ob.name_full]["grid_coords"].get(core._as_spec(layers._edge_spec(s, g)))
+check("Unroll works it out", res == {'FINISHED'} and gc is not None and rebuild.unrolled(gc), res)
 check("and the grid shows it", pv.grid_faces(ob) > 0, pv.grid_faces(ob))
+
+# several objects waiting (a file just opened): one per call, the active first
+others = []
+for i in range(2):
+    o2 = ob.copy()
+    o2.data = ob.data.copy()
+    bpy.context.collection.objects.link(o2)
+    others.append(o2)
+bpy.context.view_layer.update()
+bpy.context.view_layer.objects.active = others[1]
+for o2 in (ob, *others):
+    preview.forget(o2)
+    rebuild._request(o2)
+time.sleep(rebuild._DEBOUNCE + 0.05)
+again = rebuild._flush()
+check("one object per call, the active one first",
+      [preview.has(o2) for o2 in (ob, *others)] == [False, False, True]
+      and len(rebuild._pending) == 2 and again == rebuild._BETWEEN, again)
+rebuild._flush()
+check("then the one that waited longest", preview.has(ob) and not preview.has(others[0]))
+check("the last one ends the timer", rebuild._flush() is None and preview.has(others[0])
+      and not rebuild._pending)
+for o2 in others:
+    bpy.data.objects.remove(o2)
+bpy.context.view_layer.objects.active = ob
+bpy.context.view_layer.update()
+preview.objects(bpy.context)
 
 # a draw compares a preview with its object at most every CHECK_EVERY seconds
 asked = []
-rebuild = preview._hooks["rebuild"]
+saved_rebuild = preview._hooks["rebuild"]
 preview._hooks["rebuild"] = lambda o: asked.append(o.name)
 e = preview._store[ob.name_full]
 was = s.lines[0].inset
@@ -197,25 +225,27 @@ preview._check(ob, e, t0 + 1.5 * preview.CHECK_EVERY)
 check("the next look finds it out of date: one rebuild asked", asked == [ob.name], asked)
 preview._check(ob, None, t0)
 check("a missing preview is always asked for", asked == [ob.name] * 2)
-preview._hooks["rebuild"] = rebuild
+preview._hooks["rebuild"] = saved_rebuild
 s.lines[0]["inset"] = was
 
 # the list's order is the drawing order: moving a layer needs no rebuild
 key = preview._store[ob.name_full]["key"]
-order = [a for a, _c in sg._shown_layers(ob)]
+order = [a for a, _c in rebuild._shown_layers(ob)]
 s.line_index = 0
 with bpy.context.temp_override(active_object=ob, object=ob):
     res = bpy.ops.stitch_gen.layer_move(direction='DOWN')
     top = bpy.ops.stitch_gen.layer_move(direction='UP')
     bpy.ops.stitch_gen.layer_move(direction='UP')
-moved = [a for a, _c in sg._shown_layers(ob)]
+moved = [a for a, _c in rebuild._shown_layers(ob)]
 check("moving a layer reorders the drawing", res == {'FINISHED'} and moved == order
       and s.line_index == 0 and top == {'FINISHED'}, res, top, moved)
 with bpy.context.temp_override(active_object=ob, object=ob):
     res = bpy.ops.stitch_gen.layer_move(direction='DOWN')
-check("one step down", [a for a, _c in sg._shown_layers(ob)] == [order[1], order[0]] + order[2:]
+check("one step down", [a for a, _c in rebuild._shown_layers(ob)] ==
+      [order[1], order[0]] + order[2:]
       and s.line_index == 1)
-check("and needs no rebuild", preview._store[ob.name_full]["key"] == sg._preview_key(ob) == key)
+check("and needs no rebuild",
+      preview._store[ob.name_full]["key"] == rebuild._preview_key(ob) == key)
 with bpy.context.temp_override(active_object=ob, object=ob):
     res = bpy.ops.stitch_gen.layer_move(direction='UP')
 

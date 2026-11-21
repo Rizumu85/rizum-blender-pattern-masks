@@ -21,6 +21,7 @@ import bmesh
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import rizum_pattern_masks as sg  # noqa: E402
+from rizum_pattern_masks import core, presets  # noqa: E402
 from tests import _preview as pv  # noqa: E402
 
 sg.register()
@@ -69,7 +70,7 @@ def shown(ob):
 
 
 def stitch_rows(ob):
-    return sum(1 for l in ob.stitch_gen.lines if l.edge_attr == sg.core.PATH_ATTR)
+    return sum(1 for l in ob.stitch_gen.lines if l.edge_attr == core.PATH_ATTR)
 
 
 def first_assign(ob):
@@ -175,7 +176,7 @@ bpy.ops.object.mode_set(mode='OBJECT')
 
 
 # applying a preset: nothing to adjust afterwards
-check("preset: no redo panel", 'REGISTER' not in sg.STITCHGEN_OT_apply_preset.bl_options
-      and 'REGISTER' not in sg.STITCHGEN_OT_reset_defaults.bl_options)
+check("preset: no redo panel", 'REGISTER' not in presets.STITCHGEN_OT_apply_preset.bl_options
+      and 'REGISTER' not in presets.STITCHGEN_OT_reset_defaults.bl_options)
 
 print("ALL PASS" if not fails else f"FAILED: {fails}")

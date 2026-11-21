@@ -30,7 +30,7 @@ import bmesh
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import rizum_pattern_masks as sg  # noqa: E402
-from rizum_pattern_masks import core, overlay  # noqa: E402
+from rizum_pattern_masks import core, layers, overlay  # noqa: E402
 
 sg.register()
 base = bpy.data.objects["Skirt"]
@@ -89,7 +89,7 @@ for level in (0, 1, 2):
     regen = lambda: sg.regenerate(o, bpy.context.scene)  # noqa: E731
     r = {"mesh": o.name, "faces": len(o.data.polygons)}
     r["first"] = ms(regen)
-    r["dashes"] = sum(l.dash_count for l in sg._stitch_items(s))
+    r["dashes"] = sum(l.dash_count for l in layers._stitch_items(s))
 
     def step(setter):
         def run():

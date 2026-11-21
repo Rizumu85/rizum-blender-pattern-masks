@@ -17,11 +17,11 @@ argv = sys.argv[sys.argv.index("--") + 1:]
 name, out = argv[0], argv[1]
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import rizum_pattern_masks as sg  # noqa: E402
+from rizum_pattern_masks import core, layers, load  # noqa: E402
 from tests import _preview as pv  # noqa: E402
-from rizum_pattern_masks import core  # noqa: E402
 
 sg.register()
-sg._on_load(None)
+load._on_load(None)
 ob = bpy.data.objects[name]
 for o in bpy.context.view_layer.objects:
     o.select_set(False)
@@ -80,7 +80,7 @@ bm.select_flush_mode()
 bmesh.update_edit_mesh(me)
 bpy.ops.stitch_gen.path_add()
 bpy.ops.object.mode_set(mode='OBJECT')
-for l in sg._line_items(s):
+for l in layers._line_items(s):
     l.enabled = False                    # only the grid
 t0 = time.time()
 sg.regenerate(ob)

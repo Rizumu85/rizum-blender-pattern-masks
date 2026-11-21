@@ -9,14 +9,15 @@ import bpy
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import rizum_pattern_masks as sg  # noqa: E402
+from rizum_pattern_masks import layers, ui  # noqa: E402
 
 out = sys.argv[sys.argv.index("--") + 1]
 if os.environ.get("STITCHGEN_LANG"):   # only ever used with an isolated BLENDER_USER_CONFIG
     _v = bpy.context.preferences.view
     _v.language = os.environ["STITCHGEN_LANG"]
     _v.use_translate_interface = _v.use_translate_tooltips = True
-sg.VIEW3D_PT_stitch_gen.bl_category = "Item"   # screenshot only: show it on the open tab
-sg.VIEW3D_PT_stitch_gen.bl_order = -10
+ui.VIEW3D_PT_stitch_gen.bl_category = "Item"   # screenshot only: show it on the open tab
+ui.VIEW3D_PT_stitch_gen.bl_order = -10
 sg.register()
 
 
@@ -32,7 +33,7 @@ def setup():
     ob.select_set(True)
     bpy.context.view_layer.objects.active = ob
     if os.environ.get("STITCHGEN_ADD_LINES"):           # show two line art layers
-        if sg._stitch_item(ob.stitch_gen) is None:
+        if layers._stitch_item(ob.stitch_gen) is None:
             bpy.ops.stitch_gen.stitch_add()
         bpy.ops.stitch_gen.line_add()
         ob.stitch_gen.lines[1].width = 0.8

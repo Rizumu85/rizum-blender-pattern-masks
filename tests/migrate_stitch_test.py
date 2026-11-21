@@ -11,6 +11,7 @@ import bpy
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import rizum_pattern_masks as sg  # noqa: E402
+from rizum_pattern_masks import layers, load  # noqa: E402
 
 fails = []
 
@@ -25,16 +26,16 @@ sg.register()
 # what the file stores under the object's stitch settings, before the migration
 stored = {}
 for ob in bpy.data.objects:
-    if ob.type == 'MESH' and ob.stitch_gen.ui_version < 3 and sg._uses_addon(ob):
+    if ob.type == 'MESH' and ob.stitch_gen.ui_version < 3 and layers._uses_addon(ob):
         raw = ob.stitch_gen
         stored[ob.name] = {k: raw.get(k) for k in ("width", "length", "gap", "inset", "style",
                                                      "stitches")}
-sg._on_load(None)
+load._on_load(None)
 found = 0
 for name, raw in stored.items():
     ob = bpy.data.objects[name]
     s = ob.stitch_gen
-    rows = sg._stitch_items(s)
+    rows = layers._stitch_items(s)
     if not rows:
         continue
     found += 1

@@ -58,7 +58,7 @@ else:
     pkg = os.environ.get("STITCH_PKG", os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     sys.path.insert(0, pkg)
     import rizum_pattern_masks as sg  # noqa: E402
-    from rizum_pattern_masks import core  # noqa: E402
+    from rizum_pattern_masks import core, layers  # noqa: E402
 
     sg.register()
     ob = bpy.data.objects[obj_name]
@@ -122,7 +122,7 @@ else:
     line_pts = [cl.P if not cl.closed else np.vstack([cl.P, cl.P[:1]]) for cl in cls]
     if os.environ.get("STITCH_RAW"):
         from rizum_pattern_masks import contour
-        pr = sg._params(s, bpy.context.scene)
+        pr = layers._params(s, bpy.context.scene)
         hh = max(abs(pr["inset"]) / 5.0, topo.mean_edge / 48.0, topo.span * 1e-5)
         raw, _ = contour.inset_lines(topo, e["chains"], pr["inset"], pr["flip"], e["corners"],
                                      max(pr.get("corner_inset", 0.0), 0.0), hh)

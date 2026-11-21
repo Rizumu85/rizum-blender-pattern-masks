@@ -12,6 +12,7 @@ import bmesh
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))
 import rizum_pattern_masks as sg  # noqa: E402
+from rizum_pattern_masks import bake, ops_bake  # noqa: E402
 
 args = sys.argv[sys.argv.index("--") + 1:]
 out_dir = args[0]
@@ -55,7 +56,7 @@ print(f"STATUS={s.status!r} dashes={data.dash_count} width_px={rib.width_px:.2f}
       f"verts={len(rib.co)} band_polys={len(rib.band_polys)}")
 
 t3 = time.perf_counter()
-paths = sg.bake.bake_masks(sg.bake.BakeSession(bpy.context, ob, [(rib, "stitch")], s,
-                                               sg._mask_material()))
+paths = bake.bake_masks(bake.BakeSession(bpy.context, ob, [(rib, "stitch")], s,
+                                         ops_bake._mask_material()))
 print(f"BAKE {1000*(time.perf_counter()-t3):.0f}ms -> {paths}")
 bpy.ops.wm.save_as_mainfile(filepath=os.path.join(out_dir, "result.blend"), copy=True)

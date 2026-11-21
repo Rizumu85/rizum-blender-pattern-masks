@@ -29,11 +29,11 @@ obj_name, out_dir = args[0], args[1]
 pkg_dir = args[2] if len(args) > 2 else os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, pkg_dir)
 import rizum_pattern_masks as sg  # noqa: E402
-from rizum_pattern_masks import core, bake  # noqa: E402
+from rizum_pattern_masks import bake, core, load, ops_bake  # noqa: E402
 
 os.makedirs(out_dir, exist_ok=True)
 sg.register()
-sg._on_load(None)
+load._on_load(None)
 ob = bpy.data.objects[obj_name]
 bpy.context.view_layer.objects.active = ob
 ob.select_set(True)
@@ -134,7 +134,7 @@ s.output_dir = out_dir
 s.transparent = False
 s.resolution = '4096'
 paths = bake.bake_masks(bake.BakeSession(bpy.context, ob, [(d.stitches[0][1], "stitch")], s,
-                                         sg._mask_material()))
+                                         ops_bake._mask_material()))
 img = bpy.data.images.load(paths[0])
 img.colorspace_settings.name = "Non-Color"
 res = img.size[0]

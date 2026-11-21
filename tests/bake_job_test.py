@@ -10,6 +10,7 @@ import bpy
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import rizum_pattern_masks as sg  # noqa: E402
+from rizum_pattern_masks import layers  # noqa: E402
 
 out_dir, log_path = sys.argv[sys.argv.index("--") + 1:][:2]
 sg.register()
@@ -56,7 +57,7 @@ def beat():
     wm = bpy.context.window_manager
     beats.append(time.time())
     if len(beats) == 4:
-        src = sg._source_object(bpy.context)
+        src = layers._source_object(bpy.context)
         log(f"during bake: active {bpy.context.view_layer.objects.active.name}, panel shows "
             f"{src.name if src else None}, folder {src.stitch_gen.output_dir if src else None}")
         with bpy.context.temp_override(window=wm.windows[0]):

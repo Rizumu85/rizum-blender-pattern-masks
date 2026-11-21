@@ -14,8 +14,8 @@ import bmesh
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import rizum_pattern_masks as sg  # noqa: E402
+from rizum_pattern_masks import core, preview, rebuild  # noqa: E402
 from tests import _preview as pv  # noqa: E402
-from rizum_pattern_masks import core, preview  # noqa: E402
 
 log_path = sys.argv[sys.argv.index("--") + 1]
 open(log_path, "w").close()
@@ -49,7 +49,7 @@ def state():
         "line_faces": sum(pv.line_faces(ob).values()),
         "stitch_faces": pv.stitch_faces(ob),
         "line_colors": sorted(tuple(round(c, 2) for c in v[:3])
-                              for k, v in sg._layer_colors(ob).items()),
+                              for k, v in rebuild._layer_colors(ob).items()),
     }
 
 
@@ -61,12 +61,12 @@ def settle():
     w = bpy.context.window_manager.windows[0]
     with bpy.context.temp_override(window=w):
         bpy.ops.wm.redraw_timer(type='DRAW_WIN', iterations=1)
-    sg._flush()
-    for name in list(sg._pending):
+    rebuild._flush()
+    for name in list(rebuild._pending):
         ob = bpy.data.objects.get(name)
         if ob is not None:
             sg.regenerate(ob)
-    sg._pending.clear()
+    rebuild._pending.clear()
 
 
 def check(label, do):

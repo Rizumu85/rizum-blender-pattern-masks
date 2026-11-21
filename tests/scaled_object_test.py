@@ -9,7 +9,7 @@ from mathutils import Matrix
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import rizum_pattern_masks as sg  # noqa: E402
-from rizum_pattern_masks import bake  # noqa: E402
+from rizum_pattern_masks import bake, ops_bake  # noqa: E402
 
 out = sys.argv[sys.argv.index("--") + 1]
 os.makedirs(out, exist_ok=True)
@@ -35,7 +35,7 @@ bpy.ops.object.mode_set(mode='OBJECT')
 s.inset, s.smooth, s.length, s.gap, s.width = 4.0, 2.0, 4.0, 2.5, 1.2
 d = sg.regenerate(ob)
 paths = bake.bake_masks(bake.BakeSession(bpy.context, ob, [(d.stitches[0][1], "stitch")], s,
-                                         sg._mask_material()))
+                                         ops_bake._mask_material()))
 v = np.empty(2048 * 2048 * 4, np.float32)
 img = bpy.data.images.load(paths[0])
 img.colorspace_settings.name = "Non-Color"

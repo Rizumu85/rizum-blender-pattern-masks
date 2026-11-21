@@ -16,8 +16,8 @@ import numpy as np
 out_dir = sys.argv[sys.argv.index("--") + 1]
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import rizum_pattern_masks as sg  # noqa: E402
+from rizum_pattern_masks import core, rebuild  # noqa: E402
 from tests import _preview as pv  # noqa: E402
-from rizum_pattern_masks import core  # noqa: E402
 
 sg.register()
 os.makedirs(out_dir, exist_ok=True)
@@ -65,7 +65,8 @@ mark(2, lambda zs: all(z > -0.01 for z in zs))     # line2's own edges: the wais
 s.lines[2].color = (1.0, 0.0, 0.0, 1.0)
 sg.regenerate(ob)
 print("RESULT line layers shown", pv.line_faces(ob),
-      "colors", {k: tuple(round(c, 2) for c in v[:3]) for k, v in sg._layer_colors(ob).items()})
+      "colors", {k: tuple(round(c, 2) for c in v[:3])
+                 for k, v in rebuild._layer_colors(ob).items()})
 from rizum_pattern_masks import overlay  # noqa: E402
 print("RESULT overlay shown", [a for a, _, _ in overlay._shown(ob)])
 s.lines[1].show_marks = False

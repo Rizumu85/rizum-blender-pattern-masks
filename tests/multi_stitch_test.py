@@ -17,8 +17,8 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import rizum_pattern_masks as sg  # noqa: E402
+from rizum_pattern_masks import bake, layers, rebuild  # noqa: E402
 from tests import _preview as pv  # noqa: E402
-from rizum_pattern_masks import bake  # noqa: E402
 
 out_dir = sys.argv[sys.argv.index("--") + 1]
 os.makedirs(out_dir, exist_ok=True)
@@ -74,7 +74,7 @@ check("first stitch layer named stitch", hem.name == "stitch", hem.name)
 mark(ob, lambda z: z < -0.265)
 
 bpy.ops.stitch_gen.stitch_add()
-check("a second stitch layer can be added", len(sg._stitch_items(s)) == 2, len(s.lines))
+check("a second stitch layer can be added", len(layers._stitch_items(s)) == 2, len(s.lines))
 waist = s.lines[s.line_index]
 check("second stitch layer has its own name and edges",
       waist.name == "stitch2" and waist.edge_attr != hem.edge_attr, waist.name, waist.edge_attr)
@@ -93,7 +93,7 @@ check("the layers' counts", hem.dash_count > 0 and waist.dash_count > 0,
       hem.dash_count, waist.dash_count)
 check("both layers in the preview", pv.stitch_layers(ob) == [hem.edge_attr, waist.edge_attr],
       pv.stitch_layers(ob))
-cols = sg._layer_colors(ob)
+cols = rebuild._layer_colors(ob)
 check("each in its own color", np.allclose(cols[waist.edge_attr][:3], (0.1, 0.4, 1.0), atol=1e-4),
       cols)
 
@@ -141,7 +141,7 @@ s.line_index = 1
 attr = waist.edge_attr
 bpy.ops.stitch_gen.line_remove()
 check("stitch layer removed with its edges",
-      len(sg._stitch_items(s)) == 1 and attr not in ob.data.attributes, attr)
+      len(layers._stitch_items(s)) == 1 and attr not in ob.data.attributes, attr)
 sg.regenerate(ob, bpy.context.scene)
 check("preview back to one layer", len(pv.stitch_layers(ob)) == 1, pv.stitch_layers(ob))
 
