@@ -7,7 +7,7 @@
       "id": "rizum_pattern_masks",
       "name": "Rizum Pattern Masks",
       "tagline": "Patterns that follow the mesh, baked to UV masks",
-      "version": "0.5.0",
+      "version": "0.5.1",
       "type": "add-on",
       "maintainer": "Rizum",
       "license": [
@@ -27,9 +27,9 @@
         "Paint",
         "UV"
       ],
-      "archive_url": "./rizum_pattern_masks-0.5.0.zip",
-      "archive_size": 265924,
-      "archive_hash": "sha256:1d5d5e7fa4de56880024acac820c7c3d868560c98236da78afaeb6a4f5d051e4"
+      "archive_url": "./rizum_pattern_masks-0.5.1.zip",
+      "archive_size": 275808,
+      "archive_hash": "sha256:1e038cb1f8b9bf8cb07e72837cd40ba59d549070f33b470d819b626cf2b5cd26"
     }
   ]
 }

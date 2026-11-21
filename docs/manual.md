@@ -19,7 +19,7 @@ then search for *Pattern Masks* in Get Extensions and install it. This needs
 **Allow Online Access** in Blender.
 
 From a zip: Edit > Preferences > Get Extensions > ⌄ (top right) > **Install
-from Disk…** > `rizum_pattern_masks-0.5.0.zip`.
+from Disk…** > `rizum_pattern_masks-0.5.1.zip`.
 
 The panel is in the 3D View sidebar (N) under **Pattern Masks**.
 
