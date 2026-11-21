@@ -634,10 +634,10 @@ THEME_HEAD = ("(function(){var d=document.documentElement,t=null;try{t=localStor
 # the add-on's sidebar shot per language (docs/source/panel_shot.py, run in a
 # scratch Blender config set to that interface language; the tab moves with the
 # language, so its click position does too), and where the tab sits: top and
-# height in %, measured on the image (310 x 666 px: the tab is x 283-303, the
+# height in %, measured on the image (310 x 707 px: the tab is x 283-303, the
 # panel region ends at x 273)
-SIDEBAR_SHOT = {"en": ("sidebar.png", 35.9, 15.0), "zh-CN": ("sidebar.zh-CN.png", 29.1, 9.9),
-                "ja": ("sidebar.ja.png", 45.3, 15.3)}
+SIDEBAR_SHOT = {"en": ("sidebar.png", 35.4, 14.1), "zh-CN": ("sidebar.zh-CN.png", 29.1, 9.1),
+                "ja": ("sidebar.ja.png", 44.4, 14.1)}
 
 FIG_IMG = {
     "fig-hero-render": ("render.png", "dark", ""),
@@ -821,7 +821,7 @@ def figure(fid, lang):
     if fid == "fig-install":           # the sidebar of the real add-on in the page's language, its tab marked
         img, top, h = SIDEBAR_SHOT.get(lang, SIDEBAR_SHOT["en"])
         return ('<figure class="fig shot" id="shot-install"><div class="shot-box">'
-                f'<img src="../img/{img}" alt="" width="310" height="666" loading="lazy">'
+                f'<img src="../img/{img}" alt="" width="310" height="707" loading="lazy">'
                 f'<span class="hs" data-hs="tab" style="left:91.3%;top:{top}%;width:6.5%;height:{h}%"></span>'
                 '<span class="hs" data-hs="panel" style="left:0.7%;top:0.3%;width:86.8%;height:99.4%"></span>'
                 '</div></figure>')

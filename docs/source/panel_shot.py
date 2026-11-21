@@ -1,7 +1,7 @@
 """Screenshot Blender with the demo skirt and the add-on's panel, for the
 extension listing (with Blender's user folders in a scratch folder):
 
-blender --enable-event-simulate <demo.blend> -P docs/source/panel_shot.py -- <out.png> <layer> [tab_x tab_y]
+blender --enable-event-simulate <demo.blend> -P docs/source/panel_shot.py -- <out.png> <layer> [tab_x tab_y [language]]
 
 Scripts can't switch the sidebar tab: pass the window position of the
 "Pattern Masks" tab (origin bottom left; find it on a first shot without).
@@ -15,11 +15,14 @@ argv = sys.argv[sys.argv.index("--") + 1:]
 out = argv[0]
 layer = argv[1]
 tab = (int(argv[2]), int(argv[3])) if len(argv) > 3 else None
+lang = argv[4] if len(argv) > 4 else 'en_US'       # the interface language, as Blender names it
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 import rizum_pattern_masks as sg  # noqa: E402
 
 sg.register()
-bpy.context.preferences.view.language = 'en_US'
+view = bpy.context.preferences.view
+view.language = lang
+view.use_translate_interface = view.use_translate_tooltips = True
 ob = bpy.data.objects["Skirt"]
 
 
