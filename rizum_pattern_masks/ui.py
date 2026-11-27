@@ -273,8 +273,8 @@ class VIEW3D_PT_stitch_gen(bpy.types.Panel):
         stitch = _is_stitch(item)
         is_grid = _is_grid(item)
 
-        # marking, in working order: the selected layer's edges, then the
-        # corners and side, which all layers share (a corner is a vertex)
+        # marking, in working order: the selected layer's edges, the corners,
+        # which all layers share (a corner is a vertex), then the layer's side
         mark = lay.column()
         r, end = _tool_row(mark, "Edges", tail=True)
         r = _icon_group(r, 4)
@@ -303,7 +303,7 @@ class VIEW3D_PT_stitch_gen(bpy.types.Panel):
             icons.operator("stitch_gen.corner_select", text="", icon='RESTRICT_SELECT_OFF')
             r.operator("stitch_gen.corner_detect", text="Auto")
             _marks_toggle(end, s, "show_corners", "corners")
-            mark.prop(s, "flip")
+            mark.prop(item, "flip")
 
         # the selected layer's own settings, with its presets
         header, body = lay.panel("stitch_gen_layer", default_closed=False)

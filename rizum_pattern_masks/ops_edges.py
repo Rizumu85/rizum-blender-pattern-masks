@@ -266,15 +266,21 @@ class STITCHGEN_OT_path_clear(_EditPathBase, bpy.types.Operator):
 def _detect_and_mark(ob, bm, select):
     """Mark likely corners on the path vertices (replacing marks there).
     Returns the number of marked corners."""
+    _ensure_layers(ob)                       # an older file: each layer's side first
     ob.update_from_editmode()
     tmp = ob.to_mesh(preserve_all_data_layers=True)
     try:
         topo = core.Topology(tmp, ob.matrix_world, "")
-        chains = core.build_chains(
-            topo.path_pairs(tmp, tuple([core.PATH_ATTR] + core.line_attr_names(tmp))), topo.co)
+        # the edges of layers on the other side are judged on that side
+        flipped = {_layer_attr(l) for l in ob.stitch_gen.lines if l.flip and not _is_grid(l)}
+        names = [core.PATH_ATTR] + core.line_attr_names(tmp)
         found = set()
-        for ids, closed in chains:
-            found.update(core.detect_corner_vertices(topo, ids, closed, ob.stitch_gen.flip))
+        for flip in (False, True):
+            group = tuple(n for n in names if (n in flipped) == flip)
+            if not group:
+                continue
+            for ids, closed in core.build_chains(topo.path_pairs(tmp, group), topo.co):
+                found.update(core.detect_corner_vertices(topo, ids, closed, flip))
         weld = topo.vert_weld
     finally:
         ob.to_mesh_clear()

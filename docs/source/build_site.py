@@ -132,9 +132,9 @@ PRACTICE = {
                     "Tick **Flip Side**."
                 ],
                 "results": [
-                    "The middle line moved above its edge. The hem lines left the cloth: a border has nothing on its other side."
+                    "The middle line moved above its edges. The hem stitches stayed: only the selected layer changed side."
                 ],
-                "done": "Untick it and the lines come back."
+                "done": "Untick it and the line goes back."
             },
             "lineart": {
                 "steps": [
@@ -324,9 +324,9 @@ PRACTICE = {
                     "勾上 **翻到另一侧**。"
                 ],
                 "results": [
-                    "中间那条线移到了边的上方。下摆的线跑到了布外：边缘的另一侧什么都没有。"
+                    "中间那条线移到了边的上方。下摆的缝线没动：只有选中的图层换了一侧。"
                 ],
-                "done": "取消勾选，线就回来了。"
+                "done": "取消勾选，线就回到原来那侧。"
             },
             "lineart": {
                 "steps": [
@@ -516,9 +516,9 @@ PRACTICE = {
                     "**反対側** にチェックを入れます。"
                 ],
                 "results": [
-                    "真ん中の線が辺の上側に移りました。裾の線は布の外に出ています。縁の外側には何もないからです。"
+                    "真ん中の線が辺の上側に移りました。裾のステッチはそのままです。側が変わるのは選択中のレイヤーだけです。"
                 ],
-                "done": "チェックを外すと線が戻ります。"
+                "done": "チェックを外すと線が元の側に戻ります。"
             },
             "lineart": {
                 "steps": [

@@ -6,7 +6,7 @@ import bpy
 
 from . import core, layers, overlay, preview
 from .layers import (
-    STITCH_COLOR, _default_name, _line_items, _new_stitch_layer, _stitch_from_stored,
+    STITCH_COLOR, _default_name, _is_grid, _line_items, _new_stitch_layer, _stitch_from_stored,
     _stitch_items, _uses_addon,
 )
 
@@ -24,6 +24,7 @@ def _ensure_layers(ob):
     if s.ui_version >= 1:
         _migrate_references(ob)
         _migrate_stitch_layers(ob)
+        _migrate_flip(ob)
         return
     _migrate_line_layers(ob)      # also when the file was open before the add-on
     _migrate_units(s)             # before the stitch row takes the stored values
@@ -45,9 +46,27 @@ def _ensure_layers(ob):
         layers._MUTE = False
     _migrate_references(ob)
     _migrate_stitch_layers(ob)
+    _migrate_flip(ob)
 
 
-UI_VERSION = 3   # 1: the layer list (0.3.0); 2: references; 3: stitch layers (0.4.0)
+# 1: the layer list (0.3.0); 2: references; 3: stitch layers (0.4.0); 4: a side
+# per layer (0.5.2)
+UI_VERSION = 4
+
+
+def _migrate_flip(ob):
+    """Before 0.5.2 one Flip Side served all layers: each layer takes it."""
+    s = ob.stitch_gen
+    if s.ui_version >= 4:
+        return
+    layers._MUTE = True
+    try:
+        if s.flip:
+            for l in s.lines:
+                l.flip = not _is_grid(l)        # grids have no side
+        s.ui_version = 4
+    finally:
+        layers._MUTE = False
 
 
 def _migrate_stitch_layers(ob):

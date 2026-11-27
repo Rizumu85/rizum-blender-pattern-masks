@@ -23,7 +23,6 @@ def _params(s, scene):
     # UI values are millimetres; geometry works in scene units.
     k = 0.001 / (scene.unit_settings.scale_length or 1.0)
     return {
-        "flip": s.flip,
         "offset": 0.0,                     # sliding the stitches was dropped in 0.3.0
         "resolution": int(s.resolution),
         "corner": 0.0,
@@ -31,10 +30,11 @@ def _params(s, scene):
         "stitch_layers": tuple(
             (_layer_attr(l), _edge_spec(s, l), l.inset * k, l.stitch_smooth * k,
              l.corner_inset * k, l.length * k, l.gap * k, l.thread_width * k, l.roundness,
-             l.even, l.zigzag_height * k if l.style == 'ZIGZAG' else 0.0)
+             l.even, l.zigzag_height * k if l.style == 'ZIGZAG' else 0.0, l.flip)
             for l in _stitch_items(s) if l.enabled),
         "lines": tuple((l.offset * k, l.width * k, l.corner_inset * k, _edge_spec(s, l),
-                        l.smooth * k, _layer_attr(l)) for l in _line_items(s) if l.enabled),
+                        l.smooth * k, _layer_attr(l), l.flip)
+                       for l in _line_items(s) if l.enabled),
         "grids": tuple((_layer_attr(l), l.grid_cell * k, l.grid_angle, l.grid_from * k,
                         l.grid_along * k, l.grid_wobble, l.grid_layout.lower(), _edge_spec(s, l))
                        for l in _grid_items(s) if l.enabled),
@@ -204,11 +204,11 @@ def _new_line_layer(ob, kind='LINE'):
 
 
 def _line_layers(s, scene):
-    """[(name, offset, width, corner depth, edge sets followed, smooth, own edges)]
-    of the enabled line layers."""
+    """[(name, offset, width, corner depth, edge sets followed, smooth, own edges,
+    flip)] of the enabled line layers."""
     k = 0.001 / (scene.unit_settings.scale_length or 1.0)
     return [(l.name, l.offset * k, l.width * k, l.corner_inset * k, _edge_spec(s, l),
-             l.smooth * k, _layer_attr(l)) for l in _line_items(s)
+             l.smooth * k, _layer_attr(l), l.flip) for l in _line_items(s)
             if l.enabled and l.width > 0]
 
 

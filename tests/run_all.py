@@ -49,6 +49,7 @@ FUNCTIONAL = [
     ("edge_sets_test", SKIRT, False, "dir"),
     ("exclude_test", SKIRT, False, None),
     ("fork_loop_test", None, False, None),
+    ("flip_test", SKIRT, False, None),
     ("grid_test", SKIRT, False, "dir"),
     ("multi_test", SKIRT, False, "dir"),
     ("multi_stitch_test", SKIRT, False, "dir"),

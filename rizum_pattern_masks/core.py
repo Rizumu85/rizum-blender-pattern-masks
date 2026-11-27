@@ -1416,7 +1416,7 @@ _cache = {}
 
 def generate(key_obj, me, mw, p):
     """key_obj: cache key. me: mesh (object mode data). mw: world matrix.
-    p: dict with flip, offset, resolution, uv_name, stitch_layers (see
+    p: dict with offset, resolution, uv_name, stitch_layers (see
     _stitch_ribbons), lines and grids. Returns (RibbonData, Topology): the
     stitches of each stitch layer in .stitches, the line art strips on it."""
     geo, corners, marks = mesh_signature(me, mw, p["uv_name"])
@@ -1465,19 +1465,18 @@ def generate(key_obj, me, mw, p):
     rib.dash_count = sum(r.dash_count for _a, r in rib.stitches)
     # line art preview strips, cached per layer settings
     layers = tuple(p.get("lines", ()))
-    line_key = (layers, p["flip"])
-    if entry.get("line_key") != line_key:
+    if entry.get("line_key") != layers:
         from . import lineart
         strips = entry["line_strips"]                     # per layer: (its key, co, quads)
         cos, quads, owner, base = [], [], [], 0
         for li, l in enumerate(layers):
             hit = strips.get(l[5])
-            if hit is None or hit[0] != (l, p["flip"]):
+            if hit is None or hit[0] != l:
                 ch = line_chains(entry, l[3])
-                co, q = (lineart.strips(topo, ch, entry["corners"], p["flip"],
+                co, q = (lineart.strips(topo, ch, entry["corners"], l[6],
                                         [(l[0], l[1], l[2], l[4])]) if ch else
                          (np.zeros((0, 3)), np.zeros((0, 4), np.int64)))
-                hit = strips[l[5]] = ((l, p["flip"]), co, q)
+                hit = strips[l[5]] = (l, co, q)
             _key, co, q = hit
             if not len(q):
                 continue
@@ -1487,7 +1486,7 @@ def generate(key_obj, me, mw, p):
             base += len(co)
         geo = ((np.vstack(cos), np.vstack(quads), np.concatenate(owner)) if quads else
                (np.zeros((0, 3)), np.zeros((0, 4), np.int64), np.zeros(0, np.int64)))
-        entry["line_key"] = line_key
+        entry["line_key"] = layers
         entry["line_geo"] = geo
     rib.line_co, rib.line_quads, rib.line_layer = entry["line_geo"]
     return rib, topo
@@ -1503,7 +1502,7 @@ def _forget(entry, hit, keep_chains=False):
             del entry["line_chains"][k]
         for k in [k for k in entry["grid_coords"] if hit(k)]:
             del entry["grid_coords"][k]
-    for k in [k for k, v in entry["line_strips"].items() if hit(v[0][0][3])]:
+    for k in [k for k, v in entry["line_strips"].items() if hit(v[0][3])]:
         del entry["line_strips"][k]
     for c in entry["stitch"].values():
         if c.get("spec") is not None and hit(c["spec"]):
@@ -1578,13 +1577,14 @@ def grid_coords(entry, spec):
 def _stitch_ribbons(entry, topo, chains, p, sl, cache):
     """The stitches of one stitch layer. sl: (edge attribute, edge spec, inset,
     smooth, corner depth, length, gap, width, roundness, even, zigzag height or
-    0); cache: this layer's centerlines, kept while its line stays the same."""
-    _attr, spec, inset, smooth, corner_inset, length, gap, width, roundness, even, zigzag = sl
-    cl_key = (inset, smooth, p["flip"], p.get("corner", 0.0), corner_inset, spec)
+    0, flip); cache: this layer's centerlines, kept while its line stays the same."""
+    (_attr, spec, inset, smooth, corner_inset, length, gap, width, roundness, even, zigzag,
+     flip) = sl
+    cl_key = (inset, smooth, flip, p.get("corner", 0.0), corner_inset, spec)
     if cache["cl_key"] != cl_key:
         ds = centerline_spacing(topo, chains, smooth)
         cache["cls"] = build_lines(topo, [c for c in chains if len(c[0]) >= 2], inset, smooth,
-                                   p["flip"], ds, entry["corners"], corner_inset)
+                                   flip, ds, entry["corners"], corner_inset)
         cache["cl_key"] = cl_key
         cache["cl_ver"] = cache.get("cl_ver", 0) + 1    # its edges may change, the key not
         cache["spec"] = spec

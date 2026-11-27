@@ -97,7 +97,7 @@ function placeBadge(hole, x, y) {
   function fresh() {
     nextId = 1;
     st = { layers: [], active: null, sel: new Set(), vsel: new Set(), corners: new Set(), showCorners: true,
-           flip: false, pick: false, menu: false, more: false, bgmenu: false, refmenu: false, pmenu: false, live: true, allMarks: true, step: 0,
+           pick: false, menu: false, more: false, bgmenu: false, refmenu: false, pmenu: false, live: true, allMarks: true, step: 0,
            baked: false, view: "model", bg: "black", obj: "Skirt", mat: "Cloth",
            presets: [], star: null, pname: S.presetName || "", applied: false, usedDefault: false };
   }
@@ -124,7 +124,7 @@ function placeBadge(hole, x, y) {
       name: name || (kind === "stitch" ? S.stitches + k : kind === "grid" ? S.grid : S.lineArt + k),
       file: "stitch" + (n ? n + 1 : "") },              // a stitch layer's default file name
       DEFAULTS[kind]);
-    Object.assign(L, { id: nextId++, own: new Map(), ref: null, marks: true, visible: true });
+    Object.assign(L, { id: nextId++, own: new Map(), ref: null, marks: true, visible: true, flip: false });
     st.layers.push(L);
     st.active = L.id;
     return L;
@@ -269,7 +269,7 @@ function placeBadge(hole, x, y) {
           hint: () => hasAll(st.sel, scallops[1]) ? ["[data-act=c-remove]"] : { edges: scallops[1] },
           skip: () => { st.corners.delete(cusps[0]); st.corners.delete(cusps[1]); st.corners.add(cusps[2]); } },
       ] },
-    // Flip Side: the hip line changes side, the hem lines leave the cloth
+    // Flip Side: the selected layer (the hip line) changes side, the hem stitches stay
     flip: { rows: ["flip"], view: "40 128 440 346",
       preset: () => {
         const T = addLayer("stitch"); hem.forEach((e) => T.own.set(e, 1));
@@ -277,7 +277,7 @@ function placeBadge(hole, x, y) {
         const L = addLayer("line"); L.width = 1.5; hips.forEach((e) => L.own.set(e, 1));   // wide enough to see it move
       },
       steps: [
-        { goal: () => st.flip, hint: () => ["[data-act=flip]"], skip: () => { st.flip = true; } },
+        { goal: () => lineL().flip, hint: () => ["[data-act=flip]"], skip: () => { lineL().flip = true; } },
       ] },
   };
   // Line art: From Edge and Width
@@ -340,14 +340,16 @@ function placeBadge(hole, x, y) {
     if (!act.length) return null;
     const verts = new Set();
     act.forEach((k) => { verts.add(E[k].a); verts.add(E[k].b); });
-    const key = act.join(",") + "|" + st.flip + "|" + [...st.corners].filter((v) => verts.has(v)).sort().join(",");
+    const key = act.join(",") + "|" + L.flip + "|" + [...st.corners].filter((v) => verts.has(v)).sort().join(",");
     if (fieldCache.has(key)) return fieldCache.get(key);
-    const sgn = st.flip ? -1 : 1, at = new Map();
+    const sgn = L.flip ? -1 : 1, at = new Map();
     const G = act.map((k, i) => {
       const e = E[k];
       for (const v of [e.a, e.b]) (at.get(v) || at.set(v, []).get(v)).push(i);
       return { a: e.a, b: e.b, ax: V[e.a][0], ay: V[e.a][1], bx: V[e.b][0], by: V[e.b][1],
-               ux: e.ux, uy: e.uy, len: e.len, nx: e.nx * sgn, ny: e.ny * sgn };
+               ux: e.ux, uy: e.uy, len: e.len,
+               // a border has no cloth on its other side: its line stays on the cloth
+               nx: e.border ? e.nx : e.nx * sgn, ny: e.border ? e.ny : e.ny * sgn };
     });
     G.forEach((g, i) => { g.oa = at.get(g.a).filter((j) => j !== i); g.ob = at.get(g.b).filter((j) => j !== i); });
     const val = new Float32Array(NX * NY), ok = new Uint8Array(NX * NY);
@@ -677,7 +679,7 @@ function placeBadge(hole, x, y) {
           ${btn("c-add", icon("add"), S.add)}${btn("c-remove", icon("remove"), S.remove)}
           ${btn("c-select", icon("select"), S.select)}<button type="button" data-act="c-auto" class="txt">${esc(S.auto)}</button></div>
           <div class="tail">${btn("c-marks", icon("corner"), S.showCorners, `class="t${st.showCorners ? "" : " off"}"`)}</div></div>`,
-        flip: `<div class="bp-row"><span></span><label class="chk" data-act="flip"><input type="checkbox"${st.flip ? " checked" : ""}>${esc(S.flip)}</label></div>`,
+        flip: A.kind === "grid" ? "" : `<div class="bp-row"><span></span><label class="chk" data-act="flip"><input type="checkbox"${A.flip ? " checked" : ""}>${esc(S.flip)}</label></div>`,
         from: `<div class="bp-row"><span class="lb">${esc(S.fromEdge)}</span>${num("from", A, 0, 10, 0.5)}</div>`,
         along: `<div class="bp-row"><span class="lb">${esc(S.along)}</span>${num("along", A, -10, 10, 0.5)}</div>`,
         angle: `<div class="bp-row"><span class="lb">${esc(S.angle)}</span>${num("angle", A, -90, 90, 5, "°")}</div>`,
@@ -898,7 +900,7 @@ function placeBadge(hole, x, y) {
       case "refmenu": st.refmenu = !st.refmenu; break;
       case "ref-set": { const L = byId(id); if (A && L && L !== A && !refersTo(L, A.id)) A.ref = L.id; break; }
       case "ref-clear": if (A) A.ref = null; break;
-      case "flip": st.flip = !st.flip; break;
+      case "flip": if (A) A.flip = !A.flip; break;
       case "bake": bake(); break;
       case "bgmenu": st.bgmenu = !st.bgmenu; break;
       case "bg-black": st.bg = "black"; break;

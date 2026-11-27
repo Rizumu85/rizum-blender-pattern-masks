@@ -219,8 +219,9 @@ def a_toggles():
     if len(s.lines):
         item = s.lines[rng.randrange(len(s.lines))]
         setattr(item, rng.choice(["enabled", "show_marks"]), rng.random() < 0.6)
-    if rng.random() < 0.3:
-        s.flip = not s.flip
+    if rng.random() < 0.3 and len(s.lines):
+        item = s.lines[rng.randrange(len(s.lines))]
+        item.flip = not item.flip
     if rng.random() < 0.3:
         bpy.context.scene.stitch_gen_marks = rng.random() < 0.7
     if rng.random() < 0.2:

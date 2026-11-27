@@ -105,6 +105,8 @@ class StitchGenLine(bpy.types.PropertyGroup):
     show_marks: BoolProperty(name="Show Edges", default=True, update=_on_marks,
                              description="Show this layer's marked edges in the viewport "
                                          "(display only)")
+    flip: BoolProperty(name="Flip Side", default=False, update=_on_change,
+                       description="Put this layer's line on the other side of its edges")
     color: bpy.props.FloatVectorProperty(
         name="Color", subtype='COLOR', size=4, min=0.0, max=1.0,
         default=(0.0, 0.0, 0.0, 1.0), update=_on_color,
@@ -248,8 +250,8 @@ class StitchGenSettings(bpy.types.PropertyGroup):
     live: BoolProperty(name="Live", default=True, update=_on_change,
                        description="Rebuild the stitches while you change the values")
 
-    flip: BoolProperty(name="Flip Side", default=False, update=_on_change,
-                       description="Inset to the other side of the picked edges")
+    # before 0.5.2 one side for all layers: each layer has its own now (_migrate_flip)
+    flip: BoolProperty(default=False, options={'HIDDEN'})
 
     offset: _mm("Offset", 0.0, "Slide the stitches along the line", minv=-1000.0,
                 soft_max=20.0)

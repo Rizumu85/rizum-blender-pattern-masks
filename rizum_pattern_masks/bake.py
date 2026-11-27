@@ -532,7 +532,7 @@ class LineBake:
 
     def __init__(self, obj, entry, settings, layers):
         """layers: [(name, offset, width, corner_depth, edge sets followed, smooth,
-        edge attribute)] in scene units."""
+        edge attribute, flip)] in scene units."""
         self.folder = output_folder(settings)
         self.obj, self.settings = obj, settings
         self.res = int(settings.resolution)
@@ -543,18 +543,18 @@ class LineBake:
         if topo.uv is None:
             raise RuntimeError(rpt("{} has no UV map").format(obj.name))
         self.names = unique_names([l[0] for l in layers])
-        # one distance field per set of edges followed
+        # one distance field per set of edges followed and side
         self.parts = []                      # (layer indices, field, faces)
         faces = []
-        for spec in dict.fromkeys(l[4] for l in layers):
-            idx = [i for i, l in enumerate(layers) if l[4] == spec]
+        for spec, flip in dict.fromkeys((l[4], l[7]) for l in layers):
+            idx = [i for i, l in enumerate(layers) if (l[4], l[7]) == (spec, flip)]
             chains = core.line_chains(entry, spec)
             if not idx or not chains:
                 continue
             sub = [(layers[i][1], layers[i][2], layers[i][3], layers[i][5]) for i in idx]
-            field, f = lineart.field_for(topo, chains, entry["corners"], settings.flip, sub)
+            field, f = lineart.field_for(topo, chains, entry["corners"], flip, sub)
             if field is not None:
-                inner = [lineart.inner_curves(topo, chains, entry["corners"], settings.flip,
+                inner = [lineart.inner_curves(topo, chains, entry["corners"], flip,
                                               *l) if l[3] > 0 else None for l in sub]
                 self.parts.append((idx, sub, field, f, inner))
                 faces.append(f)

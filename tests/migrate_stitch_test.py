@@ -11,7 +11,7 @@ import bpy
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import rizum_pattern_masks as sg  # noqa: E402
-from rizum_pattern_masks import layers, load  # noqa: E402
+from rizum_pattern_masks import layers, load, migrate  # noqa: E402
 
 fails = []
 
@@ -40,7 +40,8 @@ for name, raw in stored.items():
         continue
     found += 1
     st = rows[0]
-    check(f"{name}: stitch row is a stitch layer", st.kind == 'STITCH' and s.ui_version == 3,
+    check(f"{name}: stitch row is a stitch layer",
+          st.kind == 'STITCH' and s.ui_version == migrate.UI_VERSION,
           st.kind, s.ui_version)
     check(f"{name}: one stitch layer", len(rows) == 1, len(rows))
     check(f"{name}: named for its old file", st.name == "stitch", st.name)

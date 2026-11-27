@@ -108,8 +108,9 @@ Beside the list, under + and −, the play toggle turns live updates on or off
 (turn it off for very heavy meshes); the refresh button under it rebuilds once
 (also after you move vertices).
 
-**Flip Side** (under Sharp Corners, for all rows) puts the stitches and lines on the other side of the picked edges
-(needed for edges in the middle of the mesh).
+**Flip Side** (under Sharp Corners, each layer its own) puts the selected layer's
+stitches or line on the other side of its edges (needed for edges in the middle of
+the mesh; leave it off on a border, which has no cloth on its other side).
 
 ### Stitches
 

@@ -272,7 +272,7 @@
     {
      "id": "side",
      "heading": "Flip Side",
-     "body": "**Flip Side** moves every line to the other side of its edges.\n\nUse it for edges inside the mesh. A border has no cloth on its other side, so its lines disappear.\n\n> Shared by all layers.",
+     "body": "**Flip Side** moves the selected layer's line to the other side of its edges.\n\nUse it for edges inside the mesh. Leave it off on a border: there is no cloth on its other side.\n\n> Each layer has its own.",
      "table": [],
      "figure": "sb-flip"
     }

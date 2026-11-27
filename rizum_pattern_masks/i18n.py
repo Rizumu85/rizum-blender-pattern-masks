@@ -96,7 +96,7 @@ ZH = {
     "Rebuild the stitches while you change the values": "改数值时自动重新生成缝线",
     "Evens out low-poly zigzags along the line; larger values also flatten curves":
         "抹平低模边上的折线；数值越大，弧线也会被拉平",
-    "Inset to the other side of the picked edges": "向所选边的另一侧内缩",
+    "Put this layer's line on the other side of its edges": "把这一层的线放到边的另一侧",
     "Space between stitches": "针脚之间的空隙",
     "Thread width": "线的宽度",
     "Corner radius of each stitch as a fraction of half its width (1 = fully round ends)":
@@ -350,7 +350,7 @@ JA = {
     "Rebuild the stitches while you change the values": "値を変えるたびにステッチを作り直します",
     "Evens out low-poly zigzags along the line; larger values also flatten curves":
         "ローポリの辺のガタつきを線に沿ってならします。値を大きくすると曲線も平らになります",
-    "Inset to the other side of the picked edges": "選んだ辺の反対側に入れます",
+    "Put this layer's line on the other side of its edges": "このレイヤーの線を辺の反対側に置きます",
     "Space between stitches": "ステッチ同士の間隔",
     "Thread width": "糸の太さ",
     "Corner radius of each stitch as a fraction of half its width (1 = fully round ends)":
